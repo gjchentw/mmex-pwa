@@ -3,9 +3,9 @@
 <template>
   <q-layout view="hHh lpR fFf">
 
-    <q-header bordered class="bg-primary text-white">
+    <q-header elevated class="bg-primary text-white">
       <q-toolbar>
-        <q-btn dense flat round icon="menu" @click="toggleLeftDrawer" />
+        <q-btn dense flat round icon="mdi-menu" @click="toggleLeftDrawer" />
 
         <q-toolbar-title>
           <q-avatar>
@@ -14,7 +14,7 @@
           Title
         </q-toolbar-title>
 
-        <q-btn dense flat round icon="menu" @click="toggleRightDrawer" />
+        <q-btn dense flat round icon="mdi-menu" @click="toggleRightDrawer" />
       </q-toolbar>
     </q-header>
 
@@ -33,7 +33,7 @@
   </q-layout>
 </template>
 
-<script>
+<script lang="ts">
 import { ref } from 'vue'
 
 export default {
