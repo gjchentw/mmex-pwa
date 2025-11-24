@@ -76,12 +76,19 @@ export default {
       await dbClient.ready()
       dbStatus.value = 'Database Ready'
 
-      await dbClient.exec('INSERT INTO items (name, value) VALUES (?, ?)', [
-        'test_item',
-        new Date().toISOString(),
-      ])
-      const result = await dbClient.exec('SELECT * FROM items ORDER BY id DESC LIMIT 5')
-      dbResult.value = JSON.stringify(result, null, 2)
+      const versionResult = await dbClient.exec(
+        "SELECT INFOVALUE FROM INFOTABLE_V1 WHERE INFONAME = 'DATAVERSION'",
+      )
+      let version = 'Unknown'
+      if (
+        Array.isArray(versionResult) &&
+        versionResult.length > 0 &&
+        Array.isArray(versionResult[0])
+      ) {
+        version = versionResult[0][0] as string
+      }
+
+      dbResult.value = `DB Version: ${version}`
     } catch (err: unknown) {
       dbStatus.value = 'Error'
       console.error(err)
