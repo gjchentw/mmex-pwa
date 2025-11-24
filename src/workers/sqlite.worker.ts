@@ -86,10 +86,10 @@ const initDb = async () => {
 
     migrateDb(db)
 
-    postMessage({ type: 'init', status: 'success' })
+    self.postMessage({ type: 'init', status: 'success' })
   } catch (err: unknown) {
     error('Initialization failed', err)
-    postMessage({ type: 'init', status: 'error', error: err })
+    self.postMessage({ type: 'init', status: 'error', error: err })
   }
 }
 
@@ -102,7 +102,7 @@ self.onmessage = async (e) => {
   }
 
   if (!db) {
-    postMessage({ id, type, status: 'error', error: 'Database not initialized' })
+    self.postMessage({ id, type, status: 'error', error: 'Database not initialized' })
     return
   }
 
@@ -114,13 +114,13 @@ self.onmessage = async (e) => {
           bind: payload.bind,
           returnValue: 'resultRows',
         })
-        postMessage({ id, type, status: 'success', result })
+        self.postMessage({ id, type, status: 'success', result })
         break
       default:
-        postMessage({ id, type, status: 'error', error: `Unknown message type: ${type}` })
+        self.postMessage({ id, type, status: 'error', error: `Unknown message type: ${type}` })
     }
   } catch (err: unknown) {
     error('Query failed', err)
-    postMessage({ id, type, status: 'error', error: err })
+    self.postMessage({ id, type, status: 'error', error: err })
   }
 }

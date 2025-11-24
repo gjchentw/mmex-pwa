@@ -1,16 +1,19 @@
 import SqliteWorker from './sqlite.worker?worker'
 
+export const helpers = {
+  generateId: () => crypto.randomUUID(),
+}
+
 export class DbClient {
   private worker: Worker
-  private pendingRequests: Map<
+  private pendingRequests = new Map<
     string,
-    { resolve: (value: unknown) => void; reject: (reason?: unknown) => void }
-  >
+    { resolve: (value: unknown) => void; reject: (reason?: any) => void }
+  >()
   private initPromise: Promise<void>
 
   constructor() {
     this.worker = new SqliteWorker()
-    this.pendingRequests = new Map()
 
     this.initPromise = new Promise((resolve, reject) => {
       const handler = (e: MessageEvent) => {
@@ -42,13 +45,13 @@ export class DbClient {
     this.worker.postMessage({ type: 'init' })
   }
 
-  async ready() {
+  async ready(): Promise<void> {
     return this.initPromise
   }
 
   async exec(sql: string, bind?: unknown[]): Promise<unknown> {
     await this.ready()
-    const id = crypto.randomUUID()
+    const id = helpers.generateId()
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject })
       this.worker.postMessage({ id, type: 'exec', payload: { sql, bind } })
