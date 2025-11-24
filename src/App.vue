@@ -1,5 +1,3 @@
-<script setup lang="ts"></script>
-
 <template>
   <q-layout view="hHh lpR fFf">
     <q-header elevated class="bg-primary text-white">
@@ -10,7 +8,8 @@
           <q-avatar>
             <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" />
           </q-avatar>
-          Title
+          <span class="q-ml-sm">Title</span>
+          <div class="text-subtitle2 q-mt-xs">SQLite Status: {{ dbStatus }}</div>
         </q-toolbar-title>
 
         <q-btn dense flat round icon="mdi-menu" @click="toggleRightDrawer" />
@@ -18,11 +17,20 @@
     </q-header>
 
     <q-drawer v-model="leftDrawerOpen" side="left" overlay elevated>
-      <!-- drawer content -->
+      <div class="q-pa-md">
+        <nav>
+          <div class="column q-gutter-sm">
+            <RouterLink to="/">Home</RouterLink>
+            <RouterLink to="/about">About</RouterLink>
+          </div>
+        </nav>
+      </div>
     </q-drawer>
 
     <q-drawer v-model="rightDrawerOpen" side="right" overlay elevated>
-      <!-- drawer content -->
+      <div class="q-pa-md">
+        <pre style="white-space: pre-wrap; word-break: break-all">{{ dbResult }}</pre>
+      </div>
     </q-drawer>
 
     <q-page-container>
@@ -33,8 +41,20 @@
 
 <script lang="ts">
 import { ref } from 'vue'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { RouterLink, RouterView } from 'vue-router'
+import { dbClient } from './workers/db-client'
+
+const dbStatus = ref('Initializing...')
+const dbResult = ref('')
 
 export default {
+  data() {
+    return {
+      dbStatus,
+      dbResult,
+    }
+  },
   setup() {
     const leftDrawerOpen = ref(false)
     const rightDrawerOpen = ref(false)
@@ -49,6 +69,22 @@ export default {
       toggleRightDrawer() {
         rightDrawerOpen.value = !rightDrawerOpen.value
       },
+    }
+  },
+  async mounted() {
+    try {
+      await dbClient.ready()
+      dbStatus.value = 'Database Ready'
+
+      await dbClient.exec('INSERT INTO items (name, value) VALUES (?, ?)', [
+        'test_item',
+        new Date().toISOString(),
+      ])
+      const result = await dbClient.exec('SELECT * FROM items ORDER BY id DESC LIMIT 5')
+      dbResult.value = JSON.stringify(result, null, 2)
+    } catch (err: unknown) {
+      dbStatus.value = 'Error'
+      console.error(err)
     }
   },
 }
