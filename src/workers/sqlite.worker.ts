@@ -21,8 +21,8 @@ for (const path in upgradeFiles) {
 
 let db: OpfsDatabase | null = null
 
-const log = (...args: unknown[]) => console.log('Worker:', ...args)
-const error = (...args: unknown[]) => console.error('Worker:', ...args)
+const log = (...args: unknown[]) => console.log('DB Worker:', ...args)
+const error = (...args: unknown[]) => console.error('DB Worker:', ...args)
 
 const migrateDb = (db: OpfsDatabase) => {
   const getVersion = (): number => {
