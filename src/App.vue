@@ -12,6 +12,28 @@
           <div class="text-subtitle2 q-mt-xs">SQLite Status: {{ dbStatus }}</div>
         </q-toolbar-title>
 
+        <q-btn-dropdown
+          flat
+          dense
+          :label="locale"
+          icon="mdi-translate"
+          dropdown-icon="mdi-menu-down"
+        >
+          <q-list>
+            <q-item clickable v-close-popup @click="locale = 'en-US'">
+              <q-item-section>
+                <q-item-label>English</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-close-popup @click="locale = 'zh-TW'">
+              <q-item-section>
+                <q-item-label>繁體中文</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+
         <q-btn dense flat round icon="mdi-database" @click="toggleRightDrawer" />
       </q-toolbar>
     </q-header>
@@ -66,6 +88,7 @@
 
 <script lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { RouterLink, RouterView } from 'vue-router'
 import { dbClient } from './workers/db-client'
@@ -81,10 +104,12 @@ export default {
     }
   },
   setup() {
+    const { locale } = useI18n()
     const leftDrawerOpen = ref(false)
     const rightDrawerOpen = ref(false)
 
     return {
+      locale,
       leftDrawerOpen,
       toggleLeftDrawer() {
         leftDrawerOpen.value = !leftDrawerOpen.value
