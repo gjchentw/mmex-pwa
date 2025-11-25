@@ -57,13 +57,29 @@ const migrateDb = (db: OpfsDatabase) => {
     log(`Upgrading to version ${incrementalVersion}...`)
     const sql = upgrades.get(incrementalVersion)
     if (sql) {
+      // Split SQL by semicolons and execute each statement individually
+      const statements = sql
+        .split(';')
+        .map((stmt) => stmt.trim())
+        .filter((stmt) => stmt.length > 0 && !stmt.startsWith('--'))
+
       db.transaction(() => {
-        // ignore errors
-        try {
-          db.exec(sql)
-        } catch (err: unknown) {
-          log('Upgrade failed at version ' + incrementalVersion, err)
+        let successCount = 0
+        let failCount = 0
+
+        for (const statement of statements) {
+          try {
+            db.exec(statement)
+            successCount++
+          } catch (err: unknown) {
+            failCount++
+            log(`Failed to execute statement (continuing): ${statement.substring(0, 50)}...`, err)
+          }
         }
+
+        log(
+          `Upgrade to version ${incrementalVersion} complete: ${successCount} succeeded, ${failCount} failed`,
+        )
       })
     }
     incrementalVersion++
@@ -82,7 +98,7 @@ const initDb = async () => {
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
-    db = new sqlite3.oo1.OpfsDb('/.mmex/mmex.mmb', 'c')
+    db = new sqlite3.oo1.OpfsDb('/.mmex/data.mmb', 'c')
 
     migrateDb(db)
 

@@ -54,7 +54,7 @@ describe('SQLite Worker', () => {
     // Simulate init message
     await self.onmessage!({ data: { type: 'init' } } as MessageEvent)
 
-    expect(mockOpfsDb).toHaveBeenCalledWith('/.mmex/mmex.mmb', 'c')
+    expect(mockOpfsDb).toHaveBeenCalledWith('/.mmex/data.mmb', 'c')
 
     // Check if migration logic was called
     // 1. Check version (returns -1 initially)
