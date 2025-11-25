@@ -12,7 +12,7 @@
           <div class="text-subtitle2 q-mt-xs">SQLite Status: {{ dbStatus }}</div>
         </q-toolbar-title>
 
-        <q-btn dense flat round icon="mdi-menu" @click="toggleRightDrawer" />
+        <q-btn dense flat round icon="mdi-database" @click="toggleRightDrawer" />
       </q-toolbar>
     </q-header>
 
@@ -29,6 +29,31 @@
 
     <q-drawer v-model="rightDrawerOpen" side="right" overlay elevated>
       <div class="q-pa-md">
+        <q-list>
+          <q-item clickable v-ripple>
+            <q-item-section avatar>
+              <q-icon name="mdi-google-drive" />
+            </q-item-section>
+            <q-item-section>Pick database from Google Drive</q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple>
+            <q-item-section avatar>
+              <q-icon name="mdi-sync" />
+            </q-item-section>
+            <q-item-section>Sync local database to Google Drive</q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple>
+            <q-item-section avatar>
+              <q-icon name="mdi-database-plus" />
+            </q-item-section>
+            <q-item-section>Start a new local database</q-item-section>
+          </q-item>
+        </q-list>
+
+        <q-separator class="q-my-md" />
+
         <pre style="white-space: pre-wrap; word-break: break-all">{{ dbResult }}</pre>
       </div>
     </q-drawer>
