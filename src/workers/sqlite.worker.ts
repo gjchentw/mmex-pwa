@@ -59,9 +59,13 @@ const migrateDb = (db: OpfsDatabase) => {
     if (sql) {
       // Split SQL by semicolons and execute each statement individually
       const statements = sql
+        .replace(/"/g, "'")
+        .split('\n')
+        .filter((stmt) => stmt.length > 0 && !stmt.startsWith('--'))
+        .join('\n')
         .split(';')
         .map((stmt) => stmt.trim())
-        .filter((stmt) => stmt.length > 0 && !stmt.startsWith('--'))
+        .filter((stmt) => stmt.length > 0)
 
       db.transaction(() => {
         let successCount = 0
@@ -69,11 +73,15 @@ const migrateDb = (db: OpfsDatabase) => {
 
         for (const statement of statements) {
           try {
+            log(` (${incrementalVersion}) Executing statement: ${statement}...`)
             db.exec(statement)
             successCount++
           } catch (err: unknown) {
             failCount++
-            log(`Failed to execute statement (continuing): ${statement.substring(0, 50)}...`, err)
+            log(
+              `(${incrementalVersion}) Failed to execute statement (continuing): ${statement.substring(0, 50)}...`,
+              err,
+            )
           }
         }
 
