@@ -1,0 +1,18 @@
+{
+    "app": {
+        "name": "MMEX PWA",
+        "description": "MMEX PWA",
+        "version": "Version"
+    },
+    "splash": {
+        "welcome": "Welcome to MMEX PWA",
+        "securityNotice": "For your security, you need to sign in with Google each time you visit this app. Your access token is not stored and will be lost when you close or refresh the page.",
+        "signInButton": "Sign in with Google",
+        "signInPrompt": "Please sign in to continue"
+    },
+    "language": {
+        "select": "Language",
+        "en": "English",
+        "zh": "中文"
+    }
+}

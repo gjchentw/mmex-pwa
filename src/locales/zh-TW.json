@@ -1,0 +1,18 @@
+{
+    "app": {
+        "name": "MMEX PWA",
+        "description": "MMEX PWA",
+        "version": "版本"
+    },
+    "splash": {
+        "welcome": "歡迎使用 MMEX PWA",
+        "securityNotice": "基於安全考量，您每次造訪此應用程式時都需要使用 Google 帳號登入。您的存取權杖不會被儲存，當您關閉或重新整理頁面時將會遺失。",
+        "signInButton": "使用 Google 帳號登入",
+        "signInPrompt": "請登入以繼續"
+    },
+    "language": {
+        "select": "語言",
+        "en": "English",
+        "zh": "中文"
+    }
+}
