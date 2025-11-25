@@ -42,8 +42,8 @@
       <div class="q-pa-md">
         <nav>
           <div class="column q-gutter-sm">
-            <RouterLink to="/">Home</RouterLink>
-            <RouterLink to="/about">About</RouterLink>
+            <RouterLink to="/">{{ $t('menu.home') }}</RouterLink>
+            <RouterLink to="/about">{{ $t('menu.about') }}</RouterLink>
           </div>
         </nav>
       </div>
@@ -56,21 +56,21 @@
             <q-item-section avatar>
               <q-icon name="mdi-google-drive" />
             </q-item-section>
-            <q-item-section>Pick database from Google Drive</q-item-section>
+            <q-item-section>{{ $t('database.pickFromDrive') }}</q-item-section>
           </q-item>
 
           <q-item clickable v-ripple>
             <q-item-section avatar>
               <q-icon name="mdi-sync" />
             </q-item-section>
-            <q-item-section>Sync local database to Google Drive</q-item-section>
+            <q-item-section>{{ $t('database.syncToDrive') }}</q-item-section>
           </q-item>
 
           <q-item clickable v-ripple>
             <q-item-section avatar>
               <q-icon name="mdi-database-plus" />
             </q-item-section>
-            <q-item-section>Start a new local database</q-item-section>
+            <q-item-section>{{ $t('database.startNew') }}</q-item-section>
           </q-item>
         </q-list>
 

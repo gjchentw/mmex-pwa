@@ -14,5 +14,14 @@
         "select": "語言",
         "en": "English",
         "zh": "中文"
+    },
+    "menu": {
+        "home": "首頁",
+        "about": "關於"
+    },
+    "database": {
+        "pickFromDrive": "從 Google 雲端硬碟選擇資料庫",
+        "syncToDrive": "同步本地資料庫至 Google 雲端硬碟",
+        "startNew": "建立新的本地資料庫"
     }
 }

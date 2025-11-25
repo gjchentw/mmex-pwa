@@ -14,5 +14,14 @@
         "select": "Language",
         "en": "English",
         "zh": "中文"
+    },
+    "menu": {
+        "home": "Home",
+        "about": "About"
+    },
+    "database": {
+        "pickFromDrive": "Pick database from Google Drive",
+        "syncToDrive": "Sync local database to Google Drive",
+        "startNew": "Start a new local database"
     }
 }
