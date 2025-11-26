@@ -126,16 +126,14 @@ export default {
       await dbClient.ready()
       dbStatus.value = 'Database Ready'
 
-      const versionResult = await dbClient.exec(
-        "SELECT INFOVALUE FROM INFOTABLE_V1 WHERE INFONAME = 'DATAVERSION'",
-      )
+      const versionResult = await dbClient.exec('PRAGMA user_version')
       let version = 'Unknown'
       if (
         Array.isArray(versionResult) &&
         versionResult.length > 0 &&
         Array.isArray(versionResult[0])
       ) {
-        version = versionResult[0][0] as string
+        version = String(versionResult[0][0])
       }
 
       dbResult.value = `DB Version: ${version}`

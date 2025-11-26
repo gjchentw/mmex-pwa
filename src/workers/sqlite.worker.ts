@@ -1,6 +1,8 @@
 import sqlite3InitModule, { OpfsDatabase } from '@sqlite.org/sqlite-wasm'
 import tablesSql from '../../mmex/database/tables.sql?raw'
 
+const dbPath = '/.mmex/data.mmb'
+
 const upgradeFiles = import.meta.glob('../../mmex/database/incremental_upgrade/*.sql', {
   query: '?raw',
   import: 'default',
@@ -18,6 +20,11 @@ for (const path in upgradeFiles) {
     }
   }
 }
+
+const latestVersion = Array.from(upgrades.entries()).reduce(
+  (max, [version]) => Math.max(max, version),
+  0,
+)
 
 let db: OpfsDatabase | null = null
 
@@ -130,9 +137,11 @@ const initDb = async () => {
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
-    db = new sqlite3.oo1.OpfsDb('/.mmex/data.mmb', 'c')
+    db = new sqlite3.oo1.OpfsDb(dbPath, 'c')
 
-    migrateDb(db)
+    // initialize database
+    db.exec(tablesSql)
+    db.exec(`PRAGMA user_version = ${latestVersion}`)
 
     self.postMessage({ type: 'init', status: 'success' })
   } catch (err: unknown) {
@@ -141,11 +150,36 @@ const initDb = async () => {
   }
 }
 
+const openDb = async () => {
+  try {
+    log('Opening SQLite...')
+    const sqlite3 = await sqlite3InitModule({
+      print: log,
+      printErr: error,
+    })
+
+    log('Running SQLite3 version', sqlite3.version.libVersion)
+
+    db = new sqlite3.oo1.OpfsDb(dbPath)
+    migrateDb(db)
+
+    self.postMessage({ type: 'open', status: 'success' })
+  } catch (err: unknown) {
+    error('Opening failed', err)
+    self.postMessage({ type: 'open', status: 'error', error: err })
+  }
+}
+
 self.onmessage = async (e) => {
   const { type, payload, id } = e.data
 
   if (type === 'init') {
     await initDb()
+    return
+  }
+
+  if (type === 'open') {
+    await openDb()
     return
   }
 
