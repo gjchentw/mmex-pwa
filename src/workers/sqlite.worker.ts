@@ -25,7 +25,7 @@ const log = (...args: unknown[]) => console.log('DB Worker:', ...args)
 const error = (...args: unknown[]) => console.error('DB Worker:', ...args)
 
 const migrateDb = (db: OpfsDatabase) => {
-  const getVersion = (): number => {
+  const getLegacyVersion = (): number => {
     try {
       const result = db.exec({
         sql: "SELECT INFOVALUE FROM INFOTABLE_V1 WHERE INFONAME = 'DATAVERSION'",
@@ -41,13 +41,36 @@ const migrateDb = (db: OpfsDatabase) => {
     return -1
   }
 
+  const getVersion = (): number => {
+    try {
+      const result = db.exec({
+        sql: 'PRAGMA user_version',
+        returnValue: 'resultRows',
+      })
+      if (result && result.length > 0 && result[0] && result[0].length > 0) {
+        return result[0][0] as number
+      }
+    } catch {
+      return 0
+    }
+    return 0
+  }
+
   let version = getVersion()
 
-  if (version === -1) {
-    log('Initializing database with tables.sql...')
-    db.exec(tablesSql)
-    version = getVersion()
-    log('Database initialized. Version:', version)
+  if (version === 0) {
+    const legacyVersion = getLegacyVersion()
+    if (legacyVersion !== -1) {
+      log('Legacy database found. Migrating version to PRAGMA user_version:', legacyVersion)
+      version = legacyVersion
+      db.exec(`PRAGMA user_version = ${version}`)
+    } else {
+      log('Initializing database with tables.sql...')
+      db.exec(tablesSql)
+      version = getLegacyVersion()
+      log('Database initialized. Version:', version)
+      db.exec(`PRAGMA user_version = ${version}`)
+    }
   } else {
     log('Existing database found. Version:', version)
   }
@@ -85,6 +108,7 @@ const migrateDb = (db: OpfsDatabase) => {
           }
         }
 
+        db.exec(`PRAGMA user_version = ${incrementalVersion}`)
         log(
           `Upgrade to version ${incrementalVersion} complete: ${successCount} succeeded, ${failCount} failed`,
         )

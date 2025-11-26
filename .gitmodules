@@ -1,3 +1,6 @@
 [submodule "mmex/database"]
 	path = mmex/database
 	url = https://github.com/moneymanagerex/database.git
+[submodule "mmex/moneymanagerex"]
+	path = mmex/moneymanagerex
+	url = https://github.com/moneymanagerex/moneymanagerex.git
