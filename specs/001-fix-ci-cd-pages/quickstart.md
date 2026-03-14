@@ -12,7 +12,9 @@ Validate that CI checks are reliable, deployment is correctly gated, GitHub Page
 1. Open a pull request with a small safe code change.
 2. Confirm validation workflow triggers automatically.
 3. Verify lint, build/type-check, unit tests, and e2e tests all execute.
-4. Confirm no deploy-to-pages action occurs for the pull request context.
+4. Confirm smoke assertions use stable selectors and validate app root plus SQLite status readiness.
+5. Confirm PR e2e runs on Chromium only.
+6. Confirm no deploy-to-pages action occurs for the pull request context.
 
 Expected result:
 - Quality gates produce a clear pass/fail status.
@@ -45,10 +47,11 @@ Expected result:
 ### Troubleshooting and Rerun Runbook
 1. Open the failed run summary and capture `Failed stage` value.
 2. Drill into the failed job logs for the exact command and error line.
-3. If failure is dependency/network related, rerun failed jobs first.
-4. If failure is deterministic (config or script), push a minimal fix commit.
-5. Confirm the next run summary reports `Status: success` and no failed stage.
-6. For release flow reruns, verify existing tag/release detection reports reuse instead of duplicate creation.
+3. For smoke failures, first verify selector stability and SQLite status timeout behavior (10s) before broad workflow changes.
+4. If failure is dependency/network related, rerun failed jobs first.
+5. If failure is deterministic (config or script), push a minimal fix commit.
+6. Confirm the next run summary reports `Status: success` and no failed stage.
+7. For release flow reruns, verify existing tag/release detection reports reuse instead of duplicate creation.
 
 ## Scenario D: Concurrency and Freshness Validation
 1. Push two commits rapidly to master.
@@ -66,10 +69,13 @@ Expected result:
 - [ ] C. Master release run deployed to GitHub Pages with evidence summary.
 - [ ] D. Existing tag/release rerun path completed without duplicate publish failure.
 - [ ] E. Consecutive master commits did not produce stale final deployment.
+- [ ] F. Smoke checks validated app root and SQLite status via stable selectors.
+- [ ] G. Smoke retry/timeout policy observed as CI retry=1 and SQLite timeout=10s.
+- [ ] H. PR/master smoke browser matrix executed on Chromium only.
 
 ### Validation Results Log
 
 - Date: 2026-03-14
-- Executor: GitHub Copilot (GPT-5.3-Codex)
+- Executor: GitHub Copilot (GPT-5.4)
 - Result: Local validation green
-- Notes: Local lint, build, unit tests, and Playwright e2e tests now pass. GitHub-hosted workflow scenarios for PR validation, Pages deployment, rerun idempotency, and deploy concurrency still require repository-side execution records.
+- Notes: Local lint, build, unit tests, and Playwright Chromium smoke test pass with selector-based assertions, CI retry policy, and 10-second readiness timeout. GitHub-hosted workflow scenarios for PR validation, Pages deployment, rerun idempotency, and deploy concurrency still require repository-side execution records.

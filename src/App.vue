@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="hHh lpR fFf">
+  <q-layout view="hHh lpR fFf" data-testid="app-root">
     <q-header elevated class="bg-primary text-white">
       <q-toolbar>
         <q-btn dense flat round icon="mdi-menu" @click="toggleLeftDrawer" />
@@ -9,7 +9,7 @@
             <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" />
           </q-avatar>
           <span class="q-ml-sm">Title</span>
-          <div class="text-subtitle2 q-mt-xs">SQLite Status: {{ dbStatus }}</div>
+          <div class="text-subtitle2 q-mt-xs" data-testid="sqlite-status">SQLite Status: {{ dbStatus }}</div>
         </q-toolbar-title>
 
         <q-btn-dropdown

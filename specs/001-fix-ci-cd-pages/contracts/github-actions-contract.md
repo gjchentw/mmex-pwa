@@ -19,6 +19,13 @@
 - Contract rule: Deployment workflows must not run unless all mandatory gates return success for the target mainline commit.
 - Validation workflow must use concurrency cancellation so obsolete in-progress runs on the same ref do not consume deploy eligibility.
 
+### E2E smoke policy contract
+- Smoke selectors must use stable non-localized identifiers (for example data-testid) and must not rely on user-visible text.
+- Minimum smoke readiness signals must include app root container and SQLite status component presence.
+- Retry policy: CI retry = 1, local retry = 0.
+- SQLite status visibility timeout must be 10 seconds.
+- Browser matrix for PR and master quality-gate runs must be Chromium only.
+
 ### Output contract
 - Workflow conclusion must be one of: success, failure, cancelled.
 - On failure, logs must identify failed gate stage.

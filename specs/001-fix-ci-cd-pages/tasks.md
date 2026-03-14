@@ -1,49 +1,58 @@
 # Tasks: CI/CD and GitHub Pages Recovery
 
 **Input**: Design documents from `/specs/001-fix-ci-cd-pages/`
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/github-actions-contract.md, quickstart.md
+**Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, contracts/github-actions-contract.md, quickstart.md
+
+**Tests**: Include test tasks because the specification and constitution require test-first validation and independent verification.
+
+**Organization**: Tasks are grouped by user story for independent implementation and testing.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Establish shared workflow tooling and documentation baseline.
+**Purpose**: Establish shared scripts, baseline docs, and CI prerequisites.
 
-- [x] T001 Create CI run context helper script in `.github/scripts/ci/collect-run-context.sh`
-- [x] T002 [P] Create workflow summary helper script in `.github/scripts/ci/write-run-summary.sh`
-- [x] T003 [P] Add CI/CD architecture overview section in `README.md`
+- [X] T001 Create shared CI helper utilities in `.github/scripts/ci/common.sh`
+- [X] T002 [P] Create workflow context collector in `.github/scripts/ci/collect-run-context.sh`
+- [X] T003 [P] Create workflow summary writer in `.github/scripts/ci/write-run-summary.sh`
+- [X] T004 [P] Add CI/CD architecture and required checks section in `README.md`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Build core workflow foundations that all user stories depend on.
+**Purpose**: Build global gating and deployment foundations required by all stories.
 
-**⚠️ CRITICAL**: No user story work can begin until this phase is complete.
+**CRITICAL**: Complete this phase before user story implementation.
 
-- [x] T004 Add strict shell defaults and shared helpers in `.github/scripts/ci/common.sh`
-- [x] T005 Wire shared helper scripts into validation workflow in `.github/workflows/test.yml`
-- [x] T006 Add workflow-level concurrency and cancel-in-progress controls in `.github/workflows/test.yml`
-- [x] T007 Add workflow_run payload guard checks in `.github/workflows/release.yml`
-- [x] T008 Define least-privilege baseline permissions in `.github/workflows/release.yml`
+- [X] T005 Wire helper scripts into validation pipeline in `.github/workflows/test.yml`
+- [X] T006 Add workflow concurrency and cancellation controls in `.github/workflows/test.yml`
+- [X] T007 Add workflow_run payload guards for release entrypoint in `.github/workflows/release.yml`
+- [X] T008 Define least-privilege workflow permissions in `.github/workflows/test.yml`
+- [X] T009 Define least-privilege workflow permissions in `.github/workflows/release.yml`
+- [X] T010 Enforce PR version guard transition rules in `.github/workflows/version-guard.yml`
 
-**Checkpoint**: Foundation ready - user story implementation can now begin.
+**Checkpoint**: Foundation complete; user stories can proceed.
 
 ---
 
-## Phase 3: User Story 1 - Stable Automated Build and Test (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Stable Automated Build and Test (Priority: P1)
 
-**Goal**: Ensure every PR and push executes deterministic quality gates with clear pass/fail outcomes.
+**Goal**: Ensure PR and push validations run deterministic gates with actionable outcomes.
 
-**Independent Test**: Open a PR with a valid change and verify lint, build/type-check, unit, and e2e all execute in order with explicit status and failure-stage visibility.
+**Independent Test**: Open a PR and verify lint -> build/type-check -> unit -> e2e passes/fails deterministically with explicit failed stage reporting.
+
+### Tests for User Story 1
+
+- [X] T011 [P] [US1] Add selector-based smoke assertions for app root and SQLite status in `e2e/vue.spec.ts`
+- [X] T012 [P] [US1] Configure CI-only retry=1, local retry=0, and smoke timeout behavior in `playwright.config.ts`
 
 ### Implementation for User Story 1
 
-- [x] T009 [US1] Split validation into explicit lint/build/unit/e2e jobs in `.github/workflows/test.yml`
-- [x] T010 [P] [US1] Add workflow syntax validation step using actionlint in `.github/workflows/test.yml`
-- [x] T011 [US1] Enforce gate ordering with job dependencies in `.github/workflows/test.yml`
-- [x] T012 [US1] Block deploy eligibility when any quality gate fails in `.github/workflows/test.yml`
-- [x] T013 [P] [US1] Add docs-only path filters to reduce unnecessary full runs in `.github/workflows/test.yml`
-- [x] T014 [US1] Add failure-stage summary output for failed validation runs in `.github/workflows/test.yml`
-- [x] T015 [US1] Document validation workflow behavior and required checks in `README.md`
+- [X] T013 [US1] Split validation into explicit ordered jobs in `.github/workflows/test.yml`
+- [X] T014 [US1] Restrict e2e matrix to Chromium for PR and master runs in `.github/workflows/test.yml`
+- [X] T015 [US1] Add docs-only path ignore optimization in `.github/workflows/test.yml`
+- [X] T016 [US1] Add failed-stage detection and summary reporting in `.github/workflows/test.yml`
+- [X] T017 [US1] Add actionlint execution path compatible with workflow permissions in `.github/workflows/test.yml`
 
 **Checkpoint**: User Story 1 is independently functional and testable.
 
@@ -51,18 +60,22 @@
 
 ## Phase 4: User Story 2 - Successful Publish to GitHub Pages (Priority: P2)
 
-**Goal**: Publish approved master builds to GitHub Pages with deterministic artifacts and auditable outcomes.
+**Goal**: Publish successful master builds to GitHub Pages with deterministic artifacts and evidence.
 
-**Independent Test**: Merge a passing PR to master and verify release workflow publishes latest content to GitHub Pages and exposes deployment evidence.
+**Independent Test**: Merge a passing PR to master and confirm release workflow deploys latest content and publishes evidence.
+
+### Tests for User Story 2
+
+- [X] T018 [P] [US2] Add deployment acceptance verification steps for Pages URL and source SHA in `specs/001-fix-ci-cd-pages/quickstart.md`
+- [X] T019 [P] [US2] Add release evidence checklist items for tag and page URL in `specs/001-fix-ci-cd-pages/quickstart.md`
 
 ### Implementation for User Story 2
 
-- [x] T016 [US2] Add Pages deployment permissions and environment settings in `.github/workflows/release.yml`
-- [x] T017 [US2] Add build-and-upload Pages artifact job in `.github/workflows/release.yml`
-- [x] T018 [US2] Add deploy-pages job with production concurrency group in `.github/workflows/release.yml`
-- [x] T019 [US2] Gate tag and GitHub Release creation on successful master deployment in `.github/workflows/release.yml`
-- [x] T020 [US2] Add post-deploy evidence summary (URL, SHA, release tag) in `.github/workflows/release.yml`
-- [x] T021 [US2] Add public-site verification steps for master deploys in `specs/001-fix-ci-cd-pages/quickstart.md`
+- [X] T020 [US2] Add tested-SHA checkout and deterministic artifact build in `.github/workflows/release.yml`
+- [X] T021 [US2] Add build-pages artifact upload job in `.github/workflows/release.yml`
+- [X] T022 [US2] Add deploy-pages job with github-pages environment and production concurrency in `.github/workflows/release.yml`
+- [X] T023 [US2] Gate tag-and-release on successful deploy-pages execution in `.github/workflows/release.yml`
+- [X] T024 [US2] Add deployment evidence summary output (branch, SHA, URL, tag) in `.github/workflows/release.yml`
 
 **Checkpoint**: User Stories 1 and 2 both work independently.
 
@@ -70,18 +83,22 @@
 
 ## Phase 5: User Story 3 - Traceable and Recoverable Failure Handling (Priority: P3)
 
-**Goal**: Make failures easy to diagnose and rerun without code changes.
+**Goal**: Make failures easy to diagnose and safe to rerun without feature-code changes.
 
-**Independent Test**: Trigger a controlled workflow failure, verify failed stage is explicit, fix config, rerun, and confirm recovery to successful validation/deploy.
+**Independent Test**: Trigger a controlled failure, identify the failed stage quickly, rerun after fix, and verify successful recovery.
+
+### Tests for User Story 3
+
+- [X] T025 [P] [US3] Add failure-diagnosis and rerun checklist scenarios in `specs/001-fix-ci-cd-pages/quickstart.md`
+- [X] T026 [P] [US3] Add operational evidence and rerun idempotency assertions in `specs/001-fix-ci-cd-pages/contracts/github-actions-contract.md`
 
 ### Implementation for User Story 3
 
-- [x] T022 [P] [US3] Create failed-stage detection helper script in `.github/scripts/ci/detect-failed-stage.sh`
-- [x] T023 [US3] Integrate failed-stage detection into validation workflow summaries in `.github/workflows/test.yml`
-- [x] T024 [US3] Integrate failed-stage detection into release workflow summaries in `.github/workflows/release.yml`
-- [x] T025 [US3] Add idempotent rerun safeguards for existing tags/releases in `.github/workflows/release.yml`
-- [x] T026 [US3] Add troubleshooting and rerun runbook steps in `specs/001-fix-ci-cd-pages/quickstart.md`
-- [x] T027 [US3] Align operational evidence requirements with implemented workflow outputs in `specs/001-fix-ci-cd-pages/contracts/github-actions-contract.md`
+- [X] T027 [P] [US3] Implement reusable failed-stage detector script in `.github/scripts/ci/detect-failed-stage.sh`
+- [X] T028 [US3] Integrate failed-stage detection into validation summaries in `.github/workflows/test.yml`
+- [X] T029 [US3] Integrate failed-stage detection into release summaries in `.github/workflows/release.yml`
+- [X] T030 [US3] Add idempotent existing tag/release handling for reruns in `.github/workflows/release.yml`
+- [X] T031 [US3] Prevent misleading release summaries for skipped non-master runs in `.github/workflows/release.yml`
 
 **Checkpoint**: All user stories are independently functional and testable.
 
@@ -89,12 +106,11 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-**Purpose**: Final consistency, hardening, and end-to-end validation.
+**Purpose**: Final hardening, consistency, and end-to-end validation.
 
-- [x] T028 [P] Harden workflow timeout/retry settings for external dependencies in `.github/workflows/test.yml`
-- [x] T029 [P] Harden workflow timeout/retry settings for deployment steps in `.github/workflows/release.yml`
-- [x] T030 Reconcile final implementation notes with constitution gates in `specs/001-fix-ci-cd-pages/plan.md`
-- [ ] T031 Run end-to-end validation checklist and record outcomes in `specs/001-fix-ci-cd-pages/quickstart.md`
+- [X] T032 [P] Reconcile final implementation notes and constraints in `specs/001-fix-ci-cd-pages/plan.md`
+- [X] T033 [P] Align final smoke policy wording across docs in `README.md`
+- [ ] T034 Run end-to-end validation checklist and record execution results in `specs/001-fix-ci-cd-pages/quickstart.md`
 
 ---
 
@@ -102,80 +118,77 @@
 
 ### Phase Dependencies
 
-- **Phase 1 (Setup)**: No dependencies; start immediately.
-- **Phase 2 (Foundational)**: Depends on Phase 1; blocks all user story phases.
-- **Phase 3 (US1)**: Depends on Phase 2 completion.
-- **Phase 4 (US2)**: Depends on Phase 2 completion and uses US1 quality-gate outputs.
-- **Phase 5 (US3)**: Depends on Phase 2 completion; can run alongside late US2 work once deploy flow exists.
+- **Phase 1 (Setup)**: Start immediately.
+- **Phase 2 (Foundational)**: Depends on Phase 1; blocks all user stories.
+- **Phase 3 (US1)**: Depends on Phase 2.
+- **Phase 4 (US2)**: Depends on Phase 2 and consumes US1 validation contract.
+- **Phase 5 (US3)**: Depends on Phase 2 and integrates with US1/US2 workflows.
 - **Phase 6 (Polish)**: Depends on completion of all user stories.
 
 ### User Story Dependencies
 
 - **US1 (P1)**: No dependency on other user stories.
-- **US2 (P2)**: Depends on foundational setup and consumes successful validation contract from US1.
-- **US3 (P3)**: Depends on foundational setup; integrates with both validation and release workflows after US1/US2 structures exist.
+- **US2 (P2)**: Depends on validated pipeline outputs from US1.
+- **US3 (P3)**: Depends on established validation and release flow shape from US1/US2.
 
 ### Suggested Completion Order
 
-- US1 -> US2 -> US3
+US1 -> US2 -> US3
 
 ---
 
 ## Parallel Execution Opportunities
 
-- Setup parallel tasks: T002, T003
-- Foundational tasks with low coupling: T006 and T008 after T005
-- US1 parallel tasks: T010 and T013
-- US2 parallelizable documentation/verification: T021 can run after T018 starts
-- US3 parallel tasks: T022 and T026
-- Polish parallel tasks: T028 and T029
+- Setup: T002, T003, T004 can run in parallel after T001 starts.
+- Foundational: T008 and T009 can run in parallel after T005.
+- US1: T011 and T012 can run in parallel; T015 can proceed after T013.
+- US2: T018 and T019 can run in parallel with T020.
+- US3: T025, T026, and T027 can run in parallel.
+- Polish: T032 and T033 can run in parallel before T034.
 
 ---
 
 ## Parallel Example: User Story 1
 
 ```bash
-# Parallelizable within US1 after T009 starts:
-Task T010: Add workflow syntax validation step in .github/workflows/test.yml
-Task T013: Add docs-only path filters in .github/workflows/test.yml
+Task T011: Add selector-based smoke assertions in e2e/vue.spec.ts
+Task T012: Configure retry/timeout policy in playwright.config.ts
 ```
 
 ## Parallel Example: User Story 2
 
 ```bash
-# Parallelizable after deploy job shape is defined:
-Task T020: Add post-deploy evidence summary in .github/workflows/release.yml
-Task T021: Add public-site verification steps in specs/001-fix-ci-cd-pages/quickstart.md
+Task T018: Add deployment acceptance verification in specs/001-fix-ci-cd-pages/quickstart.md
+Task T019: Add release evidence checklist in specs/001-fix-ci-cd-pages/quickstart.md
 ```
 
 ## Parallel Example: User Story 3
 
 ```bash
-# Parallelizable diagnostics work:
-Task T022: Create failed-stage detection helper in .github/scripts/ci/detect-failed-stage.sh
-Task T026: Add troubleshooting and rerun runbook in specs/001-fix-ci-cd-pages/quickstart.md
+Task T026: Add rerun idempotency assertions in specs/001-fix-ci-cd-pages/contracts/github-actions-contract.md
+Task T027: Implement failed-stage detector in .github/scripts/ci/detect-failed-stage.sh
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (US1 Only)
+### MVP First (User Story 1 Only)
 
 1. Complete Phase 1 and Phase 2.
 2. Complete Phase 3 (US1).
-3. Validate PR quality-gate reliability and failure reporting before proceeding.
+3. Validate deterministic PR quality gates and smoke policy behavior.
 
 ### Incremental Delivery
 
-1. Deliver US1 to stabilize CI gate reliability.
+1. Deliver US1 to stabilize quality gates and e2e smoke reliability.
 2. Deliver US2 to restore trusted automatic GitHub Pages publication.
-3. Deliver US3 to optimize incident diagnosis and recovery.
-4. Finish Phase 6 polish and final quickstart validation.
+3. Deliver US3 to improve diagnosability and rerun safety.
+4. Execute final polish and record end-to-end outcomes.
 
 ### Parallel Team Strategy
 
-1. One developer handles shared scripts and foundational workflow wiring (Phase 1-2).
-2. One developer implements US1 validation reliability tasks.
-3. One developer implements US2 deployment flow after US1 contract is stable.
-4. One developer implements US3 diagnostics/runbook tasks after core workflow shapes are in place.
+1. Engineer A: Shared scripts + foundational workflow controls (Phase 1-2).
+2. Engineer B: US1 validation and smoke policy implementation.
+3. Engineer C: US2 release/deploy pipeline hardening.
+4. Engineer D: US3 failure analysis, rerun idempotency, and docs.

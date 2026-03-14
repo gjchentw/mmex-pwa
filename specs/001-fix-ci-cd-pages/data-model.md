@@ -63,6 +63,23 @@
 - Validation rules:
   - verificationStatus must be verified before marking rollout complete.
 
+## Entity: E2ESmokePolicy
+- Purpose: Defines the enforced smoke-check execution policy used by CI quality gates.
+- Fields:
+  - selectorStrategy (enum: stable_selector_only)
+  - requiredSignals (set: app_root_present, sqlite_status_present)
+  - ciRetries (number, required, fixed: 1)
+  - localRetries (number, required, fixed: 0)
+  - sqliteVisibilityTimeoutSeconds (number, required, fixed: 10)
+  - browserMatrix (set, required, fixed: chromium)
+- Relationships:
+  - One E2ESmokePolicy is referenced by many PipelineRun records where e2e gate executes.
+- Validation rules:
+  - selectorStrategy must not use user-visible text selectors.
+  - ciRetries must equal 1 and localRetries must equal 0.
+  - sqliteVisibilityTimeoutSeconds must equal 10.
+  - browserMatrix for PR/master validation must include chromium only.
+
 ## State Transitions
 - PipelineRun:
   - queued -> in_progress -> success

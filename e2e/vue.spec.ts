@@ -4,6 +4,6 @@ import { test, expect } from '@playwright/test'
 // https://playwright.dev/docs/intro
 test('visits the app root url', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText('Title')).toBeVisible()
-  await expect(page.getByText(/SQLite Status:/)).toBeVisible()
+  await expect(page.getByTestId('app-root')).toBeVisible()
+  await expect(page.getByTestId('sqlite-status')).toBeVisible({ timeout: 10_000 })
 })

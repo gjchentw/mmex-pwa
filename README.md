@@ -28,6 +28,14 @@ The following checks are required before any production deployment:
 
 If any required check fails, deployment is blocked automatically.
 
+## E2E Smoke Policy
+
+- Smoke assertions use stable selectors (`data-testid`) instead of user-visible text.
+- Required smoke signals: app root container and SQLite status component.
+- Retry policy: CI uses exactly 1 retry; local runs use 0 retries.
+- SQLite status visibility timeout is 10 seconds.
+- PR and master smoke runs execute on Chromium only.
+
 ## Installation
 
 ```bash

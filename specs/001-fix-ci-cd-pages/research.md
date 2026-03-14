@@ -29,3 +29,23 @@
 - Decision: Require workflow outputs and run summaries to include failure stage visibility and post-deploy verification evidence.
 - Rationale: Improves MTTR by making rerun decisions actionable and confirms public site update as part of delivery confidence.
 - Alternatives considered: Relying solely on raw step logs was rejected because it slows incident triage and weakens operator clarity.
+
+## Decision 7: Use selector-based smoke assertions instead of user-visible text
+- Decision: Validate homepage readiness with stable selectors (for example data-testid) rather than localized visible strings.
+- Rationale: Removes i18n and wording fragility from CI smoke checks while still validating key UI readiness.
+- Alternatives considered: Text assertions were rejected because locale/content changes can cause false negatives.
+
+## Decision 8: Scope smoke coverage to app root and SQLite status component
+- Decision: Keep minimum smoke coverage focused on app shell root and SQLite status component presence.
+- Rationale: Captures startup and storage-readiness signals with low test maintenance cost.
+- Alternatives considered: Full homepage copy verification was rejected due to brittleness and slower iteration.
+
+## Decision 9: Use CI-only retry and bounded readiness timeout
+- Decision: Apply exactly one retry in CI and no retries locally; use a 10-second timeout for SQLite status visibility.
+- Rationale: CI retry absorbs transient infrastructure noise while local deterministic failure remains fast; 10 seconds balances stability and feedback speed.
+- Alternatives considered: Zero retry in CI was rejected due to avoidable flakes, and longer timeouts were rejected because they delay genuine failure feedback.
+
+## Decision 10: Run smoke checks on Chromium only in PR and master pipelines
+- Decision: Keep PR and master smoke matrix on Chromium only.
+- Rationale: Fast, predictable gate feedback is prioritized for CI/CD recovery and deploy safety.
+- Alternatives considered: Multi-browser matrices in primary gate were deferred to avoid higher runtime and added flakiness during stabilization.

@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "Fix GitHub Actions, CI/CD, and deploy to GitHub Pages"
 
+## Clarifications
+
+### Session 2026-03-14
+
+- Q: Which assertion strategy should e2e smoke tests use for homepage visibility checks? → A: Use stable selectors (data-testid) and avoid user-visible text assertions.
+- Q: What minimum smoke coverage should homepage e2e checks enforce? → A: Validate both app root container and SQLite status component presence.
+- Q: What retry policy should e2e smoke tests use? → A: Enable one retry in CI only, and keep local runs at zero retries.
+- Q: What timeout should smoke tests use while waiting for SQLite status visibility? → A: Use a 10-second timeout.
+- Q: Which browser matrix should be used for PR and master e2e smoke checks? → A: Run Chromium only for both PR and master.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Stable Automated Build and Test (Priority: P1)
@@ -68,6 +78,11 @@ As a maintainer, I want actionable failure details and a clear retry path so del
 - **FR-005**: Maintainers MUST be able to rerun failed workflows after correction without modifying application feature code.
 - **FR-006**: The system MUST prevent conflicting deployments to the same target and ensure the final published content matches the latest qualified version.
 - **FR-007**: The system MUST provide verifiable post-deploy evidence so maintainers can confirm public site update.
+- **FR-008**: E2E smoke tests MUST assert page readiness using stable, non-localized selectors (for example `data-testid`) rather than user-visible text.
+- **FR-009**: Homepage smoke checks MUST verify both the app root container and the SQLite status component are present.
+- **FR-010**: E2E smoke retry policy MUST be CI-only with exactly one retry in CI and zero retries for local runs.
+- **FR-011**: E2E smoke checks MUST use a 10-second timeout for SQLite status visibility before failing.
+- **FR-012**: E2E smoke checks in PR and master workflows MUST run on Chromium only.
 
 ### Key Entities *(include if feature involves data)*
 
