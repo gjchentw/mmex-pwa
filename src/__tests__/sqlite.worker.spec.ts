@@ -130,7 +130,7 @@ describe('SQLite Worker', () => {
       id: 'test-id',
       type: 'exec',
       status: 'error',
-      error: error,
+      error: error.message,
     })
   })
 })
