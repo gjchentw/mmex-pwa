@@ -35,11 +35,6 @@ for (const path in upgradeFiles) {
   }
 }
 
-const latestVersion = Array.from(upgrades.entries()).reduce(
-  (max, [version]) => Math.max(max, version),
-  0,
-)
-
 let db: WorkerDatabase | null = null
 
 const log = (...args: unknown[]) => console.log('DB Worker:', ...args)
@@ -151,17 +146,14 @@ const initDb = async () => {
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
-  const sqliteDb = new sqlite3.oo1.OpfsDb(dbPath, 'c') as unknown as WorkerDatabase
-  db = sqliteDb
-
-    // initialize database
-  sqliteDb.exec(tablesSql)
-  sqliteDb.exec(`PRAGMA user_version = ${latestVersion}`)
+    const sqliteDb = new sqlite3.oo1.OpfsDb(dbPath, 'c') as unknown as WorkerDatabase
+    db = sqliteDb
+    migrateDb(sqliteDb)
 
     self.postMessage({ type: 'init', status: 'success' })
   } catch (err: unknown) {
     error('Initialization failed', err)
-    self.postMessage({ type: 'init', status: 'error', error: err })
+    self.postMessage({ type: 'init', status: 'error', error: err instanceof Error ? err.message : String(err) })
   }
 }
 
@@ -182,7 +174,7 @@ const openDb = async () => {
     self.postMessage({ type: 'open', status: 'success' })
   } catch (err: unknown) {
     error('Opening failed', err)
-    self.postMessage({ type: 'open', status: 'error', error: err })
+    self.postMessage({ type: 'open', status: 'error', error: err instanceof Error ? err.message : String(err) })
   }
 }
 
@@ -219,6 +211,6 @@ self.onmessage = async (e) => {
     }
   } catch (err: unknown) {
     error('Query failed', err)
-    self.postMessage({ id, type, status: 'error', error: err })
+    self.postMessage({ id, type, status: 'error', error: err instanceof Error ? err.message : String(err) })
   }
 }
