@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mmex-pwa/specs/001-review-constitution-compliance/contracts/compliance-report.schema.json",
+  "title": "Constitution Compliance Report",
+  "type": "object",
+  "required": [
+    "reportType",
+    "generatedAt",
+    "constitutionVersion",
+    "scope",
+    "assessments",
+    "findings"
+  ],
+  "properties": {
+    "reportType": {
+      "type": "string",
+      "enum": ["master-baseline", "local-delta"]
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "constitutionVersion": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object",
+      "required": ["branch", "commit"],
+      "properties": {
+        "branch": { "type": "string" },
+        "commit": { "type": "string" },
+        "diffBase": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "assessments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["clauseId", "status", "rationale"],
+        "properties": {
+          "clauseId": { "type": "string" },
+          "clauseTitle": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["compliant", "partially-compliant", "non-compliant"]
+          },
+          "rationale": { "type": "string", "minLength": 1 },
+          "severity": {
+            "type": "string",
+            "enum": ["Critical", "High", "Medium", "Low"]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["filePath", "line", "clauseId", "observation", "impact"],
+              "properties": {
+                "filePath": { "type": "string", "minLength": 1 },
+                "line": { "type": "integer", "minimum": 1 },
+                "clauseId": { "type": "string", "minLength": 1 },
+                "observation": { "type": "string", "minLength": 1 },
+                "impact": { "type": "string", "minLength": 1 }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "status": { "const": "compliant" } },
+              "required": ["status"]
+            },
+            "then": {
+              "not": {
+                "required": ["severity"]
+              }
+            },
+            "else": {
+              "required": ["severity", "evidence"]
+            }
+          }
+        ],
+        "additionalProperties": false
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "findingId",
+          "clauseId",
+          "severity",
+          "summary",
+          "dueDate",
+          "recommendations"
+        ],
+        "properties": {
+          "findingId": { "type": "string", "minLength": 1 },
+          "clauseId": { "type": "string", "minLength": 1 },
+          "severity": {
+            "type": "string",
+            "enum": ["Critical", "High", "Medium", "Low"]
+          },
+          "summary": { "type": "string", "minLength": 1 },
+          "dueDate": { "type": "string", "format": "date" },
+          "state": {
+            "type": "string",
+            "enum": ["open", "in-progress", "resolved", "reopened"]
+          },
+          "recommendations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["action", "verificationMethod", "expectedOutcome"],
+              "properties": {
+                "action": { "type": "string", "minLength": 1 },
+                "verificationMethod": { "type": "string", "minLength": 1 },
+                "expectedOutcome": { "type": "string", "minLength": 1 },
+                "milestone": { "type": "string" },
+                "blockers": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

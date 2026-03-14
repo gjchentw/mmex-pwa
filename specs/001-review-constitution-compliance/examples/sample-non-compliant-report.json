@@ -1,0 +1,46 @@
+{
+  "reportType": "local-delta",
+  "generatedAt": "2026-03-14T00:00:00.000Z",
+  "constitutionVersion": "1.4.0",
+  "scope": {
+    "branch": "feature/example",
+    "commit": "1111111111111111111111111111111111111111",
+    "diffBase": "0000000000000000000000000000000000000000"
+  },
+  "assessments": [
+    {
+      "clauseId": "VII.ci-cd-github-pages-deployment-discipline",
+      "clauseTitle": "VII. CI/CD & GitHub Pages Deployment Discipline",
+      "status": "non-compliant",
+      "severity": "High",
+      "rationale": "No Pages deployment signal found under .github/workflows.",
+      "evidence": [
+        {
+          "filePath": ".github/workflows/release.yml",
+          "line": 1,
+          "clauseId": "VII.ci-cd-github-pages-deployment-discipline",
+          "observation": "GitHub Pages deployment workflow is not present in current CI definitions.",
+          "impact": "Public demo deployment discipline cannot be guaranteed from CI."
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "findingId": "F-001",
+      "clauseId": "VII.ci-cd-github-pages-deployment-discipline",
+      "severity": "High",
+      "summary": "No Pages deployment signal found under .github/workflows.",
+      "dueDate": "2026-03-21",
+      "state": "open",
+      "recommendations": [
+        {
+          "action": "Add GitHub Pages deployment workflow that runs after successful master CI.",
+          "verificationMethod": "Run GitHub Actions workflow and verify Pages artifact publication.",
+          "expectedOutcome": "A tested build is automatically deployed as the canonical demo.",
+          "milestone": "Next CI governance update"
+        }
+      ]
+    }
+  ]
+}
