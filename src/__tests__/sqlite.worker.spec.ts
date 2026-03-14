@@ -1,4 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+type WorkerRequestMessage =
+  | { type: 'init' }
+  | { id: string; type: 'exec'; payload: { sql: string; bind?: unknown[] } }
+
+type WorkerGlobal = {
+  onmessage: ((event: MessageEvent<WorkerRequestMessage>) => Promise<void>) | null
+  postMessage: (message: unknown) => void
+}
 
 // Mock dependencies
 const mockExec = vi.fn()
@@ -26,14 +35,18 @@ vi.mock('../../mmex/database/tables.sql?raw', () => ({
 
 // We need to mock the worker environment before importing the worker code
 const postMessageMock = vi.fn()
-global.self = {
-  onmessage: null,
-  postMessage: postMessageMock,
-} as any
+Object.defineProperty(globalThis, 'self', {
+  value: {
+    onmessage: null,
+    postMessage: postMessageMock,
+  },
+  writable: true,
+  configurable: true,
+})
+
+const workerSelf = globalThis.self as unknown as WorkerGlobal
 
 describe('SQLite Worker', () => {
-  let workerModule: any
-
   beforeEach(async () => {
     vi.clearAllMocks()
     vi.resetModules()
@@ -47,12 +60,12 @@ describe('SQLite Worker', () => {
     }))
 
     // Import the worker module to trigger side effects (setting onmessage)
-    workerModule = await import('../workers/sqlite.worker')
+    await import('../workers/sqlite.worker')
   })
 
   it('should initialize and migrate database', async () => {
     // Simulate init message
-    await self.onmessage!({ data: { type: 'init' } } as MessageEvent)
+    await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
 
     expect(mockOpfsDb).toHaveBeenCalledWith('/.mmex/data.mmb', 'c')
 
@@ -68,18 +81,18 @@ describe('SQLite Worker', () => {
 
   it('should execute queries', async () => {
     // Initialize first
-    await self.onmessage!({ data: { type: 'init' } } as MessageEvent)
+    await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
 
     const sql = 'SELECT * FROM items'
     mockExec.mockReturnValue([{ id: 1, name: 'test' }])
 
-    await self.onmessage!({
+    await workerSelf.onmessage!({
       data: {
         id: 'test-id',
         type: 'exec',
         payload: { sql },
       },
-    } as MessageEvent)
+    } as MessageEvent<WorkerRequestMessage>)
 
     expect(mockExec).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -98,26 +111,26 @@ describe('SQLite Worker', () => {
 
   it('should handle query errors', async () => {
     // Initialize first
-    await self.onmessage!({ data: { type: 'init' } } as MessageEvent)
+    await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
 
     const error = new Error('SQL Error')
     mockExec.mockImplementation(() => {
       throw error
     })
 
-    await self.onmessage!({
+    await workerSelf.onmessage!({
       data: {
         id: 'test-id',
         type: 'exec',
         payload: { sql: 'BAD SQL' },
       },
-    } as MessageEvent)
+    } as MessageEvent<WorkerRequestMessage>)
 
     expect(postMessageMock).toHaveBeenCalledWith({
       id: 'test-id',
       type: 'exec',
       status: 'error',
-      error: error,
+      error: error.message,
     })
   })
 })

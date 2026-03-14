@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
+type DbClientModule = typeof import('../workers/db-client')
+
 // Mock Worker API before importing App
 const { MockWorker } = vi.hoisted(() => {
   class MockWorker {
@@ -24,7 +26,7 @@ const { helpers } = vi.hoisted(() => ({
 }))
 
 vi.mock('../workers/db-client', async (importOriginal) => {
-  const mod = (await importOriginal()) as any
+  const mod = await importOriginal<DbClientModule>()
   return {
     ...mod,
     helpers,
