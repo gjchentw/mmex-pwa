@@ -1,0 +1,3 @@
+{
+	"postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && uvx --from git+https://github.com/github/spec-kit.git specify init --here --ai copilot --script sh --force"
+}
