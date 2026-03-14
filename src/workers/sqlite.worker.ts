@@ -1,5 +1,19 @@
-import sqlite3InitModule, { OpfsDatabase } from '@sqlite.org/sqlite-wasm'
+import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import tablesSql from '../../mmex/database/tables.sql?raw'
+
+type QueryResultRow = Array<string | number | null>
+type WorkerDatabase = {
+  exec: (
+    sql:
+      | string
+      | {
+          sql: string
+          bind?: unknown[]
+          returnValue?: 'resultRows'
+        },
+  ) => QueryResultRow[]
+  transaction: (callback: () => void) => void
+}
 
 const dbPath = '/.mmex/data.mmb'
 
@@ -26,12 +40,12 @@ const latestVersion = Array.from(upgrades.entries()).reduce(
   0,
 )
 
-let db: OpfsDatabase | null = null
+let db: WorkerDatabase | null = null
 
 const log = (...args: unknown[]) => console.log('DB Worker:', ...args)
 const error = (...args: unknown[]) => console.error('DB Worker:', ...args)
 
-const migrateDb = (db: OpfsDatabase) => {
+const migrateDb = (db: WorkerDatabase) => {
   const getLegacyVersion = (): number => {
     try {
       const result = db.exec({
@@ -137,11 +151,12 @@ const initDb = async () => {
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
-    db = new sqlite3.oo1.OpfsDb(dbPath, 'c')
+  const sqliteDb = new sqlite3.oo1.OpfsDb(dbPath, 'c') as unknown as WorkerDatabase
+  db = sqliteDb
 
     // initialize database
-    db.exec(tablesSql)
-    db.exec(`PRAGMA user_version = ${latestVersion}`)
+  sqliteDb.exec(tablesSql)
+  sqliteDb.exec(`PRAGMA user_version = ${latestVersion}`)
 
     self.postMessage({ type: 'init', status: 'success' })
   } catch (err: unknown) {
@@ -160,8 +175,9 @@ const openDb = async () => {
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
-    db = new sqlite3.oo1.OpfsDb(dbPath)
-    migrateDb(db)
+  const sqliteDb = new sqlite3.oo1.OpfsDb(dbPath) as unknown as WorkerDatabase
+  db = sqliteDb
+  migrateDb(sqliteDb)
 
     self.postMessage({ type: 'open', status: 'success' })
   } catch (err: unknown) {

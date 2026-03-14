@@ -1,16 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { MockWorker, handlers } = vi.hoisted(() => {
-  const handlers: ((e: MessageEvent) => void)[] = []
+type DbClientModule = typeof import('../workers/db-client')
+type WorkerMessageHandler = (e: MessageEvent<MockWorkerResponse>) => void
+type MockWorkerResponse =
+  | { type: 'init'; status: 'success' }
+  | { type: 'init'; status: 'error'; error: string }
+  | { id: string; type: 'exec'; status: 'success'; result: unknown }
+  | { id: string; type: 'exec'; status: 'error'; error: string }
+type ExecRequestMessage = {
+  id: string
+  type: 'exec'
+  payload: { sql: string; bind?: unknown[] }
+}
+
+const { MockWorker, handlers, workerInstances } = vi.hoisted(() => {
+  const handlers: WorkerMessageHandler[] = []
+  const workerInstances: MockWorker[] = []
 
   class MockWorker {
+    constructor() {
+      workerInstances.push(this)
+    }
+
     postMessage = vi.fn()
-    addEventListener = vi.fn((event: string, handler: any) => {
+    addEventListener = vi.fn((event: string, handler: WorkerMessageHandler) => {
       if (event === 'message') {
         handlers.push(handler)
       }
     })
-    removeEventListener = vi.fn((event: string, handler: any) => {
+    removeEventListener = vi.fn((event: string, handler: WorkerMessageHandler) => {
       if (event === 'message') {
         const index = handlers.indexOf(handler)
         if (index > -1) {
@@ -21,7 +39,7 @@ const { MockWorker, handlers } = vi.hoisted(() => {
     terminate = vi.fn()
   }
 
-  return { MockWorker, handlers }
+  return { MockWorker, handlers, workerInstances }
 })
 
 // Mock the worker import
@@ -49,12 +67,11 @@ if (typeof window !== 'undefined' && window.crypto) {
 }
 
 describe('DbClient', () => {
-  let DbClient: any
-  let client: any
-  let postMessageMock: any
-  let generateIdMock: any
+  let DbClient: DbClientModule['DbClient']
+  let client: InstanceType<DbClientModule['DbClient']>
+  let postMessageMock: ReturnType<typeof vi.fn>
 
-  const triggerMessage = (data: any) => {
+  const triggerMessage = (data: MockWorkerResponse) => {
     // Create a copy because handlers might modify the array (removeEventListener)
     ;[...handlers].forEach((h) => h({ data } as MessageEvent))
   }
@@ -62,18 +79,17 @@ describe('DbClient', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     handlers.length = 0
+    workerInstances.length = 0
 
     // Import DbClient dynamically to ensure mocks are in place
     const module = await import('../workers/db-client')
     DbClient = module.DbClient
 
     // Mock generateId
-    generateIdMock = vi
-      .spyOn(module.helpers, 'generateId')
-      .mockReturnValue('00000000-0000-0000-0000-000000000000')
+    vi.spyOn(module.helpers, 'generateId').mockReturnValue('00000000-0000-0000-0000-000000000000')
 
     client = new DbClient()
-    postMessageMock = client.worker.postMessage
+    postMessageMock = workerInstances.at(-1)?.postMessage ?? vi.fn()
   })
 
   it('should initialize correctly', async () => {
@@ -102,11 +118,12 @@ describe('DbClient', () => {
     await client.ready()
 
     // Setup response trigger when postMessage is called
-    postMessageMock.mockImplementationOnce((data: any) => {
+    postMessageMock.mockImplementationOnce((data: ExecRequestMessage) => {
       if (data.type === 'exec') {
         setTimeout(() => {
           triggerMessage({
             id: data.id,
+            type: 'exec',
             status: 'success',
             result: [{ id: 1, name: 'test' }],
           })
@@ -131,11 +148,12 @@ describe('DbClient', () => {
     await client.ready()
 
     // Setup response trigger when postMessage is called
-    postMessageMock.mockImplementationOnce((data: any) => {
+    postMessageMock.mockImplementationOnce((data: ExecRequestMessage) => {
       if (data.type === 'exec') {
         setTimeout(() => {
           triggerMessage({
             id: data.id,
+            type: 'exec',
             status: 'error',
             error: 'Syntax error',
           })

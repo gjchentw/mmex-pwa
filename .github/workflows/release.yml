@@ -8,17 +8,127 @@ on:
       - completed
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
-  tag-and-release:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'master' }}
+  preflight:
+    if: ${{ github.event.workflow_run.head_branch == 'master' }}
     runs-on: ubuntu-latest
+    outputs:
+      head_sha: ${{ steps.context.outputs.commit_sha }}
+      head_branch: ${{ steps.context.outputs.ref_name }}
+      is_validated: ${{ steps.validation_gate.outputs.is_validated }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Collect run context
+        id: context
+        run: ./.github/scripts/ci/collect-run-context.sh
+
+      - name: Guard workflow_run payload
+        run: |
+          if [[ "${{ github.event.workflow_run.name }}" != "test" ]]; then
+            echo "Unsupported workflow source: ${{ github.event.workflow_run.name }}"
+            exit 1
+          fi
+          if [[ -z "${{ github.event.workflow_run.head_sha }}" ]]; then
+            echo "Missing workflow_run.head_sha"
+            exit 1
+          fi
+          if [[ -z "${{ github.event.workflow_run.head_branch }}" ]]; then
+            echo "Missing workflow_run.head_branch"
+            exit 1
+          fi
+
+      - name: Evaluate validation gate
+        id: validation_gate
+        run: |
+          if [[ "${{ github.event.workflow_run.conclusion }}" == "success" ]]; then
+            echo "is_validated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_validated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-pages:
+    needs: preflight
+    if: ${{ needs.preflight.outputs.is_validated == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout tested commit
         uses: actions/checkout@v4
         with:
+          ref: ${{ needs.preflight.outputs.head_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Configure npm retries
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-maxtimeout 120000
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production artifact
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy-pages:
+    needs:
+      - preflight
+      - build-pages
+    if: ${{ needs.preflight.outputs.is_validated == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages-production
+      cancel-in-progress: true
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  tag-and-release:
+    needs:
+      - preflight
+      - deploy-pages
+    if: ${{ needs.preflight.outputs.is_validated == 'true' && needs.deploy-pages.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.preflight.outputs.head_sha }}
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -47,6 +157,18 @@ jobs:
             echo "tag_exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check whether release already exists
+        id: release_check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create and push tag
         if: ${{ steps.tag_check.outputs.tag_exists == 'false' }}
         run: |
@@ -57,7 +179,7 @@ jobs:
           git push origin "$TAG"
 
       - name: Create GitHub release
-        if: ${{ steps.tag_check.outputs.tag_exists == 'false' }}
+        if: ${{ steps.release_check.outputs.release_exists == 'false' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -65,3 +187,64 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
+
+      - name: Write deployment evidence summary
+        run: |
+          ./.github/scripts/ci/write-run-summary.sh \
+            "Release and Deployment Evidence" \
+            "- Source branch: ${{ needs.preflight.outputs.head_branch }}" \
+            "- Source commit: ${{ needs.preflight.outputs.head_sha }}" \
+            "- Deployment status: success" \
+            "- Page URL: ${{ needs.deploy-pages.outputs.page_url }}" \
+            "- Release tag: ${{ steps.version.outputs.tag }}" \
+            "- Existing tag reused: ${{ steps.tag_check.outputs.tag_exists }}" \
+            "- Existing release reused: ${{ steps.release_check.outputs.release_exists }}"
+
+  release-summary:
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - preflight
+      - build-pages
+      - deploy-pages
+      - tag-and-release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect failed stage
+        id: failed_stage
+        run: |
+          ./.github/scripts/ci/detect-failed-stage.sh \
+            preflight=${{ needs.preflight.result }} \
+            build-pages=${{ needs.build-pages.result }} \
+            deploy-pages=${{ needs.deploy-pages.result }} \
+            tag-and-release=${{ needs.tag-and-release.result }}
+
+      - name: Write release success summary
+        if: ${{ steps.failed_stage.outputs.failed_stage == 'none' }}
+        run: |
+          ./.github/scripts/ci/write-run-summary.sh \
+            "Release Pipeline Result" \
+            "- Status: success" \
+            "- Source branch: ${{ github.event.workflow_run.head_branch }}" \
+            "- Source commit: ${{ github.event.workflow_run.head_sha }}" \
+            "- Deployment URL: ${{ needs.deploy-pages.outputs.page_url }}"
+
+      - name: Write release failure summary
+        if: ${{ steps.failed_stage.outputs.failed_stage != 'none' }}
+        run: |
+          ./.github/scripts/ci/write-run-summary.sh \
+            "Release Pipeline Result" \
+            "- Status: failure" \
+            "- Source branch: ${{ github.event.workflow_run.head_branch }}" \
+            "- Source commit: ${{ github.event.workflow_run.head_sha }}" \
+            "- Failed stage: ${{ steps.failed_stage.outputs.failed_stage }}" \
+            "- Stage status: ${{ steps.failed_stage.outputs.failed_status }}"
+
+      - name: Fail release summary when required
+        if: ${{ steps.failed_stage.outputs.failed_stage != 'none' && needs.preflight.outputs.is_validated == 'true' }}
+        run: |
+          echo "Release pipeline failed after validation gate"
+          exit 1
