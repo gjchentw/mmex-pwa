@@ -39,8 +39,8 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
 
-    /* Run headless on CI and on environments without an X server. */
-    headless: !!process.env.CI || !process.env.DISPLAY,
+    /* Run headless on CI and on Linux environments without an X server. */
+    headless: !!process.env.CI || (process.platform === 'linux' && !process.env.DISPLAY),
   },
 
   /* Configure projects for major browsers */

@@ -9,14 +9,17 @@ Auto-generated from all feature plans. Last updated: 2026-03-14
 ## Project Structure
 
 ```text
-backend/
-frontend/
-tests/
+src/          # Vue 3 application source (components, stores, workers, router)
+e2e/          # Playwright end-to-end tests
+mmex/         # Git submodule: moneymanagerex/database (SQL schemas + upgrades)
+public/       # Static assets
+.github/      # CI/CD workflows and scripts
+specs/        # Feature specifications and planning documents
 ```
 
 ## Commands
 
-npm test && npm run lint
+npm run test:unit && npm run lint
 
 ## Code Style
 
