@@ -8,7 +8,7 @@ import { revalidateFindings } from './revalidate-findings.ts'
 import { validateReport } from './validate-report.ts'
 import { writeReport } from './write-report.ts'
 import { writeRevalidationRecord } from './write-revalidation-record.ts'
-import type { ComplianceFinding, ComplianceReport } from './types.ts'
+import type { ComplianceFinding, ComplianceReport, RevalidationRecord } from './types.ts'
 
 const parseJsonIfExists = async <T>(filePath: string, fallback: T): Promise<T> => {
   try {
@@ -52,7 +52,7 @@ const validateExistingReports = async (): Promise<void> => {
       errors.push('Missing report artifact for validation mode.')
       continue
     }
-    const reportErrors = await validateReport(report)
+    const reportErrors = validateReport(report)
     errors.push(...reportErrors.map((err) => `${report.reportType}: ${err}`))
   }
 
@@ -80,25 +80,32 @@ const run = async (): Promise<void> => {
 
   const allErrors: string[] = []
   const previousStates = await buildPreviousStateMap()
+  let revalidationRecords: RevalidationRecord[] = []
 
   for (const report of reports) {
     const gateErrors = enforceFailGates(constitution.clauses, report.assessments, report.findings)
     allErrors.push(...gateErrors.map((e) => `${report.reportType}: ${e}`))
 
-    const schemaErrors = await validateReport(report)
-    allErrors.push(...schemaErrors.map((e) => `${report.reportType}: ${e}`))
-
     if (report.reportType === 'local-delta') {
       const { findings, records } = revalidateFindings(report.findings, previousStates, generatedAt)
       report.findings = findings as ComplianceFinding[]
-      await writeRevalidationRecord(records)
+      revalidationRecords = records
     }
 
-    await writeReport(report)
+    const schemaErrors = validateReport(report)
+    allErrors.push(...schemaErrors.map((e) => `${report.reportType}: ${e}`))
   }
 
   if (allErrors.length > 0) {
     throw new Error(`Compliance generation failed:\n${allErrors.join('\n')}`)
+  }
+
+  for (const report of reports) {
+    await writeReport(report)
+  }
+
+  if (revalidationRecords.length > 0) {
+    await writeRevalidationRecord(revalidationRecords)
   }
 
   console.log('Compliance reports generated successfully.')

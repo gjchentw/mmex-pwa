@@ -37,23 +37,21 @@
   - clauseId (string, required): Referenced constitution clause.
   - severity (enum, required): Critical | High | Medium | Low.
   - summary (string, required): Short description of the violation.
-  - recommendationIds (array<string>, required): One or more remediation references.
+  - recommendations (array<Recommendation>, required): One or more embedded remediation actions.
   - dueDate (date, required): SLA-based target date.
   - state (enum, required): open | in-progress | resolved | reopened.
 - Validation rules:
-  - recommendationIds length must be >= 1 for all non-compliant findings.
+  - recommendations length must be >= 1 for all non-compliant findings.
   - dueDate must align with SLA matrix for severity.
 
-## Entity: RemediationRecommendation
+## Entity: Recommendation
 
-- Purpose: Concrete corrective action for one finding.
+- Purpose: Concrete corrective action embedded within a finding.
 - Fields:
-  - recommendationId (string, required): Unique identifier.
-  - findingId (string, required): Parent finding.
   - action (string, required): Specific change to implement.
   - verificationMethod (string, required): How closure will be verified.
   - expectedOutcome (string, required): Measurable post-fix behavior.
-  - milestone (string, required): Planned completion milestone.
+  - milestone (string, optional): Planned completion milestone.
   - blockers (array<string>, optional): Dependencies or constraints.
 - Validation rules:
   - verificationMethod must be executable or inspectable.
@@ -85,7 +83,7 @@
 
 - ConstitutionClauseAssessment 1..N EvidenceItem.
 - ConstitutionClauseAssessment 1..N ComplianceFinding.
-- ComplianceFinding 1..N RemediationRecommendation.
+- ComplianceFinding 1..N Recommendation (embedded).
 - ComplianceFinding 1..N RevalidationRecord.
 - SeverityPolicy 1..N ComplianceFinding by severity key.
 

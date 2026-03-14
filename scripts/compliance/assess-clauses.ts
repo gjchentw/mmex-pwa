@@ -21,7 +21,6 @@ const checkPagesWorkflow = async (
   reportType: ReportType,
   scope: ScopeResolution,
 ): Promise<FailureResult | null> => {
-  const workflowPath = path.resolve('.github/workflows')
   const files = await readFile(path.resolve('.github/workflows/test.yml'), 'utf8').catch(() => '')
   const release = await readFile(path.resolve('.github/workflows/release.yml'), 'utf8').catch(() => '')
   const combined = `${files}\n${release}`
@@ -49,7 +48,7 @@ const checkPagesWorkflow = async (
   return {
     status: 'non-compliant',
     severity: 'High',
-    rationale: `No Pages deployment signal found under ${workflowPath}.`,
+    rationale: `No Pages deployment signal found under .github/workflows.`,
     evidence,
   }
 }
