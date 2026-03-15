@@ -97,6 +97,10 @@ export class DbClient {
   /**
    * Imports an external database file into OPFS and reloads the SQLite worker.
    * The worker closes the current DB, writes the buffer to OPFS, and reopens it.
+   *
+   * NOTE: The `data` ArrayBuffer is transferred (not copied) to the worker thread,
+   * so the caller's reference will be detached after this call. Clone the buffer
+   * first if it needs to be reused (e.g., for retry logic).
    */
   async importDb(data: ArrayBuffer): Promise<void> {
     const id = helpers.generateId()

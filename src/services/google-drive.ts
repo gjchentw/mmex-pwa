@@ -137,7 +137,8 @@ export async function uploadDbToDrive(accessToken: string, data: ArrayBuffer): P
     await driveRequest(`${UPLOAD_API}/files?uploadType=multipart`, accessToken, {
       method: 'POST',
       headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
-      body: body.buffer,
+      // Slice the view's own segment in case the underlying ArrayBuffer is larger
+      body: body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
     })
   }
 }

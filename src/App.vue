@@ -224,7 +224,9 @@ const formatSyncTime = (date: Date | null): string => {
   return date.toLocaleTimeString()
 }
 
-// Google Identity Services token client (created lazily)
+// Google Identity Services token client (created lazily within setup scope, not module scope)
+// Using a non-reactive variable is intentional: the GIS token client is an external SDK
+// object that should not be made reactive.
 let tokenClient: ReturnType<NonNullable<Window['google']>['accounts']['oauth2']['initTokenClient']> | null = null
 
 const getTokenClient = () => {
@@ -271,7 +273,8 @@ const signIn = () => {
     return
   }
   isGisLoading.value = true
-  client.requestAccessToken({ prompt: 'consent' })
+  // Use 'select_account' so the user can choose an account without being forced to re-consent
+  client.requestAccessToken({ prompt: 'select_account' })
 }
 
 const signOut = () => {
