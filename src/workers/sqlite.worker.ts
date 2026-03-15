@@ -13,6 +13,9 @@ type WorkerDatabase = {
         },
   ) => QueryResultRow[]
   transaction: (callback: () => void) => void
+  close: () => void
+  /** Serialises the database to a Uint8Array (equivalent to sqlite3_serialize). */
+  serialize: (schemaName?: string) => Uint8Array
 }
 
 const dbPath = '/.mmex/data.mmb'
@@ -157,7 +160,7 @@ const initDb = async () => {
   }
 }
 
-const openDb = async () => {
+const openDb = async (importId?: string) => {
   try {
     log('Opening SQLite...')
     const sqlite3 = await sqlite3InitModule({
@@ -171,11 +174,34 @@ const openDb = async () => {
   db = sqliteDb
   migrateDb(sqliteDb)
 
-    self.postMessage({ type: 'open', status: 'success' })
+    if (importId !== undefined) {
+      // Respond to the 'import' caller with the import request id
+      self.postMessage({ id: importId, type: 'import', status: 'success' })
+    } else {
+      self.postMessage({ type: 'open', status: 'success' })
+    }
   } catch (err: unknown) {
     error('Opening failed', err)
-    self.postMessage({ type: 'open', status: 'error', error: err instanceof Error ? err.message : String(err) })
+    if (importId !== undefined) {
+      self.postMessage({ id: importId, type: 'import', status: 'error', error: err instanceof Error ? err.message : String(err) })
+    } else {
+      self.postMessage({ type: 'open', status: 'error', error: err instanceof Error ? err.message : String(err) })
+    }
   }
+}
+
+/** Writes an ArrayBuffer to a file in the Origin Private File System. */
+const writeToOpfs = async (path: string, data: ArrayBuffer): Promise<void> => {
+  const parts = path.replace(/^\//, '').split('/')
+  let dir = await navigator.storage.getDirectory()
+  for (let i = 0; i < parts.length - 1; i++) {
+    dir = await dir.getDirectoryHandle(parts[i]!, { create: true })
+  }
+  const filename = parts[parts.length - 1]!
+  const fh = await dir.getFileHandle(filename, { create: true })
+  const writable = await fh.createWritable()
+  await writable.write(data)
+  await writable.close()
 }
 
 self.onmessage = async (e) => {
@@ -191,6 +217,67 @@ self.onmessage = async (e) => {
     return
   }
 
+  if (type === 'close') {
+    if (db) {
+      try {
+        db.close()
+      } catch (err) {
+        error('Close failed', err)
+      }
+      db = null
+    }
+    self.postMessage({ type: 'close', status: 'success' })
+    return
+  }
+
+  if (type === 'import') {
+    // Close current DB, write new content to OPFS, then reopen
+    if (db) {
+      try {
+        db.close()
+      } catch (err) {
+        error('Close before import failed', err)
+      }
+      db = null
+    }
+    try {
+      await writeToOpfs(dbPath, payload.data as ArrayBuffer)
+      await openDb(id)
+    } catch (err: unknown) {
+      error('Import failed', err)
+      self.postMessage({
+        id,
+        type: 'import',
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+    return
+  }
+
+  if (type === 'export') {
+    if (!db) {
+      self.postMessage({ id, type: 'export', status: 'error', error: 'Database not initialized' })
+      return
+    }
+    try {
+      // Use SQLite's own serialize so we get the complete in-memory state,
+      // avoiding any OPFS SAH concurrency issues with readFromOpfs().
+      const bytes = db.serialize()
+      const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+      self.postMessage({ id, type: 'export', status: 'success', result: data }, { transfer: [data] })
+    } catch (err: unknown) {
+      error('Export failed', err)
+      self.postMessage({
+        id,
+        type: 'export',
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+    return
+  }
+
   if (!db) {
     self.postMessage({ id, type, status: 'error', error: 'Database not initialized' })
     return
@@ -198,7 +285,7 @@ self.onmessage = async (e) => {
 
   try {
     switch (type) {
-      case 'exec':
+      case 'exec': {
         const result = db.exec({
           sql: payload.sql,
           bind: payload.bind,
@@ -206,6 +293,7 @@ self.onmessage = async (e) => {
         })
         self.postMessage({ id, type, status: 'success', result })
         break
+      }
       default:
         self.postMessage({ id, type, status: 'error', error: `Unknown message type: ${type}` })
     }
