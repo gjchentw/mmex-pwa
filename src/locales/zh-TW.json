@@ -17,11 +17,41 @@
     },
     "menu": {
         "home": "首頁",
+        "transactions": "交易記錄",
+        "accounts": "帳戶",
+        "billsDeposits": "帳單與存款",
+        "budgets": "預算",
+        "reports": "報表",
+        "assets": "資產",
+        "exchangeRates": "匯率",
+        "settings": "設定",
         "about": "關於"
     },
     "database": {
         "pickFromDrive": "從 Google 雲端硬碟選擇資料庫",
-        "syncToDrive": "同步本地資料庫至 Google 雲端硬碟",
+        "syncToDrive": "同步至 Google 雲端硬碟",
+        "syncFromDrive": "從 Google 雲端硬碟同步",
         "startNew": "建立新的本地資料庫"
+    },
+    "auth": {
+        "signIn": "使用 Google 帳號登入",
+        "signOut": "登出",
+        "signedInAs": "已登入為",
+        "notSignedIn": "尚未登入",
+        "securityNotice": "您的存取權杖僅保存於記憶體中，不會被儲存。"
+    },
+    "sync": {
+        "status": "同步狀態",
+        "idle": "尚未同步",
+        "syncing": "同步中…",
+        "success": "上次同步",
+        "error": "同步失敗",
+        "syncNow": "立即同步",
+        "uploadNow": "上傳至雲端",
+        "downloadNow": "從雲端下載"
+    },
+    "network": {
+        "online": "線上",
+        "offline": "離線"
     }
 }

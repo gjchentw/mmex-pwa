@@ -8,14 +8,27 @@ type OpenResponseMessage =
   | { type: 'open'; status: 'success' }
   | { type: 'open'; status: 'error'; error: string }
 
+type CloseResponseMessage = { type: 'close'; status: 'success' }
+
 type ExecResponseMessage =
   | { id: string; type: 'exec'; status: 'success'; result: unknown }
   | { id: string; type: 'exec'; status: 'error'; error: string }
 
+type ImportResponseMessage =
+  | { id: string; type: 'import'; status: 'success' }
+  | { id: string; type: 'import'; status: 'error'; error: string }
+
+type ExportResponseMessage =
+  | { id: string; type: 'export'; status: 'success'; result: ArrayBuffer }
+  | { id: string; type: 'export'; status: 'error'; error: string }
+
 export type DbWorkerResponseMessage =
   | InitResponseMessage
   | OpenResponseMessage
+  | CloseResponseMessage
   | ExecResponseMessage
+  | ImportResponseMessage
+  | ExportResponseMessage
 
 type PendingRequest = {
   resolve: (value: unknown) => void
@@ -58,7 +71,7 @@ export class DbClient {
         const { resolve, reject } = this.pendingRequests.get(id)!
         this.pendingRequests.delete(id)
         if (status === 'success') {
-          resolve(e.data.result)
+          resolve('result' in e.data ? e.data.result : undefined)
         } else {
           reject(new Error(e.data.error))
         }
@@ -78,6 +91,44 @@ export class DbClient {
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject })
       this.worker.postMessage({ id, type: 'exec', payload: { sql, bind } })
+    })
+  }
+
+  /**
+   * Imports an external database file into OPFS and reloads the SQLite worker.
+   * The worker closes the current DB, writes the buffer to OPFS, and reopens it.
+   *
+   * NOTE: The `data` ArrayBuffer is transferred (not copied) to the worker thread,
+   * so the caller's reference will be detached after this call. Clone the buffer
+   * first if it needs to be reused (e.g., for retry logic).
+   */
+  async importDb(data: ArrayBuffer): Promise<void> {
+    const id = helpers.generateId()
+    return new Promise((resolve, reject) => {
+      this.pendingRequests.set(id, {
+        resolve: () => {
+          // After a successful import, reset the initPromise so ready() resolves again
+          this.initPromise = Promise.resolve()
+          resolve()
+        },
+        reject,
+      })
+      this.worker.postMessage({ id, type: 'import', payload: { data } }, [data])
+    })
+  }
+
+  /**
+   * Exports the current OPFS database file as an ArrayBuffer.
+   */
+  async exportDb(): Promise<ArrayBuffer> {
+    await this.ready()
+    const id = helpers.generateId()
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      this.pendingRequests.set(id, {
+        resolve: (value) => resolve(value as ArrayBuffer),
+        reject,
+      })
+      this.worker.postMessage({ id, type: 'export' })
     })
   }
 }

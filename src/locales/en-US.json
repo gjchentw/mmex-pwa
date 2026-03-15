@@ -17,11 +17,41 @@
     },
     "menu": {
         "home": "Home",
+        "transactions": "Transactions",
+        "accounts": "Accounts",
+        "billsDeposits": "Bills & Deposits",
+        "budgets": "Budgets",
+        "reports": "Reports",
+        "assets": "Assets",
+        "exchangeRates": "Exchange Rates",
+        "settings": "Settings",
         "about": "About"
     },
     "database": {
         "pickFromDrive": "Pick database from Google Drive",
-        "syncToDrive": "Sync local database to Google Drive",
+        "syncToDrive": "Sync to Google Drive",
+        "syncFromDrive": "Sync from Google Drive",
         "startNew": "Start a new local database"
+    },
+    "auth": {
+        "signIn": "Sign in with Google",
+        "signOut": "Sign out",
+        "signedInAs": "Signed in as",
+        "notSignedIn": "Not signed in",
+        "securityNotice": "Your access token is kept in memory only and is not stored."
+    },
+    "sync": {
+        "status": "Sync Status",
+        "idle": "Not synced yet",
+        "syncing": "Syncing…",
+        "success": "Last synced",
+        "error": "Sync failed",
+        "syncNow": "Sync now",
+        "uploadNow": "Upload to Drive",
+        "downloadNow": "Download from Drive"
+    },
+    "network": {
+        "online": "Online",
+        "offline": "Offline"
     }
 }
