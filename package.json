@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
+    "ci:test": "npm run lint && npm run test:unit && npm run build && npm run test:e2e",
     "preview": "vite preview",
     "test:unit": "vitest",
     "test:e2e": "playwright test",

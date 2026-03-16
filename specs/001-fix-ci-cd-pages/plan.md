@@ -1,43 +1,38 @@
 # Implementation Plan: CI/CD and GitHub Pages Recovery
 
-**Branch**: `001-fix-ci-cd-pages` | **Date**: 2026-03-14 | **Spec**: `/specs/001-fix-ci-cd-pages/spec.md`
+**Branch**: `001-fix-ci-cd-pages` | **Date**: 2026-03-16 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-fix-ci-cd-pages/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
 
 ## Summary
 
-Recover and harden repository automation so pull requests and master commits run deterministic quality gates, successful master runs publish to GitHub Pages, and failures remain diagnosable and rerunnable. The technical approach uses strict validation/release workflow separation, deterministic deployment gates, and stable e2e smoke policy (selector-based checks, CI-only retry, 10-second readiness timeout, Chromium-only matrix).
+This feature fixes the GitHub Actions CI/CD pipeline and ensures stable deployment to GitHub Pages from the `main` branch. It incorporates automated quality checks (lint, build, unit, e2e), artifact management, failure notifications, and security-first secret handling.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.9 (project runtime), GitHub Actions workflow YAML  
-**Primary Dependencies**: Node.js 22 in CI, npm, actions/checkout@v4, actions/setup-node@v4, actions/upload-pages-artifact@v3, actions/deploy-pages@v4, Playwright  
-**Storage**: N/A for runtime feature scope; CI artifacts and GitHub Pages deployment storage  
-**Testing**: ESLint, vue-tsc, Vitest unit tests, Playwright e2e smoke tests  
-**Target Platform**: GitHub-hosted Ubuntu runners and GitHub Pages environment
-**Project Type**: Frontend web application with CI/CD workflows  
-**Performance Goals**: 95% of master runs complete check-to-publish within 10 minutes; public site verification within 2 minutes after deploy  
-**Constraints**: Full quality-gate enforcement before deploy; master-only publish; deterministic artifacts; major version must remain 0; e2e smoke policy uses selector-based assertions, CI-only retry=1, timeout=10s, Chromium-only  
-**Scale/Scope**: Workflow and release automation updates in `.github/workflows/` and supporting design docs in `specs/001-fix-ci-cd-pages/`
+**Language/Version**: TypeScript 5.9.0, Node.js 22.x
+**Primary Dependencies**: Vite 7.x, Vue 3.x, Quasar 2.x, Playwright 1.56.x, Vitest 3.x
+**Storage**: GitHub Actions Artifacts, GitHub Pages
+**Testing**: Playwright (E2E Smoke Tests), Vitest (Unit)
+**Target Platform**: GitHub Pages (PWA)
+**Project Type**: PWA (Web Application)
+**Performance Goals**: Mainline check-to-publish < 10 min, Site availability < 2 min after deploy.
+**Constraints**: `master` branch deployment only, 1 E2E retry in CI, Chromium only, GitHub Secrets for security.
+**Scale/Scope**: CI/CD automation and deployment.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Pre-Phase 0 Gate Review
-
-- Local First (I): PASS. Scope is CI/CD and e2e policy only; no runtime data flow change.
-- UX First (II): PASS. Stable deployment and reliable smoke checks improve confidence in public demo quality.
-- Test-First (III): PASS. Validation gate sequence remains mandatory and explicit.
-- Quasar Compliance (IV): PASS. No Quasar component or design system changes are introduced.
-- MMEX Schema Compatibility (V): PASS. No schema or migration logic change is planned.
-- TypeScript Strictness (VI): PASS. No relaxation of strict typing or linting.
-- CI/CD & Pages Discipline (VII): PASS. Plan directly reinforces governed automated deployment.
-- MMEX Community Acceptance (VIII): PASS. Decisions are documented, reviewable, and upstream-friendly.
-- Language & Documentation Policy: PASS. Planning artifacts remain in English.
-
-**Gate Result**: PASS.
+| Principle | Status | Justification |
+|-----------|--------|---------------|
+| I. Local First | ✅ | CI/CD does not affect local-first logic. |
+| II. UX First | ✅ | Stable deployments ensure the public site version is always fresh. |
+| III. Test-First | ✅ | Mandatory quality checks (Vitest, Playwright) are the core of this fix. |
+| IV. Quasar Compliance | ✅ | Not applicable (DevOps focus). |
+| V. MMEX Schema | ✅ | Not applicable (DevOps focus). |
+| VI. TS Strictness | ✅ | Workflow scripts will be checked for quality. |
+| VII. CI/CD Discipline | ✅ | This IS the implementation of CI/CD discipline. |
+| VIII. MMEX Community | ✅ | Standardized, readable, and traceable automation for community trust. |
 
 ## Project Structure
 
@@ -45,60 +40,34 @@ Recover and harden repository automation so pull requests and master commits run
 
 ```text
 specs/001-fix-ci-cd-pages/
-├── plan.md
-├── research.md
-├── data-model.md
-├── quickstart.md
-├── contracts/
-│   └── github-actions-contract.md
-└── tasks.md
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output
+└── tasks.md             # Phase 2 output (future)
 ```
 
 ### Source Code (repository root)
 
 ```text
 .github/
-├── scripts/ci/
-│   ├── collect-run-context.sh
-│   ├── common.sh
-│   ├── detect-failed-stage.sh
-│   └── write-run-summary.sh
-└── workflows/
-    ├── test.yml
-    ├── release.yml
-    └── version-guard.yml
+├── workflows/
+│   ├── test.yml          # Validation pipeline
+│   ├── release.yml       # Deployment pipeline
+│   └── version-guard.yml # Versioning constraints
+└── scripts/ci/           # CI/CD helper scripts
 
-e2e/
-└── vue.spec.ts
-
-src/
-├── __tests__/
-└── workers/
+playwright.config.ts      # E2E configuration
+package.json              # Dependencies and build scripts
 ```
 
-**Structure Decision**: Keep the existing single-repo frontend layout and implement all behavior in workflow files plus existing e2e test surface, with no new service boundaries.
+**Structure Decision**: Standard GitHub Actions workflow and script structure.
 
 ## Complexity Tracking
 
-No constitutional violations require justification.
+> **Fill ONLY if Constitution Check has violations that must be justified**
 
-## Post-Phase 1 Constitution Re-Check
-
-- Local First (I): PASS. No network dependency is introduced into core app behavior.
-- UX First (II): PASS. Selector-based e2e checks reduce flaky CI outcomes and improve release confidence.
-- Test-First (III): PASS. Design requires mandatory gates and explicit smoke policy coverage.
-- Quasar Compliance (IV): PASS. UI framework usage remains unchanged.
-- MMEX Schema Compatibility (V): PASS. Schema compatibility remains untouched.
-- TypeScript Strictness (VI): PASS. Design does not permit type-safety regressions.
-- CI/CD & Pages Discipline (VII): PASS. Deploy remains gated, auditable, and deterministic.
-- MMEX Community Acceptance (VIII): PASS. Versioning, docs, and traceability remain aligned with governance.
-- Language & Documentation Policy: PASS. Artifacts stay in English.
-
-**Re-Check Result**: PASS.
-
-## Implementation Notes
-
-- Validation workflow keeps explicit ordered gates and failure-stage summaries.
-- E2E smoke policy is fixed as selector-based, root+SQLite presence checks, CI-only retry=1, timeout=10s, Chromium-only.
-- Release workflow deploys only from qualified master validation runs and emits deployment evidence.
-- Version-guard remains active with pre-1.0 policy and approved semver transition rules.
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| None | N/A | N/A |

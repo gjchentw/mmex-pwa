@@ -1,93 +1,30 @@
-# Phase 1 Data Model: CI/CD and GitHub Pages Recovery
+# Data Model: CI/CD Pipeline
 
-## Entity: PipelineRun
-- Purpose: Represents one CI/CD workflow execution instance.
-- Fields:
-  - runId (string, required, unique)
-  - workflowName (string, required)
-  - triggerEvent (enum: push, pull_request, workflow_run, workflow_dispatch)
-  - branch (string, required)
-  - commitSha (string, required)
-  - startedAt (datetime, required)
-  - finishedAt (datetime, optional until completion)
-  - status (enum: queued, in_progress, success, failure, cancelled)
-  - failedStage (string, optional)
-- Relationships:
-  - One PipelineRun has many QualityGateResults.
-  - One PipelineRun can produce zero or one DeploymentRecord.
-- Validation rules:
-  - finishedAt must be greater than or equal to startedAt.
-  - failedStage must be present when status is failure.
+## Entities
 
-## Entity: QualityGateResult
-- Purpose: Captures gate-by-gate outcomes used for deploy eligibility.
-- Fields:
-  - gateName (enum: lint, build, unit_test, e2e_test)
-  - gateStatus (enum: success, failure, skipped)
-  - completedAt (datetime, required)
-  - detailsUrl (string, optional)
-- Relationships:
-  - Many QualityGateResults belong to one PipelineRun.
-- Validation rules:
-  - Deploy eligibility requires all mandatory gates in success status.
-  - skipped is valid only for explicitly non-required contexts.
+### Pipeline Run
+- **Description**: One end-to-end automation execution.
+- **Fields**:
+  - `id`: Unique identifier (GITHUB_RUN_ID)
+  - `trigger`: Branch or PR that started the run.
+  - `status`: success, failure, or in-progress.
+  - `failed_stage`: The name of the first failing job.
 
-## Entity: DeploymentRecord
-- Purpose: Represents one GitHub Pages publish attempt.
-- Fields:
-  - deploymentId (string, required, unique)
-  - sourceRunId (string, required)
-  - targetEnvironment (enum: github_pages)
-  - deployedRef (string, required)
-  - deployedSha (string, required)
-  - deployedAt (datetime, required)
-  - deploymentStatus (enum: success, failure)
-  - evidenceUrl (string, optional)
-- Relationships:
-  - One DeploymentRecord belongs to one PipelineRun.
-  - One DeploymentRecord produces one PublishedSiteVersion when successful.
-- Validation rules:
-  - sourceRunId must reference a successful PipelineRun with all required gate successes.
-  - targetEnvironment must be github_pages for this feature scope.
+### Quality Gate Result
+- **Description**: Outcomes of mandatory checks.
+- **Checks**:
+  - `lint`: Static code analysis pass/fail.
+  - `build`: Vite production build success.
+  - `unit-tests`: Vitest suite result.
+  - `e2e-tests`: Playwright smoke test result.
 
-## Entity: PublishedSiteVersion
-- Purpose: Tracks the currently visible public site version.
-- Fields:
-  - publicUrl (string, required)
-  - releaseTag (string, optional)
-  - sourceDeploymentId (string, required)
-  - publishedAt (datetime, required)
-  - verificationStatus (enum: verified, unverified, failed)
-- Relationships:
-  - One PublishedSiteVersion is derived from one successful DeploymentRecord.
-- Validation rules:
-  - verificationStatus must be verified before marking rollout complete.
+### Deployment Record
+- **Description**: Tracking GitHub Pages publish events.
+- **Fields**:
+  - `timestamp`: When the deploy finished.
+  - `sha`: The commit SHA published.
+  - `url`: Public URL of the deployed PWA.
 
-## Entity: E2ESmokePolicy
-- Purpose: Defines the enforced smoke-check execution policy used by CI quality gates.
-- Fields:
-  - selectorStrategy (enum: stable_selector_only)
-  - requiredSignals (set: app_root_present, sqlite_status_present)
-  - ciRetries (number, required, fixed: 1)
-  - localRetries (number, required, fixed: 0)
-  - sqliteVisibilityTimeoutSeconds (number, required, fixed: 10)
-  - browserMatrix (set, required, fixed: chromium)
-- Relationships:
-  - One E2ESmokePolicy is referenced by many PipelineRun records where e2e gate executes.
-- Validation rules:
-  - selectorStrategy must not use user-visible text selectors.
-  - ciRetries must equal 1 and localRetries must equal 0.
-  - sqliteVisibilityTimeoutSeconds must equal 10.
-  - browserMatrix for PR/master validation must include chromium only.
-
-## State Transitions
-- PipelineRun:
-  - queued -> in_progress -> success
-  - queued -> in_progress -> failure
-  - queued/in_progress -> cancelled
-- DeploymentRecord:
-  - success path: created -> publishing -> success
-  - failure path: created -> publishing -> failure
-- PublishedSiteVersion:
-  - unverified -> verified
-  - unverified -> failed
+### Published Site Version
+- **Description**: The currently live version of the PWA.
+- `version`: semver from package.json (e.g., 0.x.x).

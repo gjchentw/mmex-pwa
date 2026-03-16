@@ -7,3 +7,8 @@ yarn.lock
 pnpm-lock.yaml
 *.log
 .env*
+node_modules/
+dist/
+build/
+coverage/
+package-lock.json

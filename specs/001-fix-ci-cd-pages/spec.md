@@ -7,6 +7,14 @@
 
 ## Clarifications
 
+### Session 2026-03-16
+
+- Q: Which branch(es) should be authorized to trigger a production deployment to GitHub Pages? → A: Branch `master` only
+- Q: How should GitHub Pages deployment be triggered after tests pass on `main`? → A: Automatic (on every successful `master` build)
+- Q: How should environment variables and secrets be managed in CI/CD? → A: Use GitHub Actions Secrets
+- Q: How should build artifacts be handled after successful build and test? → A: Automatic upload to GitHub Actions Artifacts
+- Q: How should the team be notified in case of CI/CD failure? → A: Automatic notification (via GitHub native notification or Slack/Discord integration)
+
 ### Session 2026-03-14
 
 - Q: Which assertion strategy should e2e smoke tests use for homepage visibility checks? → A: Use stable selectors (data-testid) and avoid user-visible text assertions.
@@ -73,7 +81,7 @@ As a maintainer, I want actionable failure details and a clear retry path so del
 
 - **FR-001**: The system MUST automatically trigger a standardized CI/CD workflow for every pull request and mainline commit.
 - **FR-002**: The system MUST execute required quality checks before deployment and MUST block deployment if any critical check fails.
-- **FR-003**: The system MUST deploy releasable output to GitHub Pages only when release conditions are satisfied.
+- **FR-003**: The system MUST automatically deploy releasable output to GitHub Pages only from the `master` branch when release conditions are satisfied.
 - **FR-004**: The system MUST expose traceable run status (success, failure, running) and failed stage information for every execution.
 - **FR-005**: Maintainers MUST be able to rerun failed workflows after correction without modifying application feature code.
 - **FR-006**: The system MUST prevent conflicting deployments to the same target and ensure the final published content matches the latest qualified version.
@@ -83,6 +91,12 @@ As a maintainer, I want actionable failure details and a clear retry path so del
 - **FR-010**: E2E smoke retry policy MUST be CI-only with exactly one retry in CI and zero retries for local runs.
 - **FR-011**: E2E smoke checks MUST use a 10-second timeout for SQLite status visibility before failing.
 - **FR-012**: E2E smoke checks in PR and master workflows MUST run on Chromium only.
+- **FR-013**: The system MUST automatically upload build artifacts to GitHub Actions Artifacts after successful build and test.
+- **FR-014**: The system MUST provide automatic notifications (via GitHub native or integrated channels) to the team upon pipeline failure.
+
+### Security Requirements
+
+- **SR-001**: The system MUST use GitHub Actions Secrets for storing and retrieving sensitive credentials and environment variables required for CI/CD processes.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -95,7 +109,7 @@ As a maintainer, I want actionable failure details and a clear retry path so del
 
 - The project already has a functional build process that can generate deployable static assets.
 - GitHub Pages is the only target deployment environment and maintainers have required repository permissions.
-- Mainline is the only production publish source; non-main branches run validation only.
+- Master is the only production publish source; non-main branches run validation only.
 - Manual rerun after failure is allowed for faster remediation and validation.
 
 ## Success Criteria *(mandatory)*

@@ -39,3 +39,12 @@ __screenshots__/
 
 test-results/
 playwright-report/
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.env*
+.DS_Store
+.vscode/
+.idea/
