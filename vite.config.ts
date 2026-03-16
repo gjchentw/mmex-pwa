@@ -10,6 +10,7 @@ import VueI18nPlugin from 'unplugin-vue-i18n/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.GITHUB_PAGES === 'true' ? '/mmex-pwa/' : '/',
   plugins: [
     vue({
       template: { transformAssetUrls },
