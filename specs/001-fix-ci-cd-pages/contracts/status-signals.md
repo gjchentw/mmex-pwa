@@ -1,6 +1,6 @@
-# Contracts: CI/CD Status Signals
+# Contracts: CI/CD Failure Notification
 
-## Failure Notification Contract
+## Notification Contract
 - **Source**: GitHub Actions Workflow (on failure)
 - **Payload**:
   - `workflow`: test | release
@@ -8,7 +8,6 @@
   - `failed_job`: The job name that failed.
   - `link`: `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`
 
-## Deployment Evidence Contract
-- **Source**: `release-summary` job
-- **Output**: GITHUB_STEP_SUMMARY
-- **Fields**: Branch, Commit, Deploy Status, Page URL, Release Tag.
+## Release Eligibility Contract
+- **Source**: `test` workflow outputs
+- **Result**: `is_deployable = (build == success) && (e2e == success)`

@@ -1,18 +1,15 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change      : 1.3.0 → 1.4.0 (MINOR — added SDD and community contribution boundary governance)
-Principles modified : VIII. MMEX Community Acceptance (expanded)
-Principles removed  : none
-Sections modified   : Development Workflow & Quality Gates (expanded)
+Version change      : 1.4.0 → 1.5.0 (MINOR — redefined versioning enforcement boundary)
+Principles modified : none
+Sections modified   : Product Versioning & Release Policy (clarified agent vs CI responsibility), Development Workflow & Quality Gates (removed CI version enforcement)
 Sections added      : none
 Sections removed    : none
 Templates reviewed  :
-  ✅ .specify/templates/plan-template.md  — Constitution Check section present; no update needed
-  ✅ .specify/templates/spec-template.md  — SDD-first requirement already structurally compatible; no update needed
-  ✅ .specify/templates/tasks-template.md — SDD and workflow constraints compatible; no update needed
-  ✅ .specify/templates/checklist-template.md — reviewed; no conflicting references
-  ✅ .specify/templates/commands/*.md      — directory not present; no command templates to update
+  ✅ .specify/templates/plan-template.md  — no direct versioning logic; no update needed
+  ✅ .specify/templates/spec-template.md  — no direct versioning logic; no update needed
+  ✅ .specify/templates/tasks-template.md — no direct versioning logic; no update needed
 Runtime docs reviewed:
   ✅ README.md — no conflicting policy text; no update needed
 Deferred TODOs      : none
@@ -73,7 +70,7 @@ Practices and core design philosophy (Material Design with Quasar extensions).
 ### V. MMEX Schema Compatibility
 
 This project is a frontend rewrite of MoneyManagerEX
-(\`https://github.com/moneymanagerex/moneymanagerex\`). Database DDL and schema versions
+(`https://github.com/moneymanagerex/moneymanagerex`). Database DDL and schema versions
 MUST track the upstream project.
 
 - Every upstream schema change MUST be reflected as a versioned migration script in this
@@ -154,7 +151,7 @@ and community adoption in mind.
 - **i18n**: vue-i18n; locale files under `src/locales/`.
 - **Runtime Target**: Browser and WebKit only (PWA); no Node.js server-side rendering.
 - **Deployment**: GitHub Pages via GitHub Actions.
-- **Upstream Reference**: MoneyManagerEX (\`moneymanagerex/moneymanagerex\`).
+- **Upstream Reference**: MoneyManagerEX (`moneymanagerex/moneymanagerex`).
 
 No dependency on server-side infrastructure is permitted for core application functionality.
 Third-party libraries introducing server-side assumptions MUST be wrapped or replaced.
@@ -185,14 +182,18 @@ defect and MUST be corrected before merge.
 
 The project version in `package.json` is the canonical product version for this repository.
 
-- Every specification evolution MUST increment the PATCH version by exactly +1
-  automatically (for example, `0.0.0` → `0.0.1`).
-- MINOR version increments (for example, `0.1.0`) are maintainer-directed and MUST occur
-  only when explicitly requested by the maintainer.
-- MAJOR version MUST remain `0` until formal MMEX community acceptance has been documented.
-- Version tags MUST follow `v<semver>` format and match `package.json` exactly.
-- GitHub Release entries MUST be generated from CI/CD and include the corresponding source
-  code archives for traceable distribution.
+- **Agent-Driven Automation**: AI agents MUST strictly ensure every specification evolution
+  increments the PATCH version by exactly +1 automatically (for example, `0.0.0` → `0.0.1`). 
+- **CI/CD Enforcement Boundary**: The CI/CD pipeline SHOULD NOT strictly block builds based
+  on version increment checks to allow for emergency maintenance or non-spec metadata changes.
+  Version integrity is the primary responsibility of the AI agent during the SDD lifecycle.
+- **Maintainer Oversight**: MINOR version increments (for example, `0.1.0`) are maintainer-directed
+  and MUST occur only when explicitly requested by the maintainer.
+- **MMEX Community Guardrail**: MAJOR version MUST remain `0` until formal MMEX community
+  acceptance has been documented.
+- **Release Artifacts**: Version tags MUST follow `v<semver>` format and match `package.json`
+  exactly. GitHub Release entries MUST be generated from CI/CD and include the corresponding
+  source code archives for traceable distribution.
 
 ## Development Workflow & Quality Gates
 
@@ -232,4 +233,4 @@ All PRs and code reviews MUST verify compliance with the principles above. Compl
 be justified against the UX First and Local First principles. When in doubt, the simpler,
 more offline-capable solution is preferred.
 
-**Version**: 1.4.0 | **Ratified**: 2026-03-14 | **Last Amended**: 2026-03-14
+**Version**: 1.5.0 | **Ratified**: 2026-03-14 | **Last Amended**: 2026-03-16

@@ -3,34 +3,33 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH='' cd "$(dirname "$0")" && pwd)"
-# shellcheck source=common.sh
 source "$SCRIPT_DIR/common.sh"
 
-if [[ $# -eq 0 ]]; then
-  log_error "Usage: detect-failed-stage.sh stage=status [stage=status ...]"
-  exit 1
-fi
+BLOCKING_STAGES=("build" "e2e-tests")
 
 FAILED_STAGE="none"
 FAILED_STATUS="success"
+IS_BLOCKING="false"
 
 for pair in "$@"; do
-  stage="${pair%%=*}"
+  stage="${pair%=*}"
   status="${pair#*=}"
 
-  if [[ "$status" == "failure" || "$status" == "cancelled" || "$status" == "timed_out" || "$status" == "action_required" ]]; then
-    FAILED_STAGE="$stage"
-    FAILED_STATUS="$status"
-    break
-  fi
+  if [[ "$status" == "failure" || "$status" == "cancelled" || "$status" == "timed_out" ]]; then
+    if [[ "$FAILED_STAGE" == "none" ]]; then
+      FAILED_STAGE="$stage"
+      FAILED_STATUS="$status"
+    fi
 
+    for blocking in "${BLOCKING_STAGES[@]}"; do
+      if [[ "$stage" == "$blocking" ]]; then
+        IS_BLOCKING="true"
+        break 2
+      fi
+    done
+  fi
 done
 
 write_output "failed_stage" "$FAILED_STAGE"
 write_output "failed_status" "$FAILED_STATUS"
-
-if [[ "$FAILED_STAGE" != "none" ]]; then
-  log_info "Detected failed stage: $FAILED_STAGE ($FAILED_STATUS)"
-else
-  log_info "No failed stage detected"
-fi
+write_output "is_blocking" "$IS_BLOCKING"

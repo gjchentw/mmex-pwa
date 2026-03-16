@@ -1,18 +1,13 @@
-# Quickstart: CI/CD Fix
+# Quickstart: CI/CD Fix (Version Guard Removal)
 
 ## Prerequisites
-- GitHub Repository access.
-- GitHub Actions enabled.
-- `master` branch exists and is the default.
-
-## Workflow Setup
-1. Ensure `secrets.GITHUB_TOKEN` has write permissions for content, pages, and deployments.
-2. Add any third-party webhook URLs (Slack/Discord) to repository Secrets if using FR-014.
+- 需具備 GitHub Repository 管理權限。
+- 確保 `secrets.GITHUB_TOKEN` 已配置為讀寫權限。
 
 ## Running locally
-1. Run `npm run build` to verify the Vite output.
-2. Run `npm run test:e2e` to verify the Playwright smoke tests.
+- 執行 `npm run build` 以驗證構建輸出。
+- 執行 `npm run test:e2e` 以驗證端到端測試是否通過。
 
 ## Triggering the Pipeline
-- Push to any branch to trigger the `test` workflow.
-- Merge to `master` to trigger the `test` and then the `release` workflow.
+- 推送至任何分支觸發 `test` 工作流。
+- 合併至 `master` 並在 `build` 與 `e2e` 通過後，觸發 `release` 工作流。

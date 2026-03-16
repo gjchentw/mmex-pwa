@@ -1,2 +1,2 @@
-/// <reference types="vite/client" />
-/// <reference path="src/types/google.d.ts" />
+import 'vite/client'
+import type {} from './src/types/google'

@@ -8,7 +8,7 @@ The repository uses a two-stage GitHub Actions model:
 
 1. Validation workflow ([.github/workflows/test.yml](.github/workflows/test.yml))
 - Triggered on push and pull request (docs-only paths are ignored).
-- Executes strict quality gates in order: lint -> build -> unit tests -> e2e tests.
+- Executes quality gates. Only Build and E2E tests strictly block deployment; Lint and Unit tests failures trigger notifications but do not block release.
 - Writes a run summary that includes success/failure state and failed stage diagnostics.
 
 2. Release workflow ([.github/workflows/release.yml](.github/workflows/release.yml))

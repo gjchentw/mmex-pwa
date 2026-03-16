@@ -10,7 +10,7 @@
 ### Session 2026-03-16
 
 - Q: Which branch(es) should be authorized to trigger a production deployment to GitHub Pages? → A: Branch `master` only
-- Q: How should GitHub Pages deployment be triggered after tests pass on `main`? → A: Automatic (on every successful `master` build)
+- Q: How should GitHub Pages deployment be triggered after tests pass on `master`? → A: Automatic (on every successful `master` build)
 - Q: How should environment variables and secrets be managed in CI/CD? → A: Use GitHub Actions Secrets
 - Q: How should build artifacts be handled after successful build and test? → A: Automatic upload to GitHub Actions Artifacts
 - Q: How should the team be notified in case of CI/CD failure? → A: Automatic notification (via GitHub native notification or Slack/Discord integration)
@@ -46,7 +46,7 @@ As a product owner, I want successful mainline updates to publish automatically 
 
 **Why this priority**: After quality checks pass, automated publishing removes manual delay and directly delivers user-visible value.
 
-**Independent Test**: Merge one valid change to main and verify the target site updates and remains accessible.
+**Independent Test**: Merge one valid change to master and verify the target site updates and remains accessible.
 
 **Acceptance Scenarios**:
 
@@ -80,7 +80,7 @@ As a maintainer, I want actionable failure details and a clear retry path so del
 ### Functional Requirements
 
 - **FR-001**: The system MUST automatically trigger a standardized CI/CD workflow for every pull request and mainline commit.
-- **FR-002**: The system MUST execute required quality checks before deployment and MUST block deployment if any critical check fails.
+- **FR-002**: The system MUST execute required quality checks before deployment and MUST block deployment only if critical checks (Build, E2E) fail.
 - **FR-003**: The system MUST automatically deploy releasable output to GitHub Pages only from the `master` branch when release conditions are satisfied.
 - **FR-004**: The system MUST expose traceable run status (success, failure, running) and failed stage information for every execution.
 - **FR-005**: Maintainers MUST be able to rerun failed workflows after correction without modifying application feature code.
@@ -109,7 +109,7 @@ As a maintainer, I want actionable failure details and a clear retry path so del
 
 - The project already has a functional build process that can generate deployable static assets.
 - GitHub Pages is the only target deployment environment and maintainers have required repository permissions.
-- Master is the only production publish source; non-main branches run validation only.
+- Master is the only production publish source; non-master branches run validation only.
 - Manual rerun after failure is allowed for faster remediation and validation.
 
 ## Success Criteria *(mandatory)*
@@ -121,3 +121,9 @@ As a maintainer, I want actionable failure details and a clear retry path so del
 - **SC-003**: In a controlled failure scenario, maintainers can identify failed stage and complete rerun within 15 minutes.
 - **SC-004**: Within 4 weeks after rollout, emergency manual fixes caused by deployment pipeline issues decrease by at least 50% from baseline.
 - **SC-005**: Within 2 minutes after successful deployment, public site latest-version availability reaches 99%.
+
+### Session 2026-03-16 (Clarifications: Version Guard Removal)
+
+- Q: Which version check logic should be removed from CI/CD? → A: All blocking logic (including version-guard.yml and release.yml checks)
+
+- Q: Should failures in non-blocking checks (Lint, Unit) still trigger notifications? → A: Yes, teams must be notified regardless of blocking status.
