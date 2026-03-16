@@ -1,35 +1,20 @@
-# Research: CI/CD and GitHub Pages Recovery
-
-## Technical Context
-
-- **Language/Version**: TypeScript 5.9.0, Node.js 22.x
-- **Primary Dependencies**: Vite 7.x, Vue 3.x, Quasar 2.x, Playwright 1.56.x, Vitest 3.x
-- **Storage**: OPFS (Runtime), GitHub Actions Artifacts (Build-time)
-- **Testing**: Playwright (E2E), Vitest (Unit)
-- **Target Platform**: GitHub Pages (PWA)
+# Research: CI/CD Workflow Optimization (Version Guard Removal)
 
 ## Findings
 
-### 1. Branch Standardization
-- **Decision**: Update all workflow triggers and branch references from `master` to `main` to align with the latest specification and modern standards.
-- **Rationale**: The specification (Session 2026-03-16) explicitly targets the `main` branch. Consistency between documentation and implementation reduces confusion.
-- **Alternatives considered**: Keeping `master`. Rejected as it contradicts the latest spec clarifications.
+### 1. 移除版本檢查邏輯
+- **Decision**: 完全移除 `version-guard.yml` 與 `release.yml` 中的版本驗證步驟。
+- **Rationale**: 遵循憲章 v1.5.0，將版本號維護責任回歸至 AI Agent，減少 CI/CD 的冗餘阻擋，提昇非發布性質提交（如中繼資料修改、緊急維護）的流程順暢度。
+- **Alternatives considered**: 僅將檢查設為 Warning。被拒絕，因為這仍會干擾 CI 狀態顯示，直接移除更為乾淨。
 
-### 2. Failure Notifications (FR-014)
-- **Decision**: Use GitHub Actions native notifications and explore a lightweight step for Slack/Discord if a webhook is provided via Secrets.
-- **Rationale**: FR-014 requires automatic notification. GitHub sends emails/push by default on failure, but explicit "Failure" steps in the workflow can be used to trigger webhooks.
-- **Implementation**: Add a "Notify Failure" step using `rtCamp/action-slack-notify` or similar, triggered `if: failure()`.
+### 2. 測試阻擋條件調整
+- **Decision**: 僅以 `Build` 與 `E2E` 作為部署 GitHub Pages 的強制門檻。
+- **Rationale**: `Lint` 或 `Unit` 測試失敗雖反映質量問題，但不應阻擋緊急或探索性的發布行為，前提是核心構建與端到端功能無損。
 
-### 3. Build Artifacts for Debugging (FR-013)
-- **Decision**: Add `actions/upload-artifact` to the `build` and `e2e-tests` jobs in `test.yml`.
-- **Rationale**: Providing build outputs and test traces/screenshots helps maintainers diagnose failures faster (SC-003).
-- **Artifacts**: `dist/` folder from build, `test-results/` and Playwright traces from E2E.
+### 3. 通知機制調整
+- **Decision**: 即使 Lint 或 Unit 測試不阻擋部署，失敗時仍必須透過 GitHub Actions 的 `if: failure()` 機制通知團隊。
+- **Rationale**: 符合憲章對代碼質量的持續監控要求，確保質量債務是可見的。
 
-### 4. E2E Policy Enforcement (FR-010, FR-012)
-- **Decision**: Hardcode `chromium` in the workflow `playwright install` step and update `playwright.config.ts` to honor CI retries.
-- **Rationale**: FR-010 specifies exactly 1 retry in CI and 0 locally. FR-012 specifies Chromium only.
-- **Configuration**: Set `retries: process.env.CI ? 1 : 0` in `playwright.config.ts`.
-
-### 5. Security Posture (SR-001)
-- **Decision**: Ensure all sensitive data (like deployment tokens or webhooks) are pulled from `secrets.GITHUB_TOKEN` or repository-level Secrets.
-- **Rationale**: Complies with SR-001 and prevents secret leakage.
+## Technical Context
+- 需要修改 `.github/workflows/test.yml` 以調整報告工作流的失敗判定。
+- 需要修改 `.github/workflows/release.yml` 以移除對 `version-guard` 的依賴與內核版本檢查。
