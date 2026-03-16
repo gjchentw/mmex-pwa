@@ -3,14 +3,14 @@ name: test
 on:
   push:
     branches:
-      - '**'
+      - master
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
       - 'specs/**'
   pull_request:
     branches:
-      - '**'
+      - master
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
@@ -91,6 +91,12 @@ jobs:
       - name: Run build
         run: npm run build
 
+      - name: Upload production artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: dist
+
   unit-tests:
     runs-on: ubuntu-latest
     needs: build
@@ -153,6 +159,14 @@ jobs:
       - name: Run integration tests (e2e)
         run: npm run test:e2e
 
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 30
+
   report:
     runs-on: ubuntu-latest
     needs:
@@ -169,32 +183,17 @@ jobs:
       - name: Detect failed stage
         id: failed_stage
         run: |
-          ./.github/scripts/ci/detect-failed-stage.sh \
-            lint=${{ needs.lint.result }} \
-            build=${{ needs.build.result }} \
-            unit-tests=${{ needs.unit-tests.result }} \
-            e2e-tests=${{ needs.e2e-tests.result }}
+          ./.github/scripts/ci/detect-failed-stage.sh \n            lint=${{ needs.lint.result }} \n            build=${{ needs.build.result }} \n            unit-tests=${{ needs.unit-tests.result }} \n            e2e-tests=${{ needs.e2e-tests.result }}
 
       - name: Write success summary
         if: ${{ steps.failed_stage.outputs.failed_stage == 'none' }}
         run: |
-          ./.github/scripts/ci/write-run-summary.sh \
-            "Validation Pipeline Result" \
-            "- Status: success" \
-            "- Branch: ${{ github.ref_name }}" \
-            "- Commit: ${{ github.sha }}" \
-            "- Quality gates: lint -> build -> unit-tests -> e2e-tests"
+          ./.github/scripts/ci/write-run-summary.sh \n            "Validation Pipeline Result" \n            "- Status: success" \n            "- Branch: ${{ github.ref_name }}" \n            "- Commit: ${{ github.sha }}" \n            "- Quality gates: lint -> build -> unit-tests -> e2e-tests"
 
       - name: Write failure summary
         if: ${{ steps.failed_stage.outputs.failed_stage != 'none' }}
         run: |
-          ./.github/scripts/ci/write-run-summary.sh \
-            "Validation Pipeline Result" \
-            "- Status: failure" \
-            "- Branch: ${{ github.ref_name }}" \
-            "- Commit: ${{ github.sha }}" \
-            "- Failed stage: ${{ steps.failed_stage.outputs.failed_stage }}" \
-            "- Stage status: ${{ steps.failed_stage.outputs.failed_status }}"
+          ./.github/scripts/ci/write-run-summary.sh \n            "Validation Pipeline Result" \n            "- Status: failure" \n            "- Branch: ${{ github.ref_name }}" \n            "- Commit: ${{ github.sha }}" \n            "- Failed stage: ${{ steps.failed_stage.outputs.failed_stage }}" \n            "- Stage status: ${{ steps.failed_stage.outputs.failed_status }}"
 
       - name: Fail report job when any gate failed
         if: ${{ steps.failed_stage.outputs.failed_stage != 'none' }}
