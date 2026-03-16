@@ -1,2 +1,2 @@
 import 'vite/client'
-import 'src/types/google.d.ts'
+import type {} from './src/types/google'
