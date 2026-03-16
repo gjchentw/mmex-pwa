@@ -120,7 +120,9 @@ As a maintainer, I want actionable failure details and a clear retry path so del
 - **SC-002**: 100% of publish events are traceable to exactly one successful quality-check result set.
 - **SC-003**: In a controlled failure scenario, maintainers can identify failed stage and complete rerun within 15 minutes.
 - **SC-004**: Within 4 weeks after rollout, emergency manual fixes caused by deployment pipeline issues decrease by at least 50% from baseline.
-- **SC-005**: Within 2 minutes after successful deployment, public site latest-version availability reaches 99%.### Session 2026-03-16 (Clarifications: Version Guard Removal)
+- **SC-005**: Within 2 minutes after successful deployment, public site latest-version availability reaches 99%.
+
+### Session 2026-03-16 (Clarifications: Version Guard Removal)
 
 - Q: Which version check logic should be removed from CI/CD? → A: All blocking logic (including version-guard.yml and release.yml checks)
 

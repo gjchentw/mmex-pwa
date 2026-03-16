@@ -16,9 +16,11 @@ for pair in "$@"; do
   status="${pair#*=}"
 
   if [[ "$status" == "failure" || "$status" == "cancelled" || "$status" == "timed_out" ]]; then
-    FAILED_STAGE="$stage"
-    FAILED_STATUS="$status"
-    
+    if [[ "$FAILED_STAGE" == "none" ]]; then
+      FAILED_STAGE="$stage"
+      FAILED_STATUS="$status"
+    fi
+
     for blocking in "${BLOCKING_STAGES[@]}"; do
       if [[ "$stage" == "$blocking" ]]; then
         IS_BLOCKING="true"
