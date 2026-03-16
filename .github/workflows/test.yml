@@ -29,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -42,6 +44,8 @@ jobs:
     if: always()
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -59,6 +63,8 @@ jobs:
     if: always()
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -72,6 +78,8 @@ jobs:
     if: always()
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -97,7 +105,11 @@ jobs:
       - name: Detect failed stage
         id: failed_stage
         run: |
-          ./.github/scripts/ci/detect-failed-stage.sh \n            lint=${{ needs.lint.result }} \n            build=${{ needs.build.result }} \n            unit-tests=${{ needs.unit-tests.result }} \n            e2e-tests=${{ needs.e2e-tests.result }}
+          ./.github/scripts/ci/detect-failed-stage.sh \
+            "lint=${{ needs.lint.result }}" \
+            "build=${{ needs.build.result }}" \
+            "unit-tests=${{ needs.unit-tests.result }}" \
+            "e2e-tests=${{ needs.e2e-tests.result }}"
       - name: Evaluate deployment signal
         id: final_status
         run: |
@@ -110,7 +122,11 @@ jobs:
           fi
       - name: Write summary
         run: |
-          ./.github/scripts/ci/write-run-summary.sh \n            "Validation Pipeline Result" \n            "- Status: ${{ steps.failed_stage.outputs.failed_stage == 'none' && 'success' || 'failure' }}" \n            "- Deployable: ${{ steps.final_status.outputs.is_validated }}" \n            "- Failed stage: ${{ steps.failed_stage.outputs.failed_stage }}"
+          ./.github/scripts/ci/write-run-summary.sh \
+            "Validation Pipeline Result" \
+            "- Status: ${{ steps.failed_stage.outputs.failed_stage == 'none' && 'success' || 'failure' }}" \
+            "- Deployable: ${{ steps.final_status.outputs.is_validated }}" \
+            "- Failed stage: ${{ steps.failed_stage.outputs.failed_stage }}"
       - name: Fail workflow if blocking checks failed
         if: steps.final_status.outputs.is_validated == 'false'
         run: exit 1
