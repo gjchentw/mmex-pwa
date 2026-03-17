@@ -21,8 +21,9 @@ vi.mock('@sqlite.org/sqlite-wasm', () => ({
   default: vi.fn(() =>
     Promise.resolve({
       version: { libVersion: '3.45.0' },
+      installOpfsSAHPoolVfs: vi.fn().mockResolvedValue({ vfsName: 'opfs-sahpool' }),
       oo1: {
-        OpfsDb: mockOpfsDb,
+        DB: mockOpfsDb,
       },
     }),
   ),
@@ -67,7 +68,7 @@ describe('SQLite Worker', () => {
     // Simulate init message
     await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
 
-    expect(mockOpfsDb).toHaveBeenCalledWith('/.mmex/data.mmb', 'c')
+    expect(mockOpfsDb).toHaveBeenCalledWith('/.mmex/data.mmb', 'c', 'opfs-sahpool')
 
     // Check if migration logic was called
     // 1. Check version (returns -1 initially)
