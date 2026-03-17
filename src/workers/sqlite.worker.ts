@@ -1,4 +1,5 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
+import sqliteWasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm?url'
 import tablesSql from '../../mmex/database/tables.sql?raw'
 
 type QueryResultRow = Array<string | number | null>
@@ -145,11 +146,16 @@ const initDb = async () => {
     const sqlite3 = await sqlite3InitModule({
       print: log,
       printErr: error,
+      locateFile: (file: string) => {
+        if (file === 'sqlite3.wasm') return sqliteWasmUrl
+        return file
+      },
     })
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
-    const sqliteDb = new sqlite3.oo1.OpfsDb(dbPath, 'c') as unknown as WorkerDatabase
+    const poolUtil = await sqlite3.installOpfsSAHPoolVfs({ clearOnInit: false })
+    const sqliteDb = new sqlite3.oo1.DB(dbPath, 'c', poolUtil.vfsName) as unknown as WorkerDatabase
     db = sqliteDb
     migrateDb(sqliteDb)
 
@@ -166,13 +172,18 @@ const openDb = async (importId?: string) => {
     const sqlite3 = await sqlite3InitModule({
       print: log,
       printErr: error,
+      locateFile: (file: string) => {
+        if (file === 'sqlite3.wasm') return sqliteWasmUrl
+        return file
+      },
     })
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
-  const sqliteDb = new sqlite3.oo1.OpfsDb(dbPath) as unknown as WorkerDatabase
-  db = sqliteDb
-  migrateDb(sqliteDb)
+    const poolUtil = await sqlite3.installOpfsSAHPoolVfs({ clearOnInit: false })
+    const sqliteDb = new sqlite3.oo1.DB(dbPath, 'c', poolUtil.vfsName) as unknown as WorkerDatabase
+    db = sqliteDb
+    migrateDb(sqliteDb)
 
     if (importId !== undefined) {
       // Respond to the 'import' caller with the import request id

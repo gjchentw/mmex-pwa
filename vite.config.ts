@@ -6,7 +6,6 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
 import { VitePWA } from 'vite-plugin-pwa'
 import vueDevTools from 'vite-plugin-vue-devtools'
-import VueI18nPlugin from 'unplugin-vue-i18n/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -21,19 +20,16 @@ export default defineConfig({
     vueJsx(),
     VitePWA(),
     vueDevTools(),
-    VueI18nPlugin({
-      include: [fileURLToPath(new URL('./src/locales/**', import.meta.url))],
-    }),
   ],
+  define: {
+    __VUE_I18N_FULL_INSTALL__: true,
+    __VUE_I18N_LEGACY_API__: false,
+    __INTLIFY_PROD_DEVTOOLS__: false,
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
-  },
-  server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'vue-i18n': 'vue-i18n/dist/vue-i18n.esm-bundler.js',
     },
   },
   optimizeDeps: {
