@@ -146,7 +146,8 @@ const initDb = async () => {
     const sqlite3 = await sqlite3InitModule({
       print: log,
       printErr: error,
-      locateFile: (file: string) => {
+      locateFile: (file: string, base: string) => {
+        log('locateFile called with:', file, 'base:', base, 'sqliteWasmUrl is:', sqliteWasmUrl)
         if (file === 'sqlite3.wasm') return sqliteWasmUrl
         return file
       },
@@ -172,7 +173,8 @@ const openDb = async (importId?: string) => {
     const sqlite3 = await sqlite3InitModule({
       print: log,
       printErr: error,
-      locateFile: (file: string) => {
+      locateFile: (file: string, base: string) => {
+        log('openDb locateFile called with:', file, 'base:', base, 'sqliteWasmUrl is:', sqliteWasmUrl)
         if (file === 'sqlite3.wasm') return sqliteWasmUrl
         return file
       },
