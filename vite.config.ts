@@ -7,6 +7,17 @@ import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
 import { VitePWA } from 'vite-plugin-pwa'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+import fs from 'node:fs'
+
+// Copy sqlite3.wasm to public/assets to prevent 404s from hardcoded worker paths
+if (!fs.existsSync('public/assets')) {
+  fs.mkdirSync('public/assets', { recursive: true })
+}
+fs.copyFileSync(
+  'node_modules/@sqlite.org/sqlite-wasm/sqlite-wasm/jswasm/sqlite3.wasm',
+  'public/assets/sqlite3.wasm'
+)
+
 // https://vite.dev/config/
 export default defineConfig({
   base: process.env.GITHUB_PAGES === 'true' ? '/mmex-pwa/' : '/',
