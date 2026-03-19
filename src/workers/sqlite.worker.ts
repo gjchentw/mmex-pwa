@@ -1,5 +1,5 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
-import sqliteWasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm?url';
+import sqliteWasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm?url'
 import tablesSql from '../../mmex/database/tables.sql?raw'
 
 type QueryResultRow = Array<string | number | null>
@@ -8,10 +8,10 @@ type WorkerDatabase = {
     sql:
       | string
       | {
-        sql: string
-        bind?: unknown[]
-        returnValue?: 'resultRows'
-      },
+          sql: string
+          bind?: unknown[]
+          returnValue?: 'resultRows'
+        },
   ) => QueryResultRow[]
   transaction: (callback: () => void) => void
   close: () => void
@@ -43,6 +43,17 @@ let db: WorkerDatabase | null = null
 
 const log = (...args: unknown[]) => console.log('DB Worker:', ...args)
 const error = (...args: unknown[]) => console.error('DB Worker:', ...args)
+
+const getSqliteInitOptions = () => ({
+  print: log,
+  printErr: error,
+  locateFile: (file: string, prefix: string) => {
+    if (file === 'sqlite3.wasm') {
+      return sqliteWasmUrl
+    }
+    return prefix + file
+  },
+})
 
 const migrateDb = (db: WorkerDatabase) => {
   const getLegacyVersion = (): number => {
@@ -144,14 +155,7 @@ const initDb = async () => {
   try {
     log('Initializing SQLite...')
     const sqlite3 = await sqlite3InitModule({
-      print: log,
-      printErr: error,
-      locateFile: (file) => {
-        if (file === 'sqlite3.wasm') {
-          return sqliteWasmUrl; // 使用 Vite 處理過的路徑
-        }
-        return file;
-      },
+      ...getSqliteInitOptions(),
     })
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
@@ -163,7 +167,11 @@ const initDb = async () => {
     self.postMessage({ type: 'init', status: 'success' })
   } catch (err: unknown) {
     error('Initialization failed', err)
-    self.postMessage({ type: 'init', status: 'error', error: err instanceof Error ? err.message : String(err) })
+    self.postMessage({
+      type: 'init',
+      status: 'error',
+      error: err instanceof Error ? err.message : String(err),
+    })
   }
 }
 
@@ -171,8 +179,7 @@ const openDb = async (importId?: string) => {
   try {
     log('Opening SQLite...')
     const sqlite3 = await sqlite3InitModule({
-      print: log,
-      printErr: error,
+      ...getSqliteInitOptions(),
     })
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
@@ -190,9 +197,18 @@ const openDb = async (importId?: string) => {
   } catch (err: unknown) {
     error('Opening failed', err)
     if (importId !== undefined) {
-      self.postMessage({ id: importId, type: 'import', status: 'error', error: err instanceof Error ? err.message : String(err) })
+      self.postMessage({
+        id: importId,
+        type: 'import',
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err),
+      })
     } else {
-      self.postMessage({ type: 'open', status: 'error', error: err instanceof Error ? err.message : String(err) })
+      self.postMessage({
+        type: 'open',
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err),
+      })
     }
   }
 }
@@ -272,7 +288,10 @@ self.onmessage = async (e) => {
       // avoiding any OPFS SAH concurrency issues with readFromOpfs().
       const bytes = db.serialize()
       const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-      self.postMessage({ id, type: 'export', status: 'success', result: data }, { transfer: [data] })
+      self.postMessage(
+        { id, type: 'export', status: 'success', result: data },
+        { transfer: [data] },
+      )
     } catch (err: unknown) {
       error('Export failed', err)
       self.postMessage({
@@ -306,6 +325,11 @@ self.onmessage = async (e) => {
     }
   } catch (err: unknown) {
     error('Query failed', err)
-    self.postMessage({ id, type, status: 'error', error: err instanceof Error ? err.message : String(err) })
+    self.postMessage({
+      id,
+      type,
+      status: 'error',
+      error: err instanceof Error ? err.message : String(err),
+    })
   }
 }
