@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "prebuild": "git submodule update --init mmex/database",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
