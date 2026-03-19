@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   preflight:
-    if: ${{ github.event.workflow_run.head_branch == 'master' }}
+    if: ${{ github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     outputs:
       head_sha: ${{ steps.context.outputs.commit_sha }}
@@ -204,7 +204,7 @@ jobs:
 
   release-summary:
     runs-on: ubuntu-latest
-    if: ${{ !cancelled() && github.event.workflow_run.head_branch == 'master' && needs.preflight.result != 'skipped' }}
+    if: ${{ !cancelled() && github.event.workflow_run.head_branch == 'main' && needs.preflight.result != 'skipped' }}
     needs:
       - preflight
       - build-pages
