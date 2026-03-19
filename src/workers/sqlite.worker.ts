@@ -1,4 +1,5 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
+import sqliteWasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm?url';
 import tablesSql from '../../mmex/database/tables.sql?raw'
 
 type QueryResultRow = Array<string | number | null>
@@ -7,10 +8,10 @@ type WorkerDatabase = {
     sql:
       | string
       | {
-          sql: string
-          bind?: unknown[]
-          returnValue?: 'resultRows'
-        },
+        sql: string
+        bind?: unknown[]
+        returnValue?: 'resultRows'
+      },
   ) => QueryResultRow[]
   transaction: (callback: () => void) => void
   close: () => void
@@ -145,6 +146,12 @@ const initDb = async () => {
     const sqlite3 = await sqlite3InitModule({
       print: log,
       printErr: error,
+      locateFile: (file) => {
+        if (file === 'sqlite3.wasm') {
+          return sqliteWasmUrl; // 使用 Vite 處理過的路徑
+        }
+        return file;
+      },
     })
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
@@ -170,9 +177,9 @@ const openDb = async (importId?: string) => {
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
-  const sqliteDb = new sqlite3.oo1.OpfsDb(dbPath) as unknown as WorkerDatabase
-  db = sqliteDb
-  migrateDb(sqliteDb)
+    const sqliteDb = new sqlite3.oo1.OpfsDb(dbPath) as unknown as WorkerDatabase
+    db = sqliteDb
+    migrateDb(sqliteDb)
 
     if (importId !== undefined) {
       // Respond to the 'import' caller with the import request id
