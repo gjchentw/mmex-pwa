@@ -5,6 +5,7 @@ import { createI18n } from 'vue-i18n'
 
 // Import icon libraries
 import '@quasar/extras/mdi-v7/mdi-v7.css'
+import quasarIconSet from 'quasar/icon-set/mdi-v7'
 
 // Import Quasar css
 import 'quasar/src/css/index.sass'
@@ -35,6 +36,7 @@ app.use(router)
 
 app.use(Quasar, {
   plugins: {}, // import Quasar plugins and add here
+  iconSet: quasarIconSet,
   config: {
     brand: {
       primary: '#006800',

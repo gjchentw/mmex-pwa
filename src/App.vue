@@ -23,7 +23,6 @@
           dense
           :label="locale"
           icon="mdi-translate"
-          dropdown-icon="mdi-menu-down"
         >
           <q-list>
             <q-item clickable v-close-popup @click="locale = 'en-US'">
@@ -215,6 +214,11 @@ const navItems = [
   { route: '/reports', icon: 'mdi-chart-bar', labelKey: 'menu.reports' },
   { route: '/assets', icon: 'mdi-home-city', labelKey: 'menu.assets' },
   { route: '/exchange-rates', icon: 'mdi-currency-usd', labelKey: 'menu.exchangeRates' },
+  { route: '/categories', icon: 'mdi-shape', labelKey: 'menu.categories' },
+  { route: '/payees', icon: 'mdi-account-group', labelKey: 'menu.payees' },
+  { route: '/tags', icon: 'mdi-tag-multiple', labelKey: 'menu.tags' },
+  { route: '/custom-fields', icon: 'mdi-form-textbox', labelKey: 'menu.customFields' },
+  { route: '/date-ranges', icon: 'mdi-calendar-range', labelKey: 'menu.dateRanges' },
   { route: '/settings', icon: 'mdi-cog', labelKey: 'menu.settings' },
 ]
 
