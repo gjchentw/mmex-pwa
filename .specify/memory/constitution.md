@@ -1,17 +1,16 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change      : 1.3.0 → 1.4.0 (MINOR — added SDD and community contribution boundary governance)
+Version change      : 1.5.0 → 1.6.0 (MINOR — expanded aider-first protocol to include all code modifications)
 Principles modified : VIII. MMEX Community Acceptance (expanded)
 Principles removed  : none
-Sections modified   : Development Workflow & Quality Gates (expanded)
+Sections modified   : Development Workflow & Quality Gates (unchanged)
 Sections added      : none
 Sections removed    : none
 Templates reviewed  :
-  ✅ .specify/templates/plan-template.md  — Constitution Check section present; no update needed
-  ✅ .specify/templates/spec-template.md  — SDD-first requirement already structurally compatible; no update needed
-  ✅ .specify/templates/tasks-template.md — SDD and workflow constraints compatible; no update needed
-  ✅ .specify/templates/checklist-template.md — reviewed; no conflicting references
+  ✅ .specify/templates/plan-template.md  — Constitution Check section remains compatible; no update needed
+  ✅ .specify/templates/spec-template.md  — no additional mandatory section required; no update needed
+  ✅ .specify/templates/tasks-template.md — task taxonomy unaffected; no update needed
   ✅ .specify/templates/commands/*.md      — directory not present; no command templates to update
 Runtime docs reviewed:
   ✅ README.md — no conflicting policy text; no update needed
@@ -139,6 +138,13 @@ and community adoption in mind.
 - **SDD as the only engineering mode**: this project MUST be developed with
   Specification-Driven Development (SDD). Direct coding without an approved spec and plan
   is forbidden.
+- **Aider-first code modification protocol**: all code modifications, whether emerging
+  from analysis or from AI-agent recommendations, MUST be executed via aider. Contributors
+  and AI agents MUST generate analysis or modification prompts and pass them to aider via
+  `-m` for execution. Direct code modifications through agent file-editing tools or
+  shell/system tooling (including `ls`, `cat`, `grep`, `rg`, or agent write operations) are
+  forbidden. All reasoning about code changes MUST be documented with the corresponding
+  aider prompt(s) in spec, plan, PR description, or task notes for reviewability.
 - **Community contribution boundary**: the project does NOT accept direct community source
   code contributions at this stage. Community participation is accepted through feature
   requests, which MUST be treated as prior evidence for product and specification decisions.
@@ -211,6 +217,9 @@ The project version in `package.json` is the canonical product version for this 
    in the same PR as the consuming feature.
 7. **No broken deployments**: If `master` CI fails, fixing the pipeline takes priority
    over all other work.
+8. **Analysis workflow enforcement**: when implementation decisions depend on repository
+   code analysis, contributors MUST attach or reference the aider prompt(s) used for that
+   analysis in the spec, plan, PR description, or task notes.
 
 ## Governance
 
@@ -232,4 +241,4 @@ All PRs and code reviews MUST verify compliance with the principles above. Compl
 be justified against the UX First and Local First principles. When in doubt, the simpler,
 more offline-capable solution is preferred.
 
-**Version**: 1.4.0 | **Ratified**: 2026-03-14 | **Last Amended**: 2026-03-14
+**Version**: 1.6.0 | **Ratified**: 2026-03-14 | **Last Amended**: 2026-04-12

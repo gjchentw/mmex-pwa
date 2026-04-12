@@ -41,3 +41,4 @@ test-results/
 playwright-report/
 
 mmex.txt
+.aider*
