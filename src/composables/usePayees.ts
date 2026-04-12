@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { dbClient } from '@/workers/db-client'
 import type { Payee, RelocationStats } from '@/types/entities'
 
@@ -33,14 +34,16 @@ export function usePayees() {
 
   async function create(name: string): Promise<number> {
     const trimmed = name.trim()
-    if (!trimmed) throw new Error('Payee name cannot be empty')
+    const { t } = useI18n()
+    if (!trimmed) throw new Error(t('VALIDATION_PAYEE_NAME_EMPTY'))
 
     const dup = (await dbClient.exec(
       'SELECT COUNT(*) FROM PAYEE_V1 WHERE PAYEENAME = ? COLLATE NOCASE',
       [trimmed],
     )) as unknown[][]
     if (dup[0] && (dup[0][0] as number) > 0) {
-      throw new Error('Duplicate payee name')
+      const { t } = useI18n()
+      throw new Error(t('VALIDATION_PAYEE_DUPLICATE_NAME'))
     }
 
     await dbClient.exec(
@@ -98,7 +101,8 @@ export function usePayees() {
 
   async function remove(payeeId: number): Promise<void> {
     if (await isUsed(payeeId)) {
-      throw new Error('Cannot delete payee in use')
+      const { t } = useI18n()
+      throw new Error(t('VALIDATION_PAYEE_IN_USE'))
     }
     await dbClient.exec('DELETE FROM PAYEE_V1 WHERE PAYEEID = ?', [payeeId])
     await refresh()

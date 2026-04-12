@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { dbClient } from '@/workers/db-client'
 import type { Tag, RelocationStats } from '@/types/entities'
 
@@ -28,14 +29,16 @@ export function useTags() {
 
   async function create(name: string): Promise<number> {
     const trimmed = name.trim()
-    if (!trimmed) throw new Error('Tag name cannot be empty')
+    const { t } = useI18n()
+    if (!trimmed) throw new Error(t('VALIDATION_TAG_NAME_EMPTY'))
 
     const dup = (await dbClient.exec(
       'SELECT COUNT(*) FROM TAG_V1 WHERE TAGNAME = ? COLLATE NOCASE',
       [trimmed],
     )) as unknown[][]
     if (dup[0] && (dup[0][0] as number) > 0) {
-      throw new Error('Duplicate tag name')
+      const { t } = useI18n()
+      throw new Error(t('VALIDATION_TAG_DUPLICATE_NAME'))
     }
 
     await dbClient.exec('INSERT INTO TAG_V1 (TAGNAME, ACTIVE) VALUES (?, 1)', [trimmed])
@@ -63,7 +66,8 @@ export function useTags() {
 
   async function remove(tagId: number): Promise<void> {
     if (await isUsed(tagId)) {
-      throw new Error('Cannot delete tag in use')
+      const { t } = useI18n()
+      throw new Error(t('VALIDATION_TAG_IN_USE'))
     }
     await dbClient.exec('DELETE FROM TAG_V1 WHERE TAGID = ?', [tagId])
     await refresh()

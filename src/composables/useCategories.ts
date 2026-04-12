@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { dbClient } from '@/workers/db-client'
 import type { Category, CategoryNode, RelocationStats } from '@/types/entities'
 
@@ -61,14 +62,16 @@ export function useCategories() {
 
   async function create(name: string, parentId: number): Promise<number> {
     const trimmed = name.trim()
-    if (!trimmed) throw new Error('Category name cannot be empty')
+    const { t } = useI18n()
+    if (!trimmed) throw new Error(t('VALIDATION_CATEGORY_NAME_EMPTY'))
 
     const dup = (await dbClient.exec(
       'SELECT COUNT(*) FROM CATEGORY_V1 WHERE CATEGNAME = ? COLLATE NOCASE AND PARENTID = ?',
       [trimmed, parentId],
     )) as unknown[][]
     if (dup[0] && (dup[0][0] as number) > 0) {
-      throw new Error('Duplicate category name under the same parent')
+      const { t } = useI18n()
+      throw new Error(t('VALIDATION_CATEGORY_DUPLICATE_NAME'))
     }
 
     await dbClient.exec(
@@ -105,11 +108,13 @@ export function useCategories() {
 
   async function remove(categId: number): Promise<void> {
     if (hasChildren(categId)) {
-      throw new Error('Cannot delete category with children')
+      const { t } = useI18n()
+      throw new Error(t('VALIDATION_CATEGORY_HAS_CHILDREN'))
     }
 
     if (await isUsed(categId)) {
-      throw new Error('Cannot delete category in use')
+      const { t } = useI18n()
+      throw new Error(t('VALIDATION_CATEGORY_IN_USE'))
     }
 
     await dbClient.exec('DELETE FROM CATEGORY_V1 WHERE CATEGID = ?', [categId])

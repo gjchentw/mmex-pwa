@@ -72,7 +72,17 @@
         "hidden": "隱藏",
         "error": "錯誤",
         "success": "成功",
-        "noData": "無資料"
+        "noData": "無資料",
+        "VALIDATION_CATEGORY_NAME_EMPTY": "類別名稱不可為空",
+        "VALIDATION_CATEGORY_HAS_CHILDREN": "無法刪除有子類別的類別",
+        "VALIDATION_CATEGORY_IN_USE": "無法刪除使用中的類別",
+        "VALIDATION_CATEGORY_DUPLICATE_NAME": "同一父類別下有重複名稱",
+        "VALIDATION_PAYEE_NAME_EMPTY": "收款人名稱不可為空",
+        "VALIDATION_PAYEE_DUPLICATE_NAME": "收款人名稱重複",
+        "VALIDATION_PAYEE_IN_USE": "無法刪除使用中的收款人",
+        "VALIDATION_TAG_NAME_EMPTY": "標籤名稱不可為空",
+        "VALIDATION_TAG_DUPLICATE_NAME": "標籤名稱重複",
+        "VALIDATION_TAG_IN_USE": "無法刪除使用中的標籤"
     },
     "categories": {
         "name": "類別名稱",

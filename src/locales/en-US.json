@@ -72,7 +72,17 @@
         "hidden": "Hidden",
         "error": "Error",
         "success": "Success",
-        "noData": "No data"
+        "noData": "No data",
+        "VALIDATION_CATEGORY_NAME_EMPTY": "Category name cannot be empty",
+        "VALIDATION_CATEGORY_HAS_CHILDREN": "Cannot delete category with children",
+        "VALIDATION_CATEGORY_IN_USE": "Cannot delete category in use",
+        "VALIDATION_CATEGORY_DUPLICATE_NAME": "Duplicate category name under the same parent",
+        "VALIDATION_PAYEE_NAME_EMPTY": "Payee name cannot be empty",
+        "VALIDATION_PAYEE_DUPLICATE_NAME": "Duplicate payee name",
+        "VALIDATION_PAYEE_IN_USE": "Cannot delete payee in use",
+        "VALIDATION_TAG_NAME_EMPTY": "Tag name cannot be empty",
+        "VALIDATION_TAG_DUPLICATE_NAME": "Duplicate tag name",
+        "VALIDATION_TAG_IN_USE": "Cannot delete tag in use"
     },
     "categories": {
         "name": "Category Name",
