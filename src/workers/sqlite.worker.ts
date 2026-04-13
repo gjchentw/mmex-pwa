@@ -320,6 +320,18 @@ self.onmessage = async (e) => {
         self.postMessage({ id, type, status: 'success', result })
         break
       }
+      case 'exec-transaction': {
+        const { statements } = payload as { statements: Array<{ sql: string; bind?: unknown[] }> }
+        let executed = 0
+        db.transaction(() => {
+          for (const stmt of statements) {
+            db!.exec({ sql: stmt.sql, bind: stmt.bind })
+            executed++
+          }
+        })
+        self.postMessage({ id, type, status: 'success', result: { executed } })
+        break
+      }
       default:
         self.postMessage({ id, type, status: 'error', error: `Unknown message type: ${type}` })
     }

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 type WorkerRequestMessage =
   | { type: 'init' }
   | { id: string; type: 'exec'; payload: { sql: string; bind?: unknown[] } }
+  | { id: string; type: 'exec-transaction'; payload: { statements: Array<{ sql: string; bind?: unknown[] }> } }
 
 type WorkerGlobal = {
   onmessage: ((event: MessageEvent<WorkerRequestMessage>) => Promise<void>) | null
@@ -114,7 +115,7 @@ describe('SQLite Worker', () => {
     await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
 
     const error = new Error('SQL Error')
-    mockExec.mockImplementation(() => {
+    mockExec.mockImplementationOnce(() => {
       throw error
     })
 
@@ -131,6 +132,80 @@ describe('SQLite Worker', () => {
       type: 'exec',
       status: 'error',
       error: error.message,
+    })
+  })
+
+  describe('exec-transaction', () => {
+    it('should execute multiple statements in a transaction', async () => {
+      await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
+      mockExec.mockClear()
+
+      const statements = [
+        { sql: 'UPDATE t1 SET a = 1 WHERE id = ?', bind: [10] },
+        { sql: 'UPDATE t2 SET b = 2 WHERE id = ?', bind: [20] },
+      ]
+
+      await workerSelf.onmessage!({
+        data: { id: 'tx-1', type: 'exec-transaction', payload: { statements } },
+      } as MessageEvent<WorkerRequestMessage>)
+
+      expect(mockTransaction).toHaveBeenCalled()
+      expect(mockExec).toHaveBeenCalledWith({ sql: statements[0]!.sql, bind: statements[0]!.bind })
+      expect(mockExec).toHaveBeenCalledWith({ sql: statements[1]!.sql, bind: statements[1]!.bind })
+      expect(postMessageMock).toHaveBeenCalledWith({
+        id: 'tx-1',
+        type: 'exec-transaction',
+        status: 'success',
+        result: { executed: 2 },
+      })
+    })
+
+    it('should rollback and return error on failure', async () => {
+      await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
+      mockExec.mockClear()
+
+      const txError = new Error('constraint failed')
+      mockTransaction.mockImplementationOnce((cb: () => void) => {
+        cb() // will throw because mockExec throws
+      })
+      mockExec
+        .mockImplementationOnce(() => {}) // first succeeds
+        .mockImplementationOnce(() => { throw txError }) // second fails
+
+      await workerSelf.onmessage!({
+        data: {
+          id: 'tx-2',
+          type: 'exec-transaction',
+          payload: { statements: [{ sql: 'UPDATE a SET x=1' }, { sql: 'BAD SQL' }] },
+        },
+      } as MessageEvent<WorkerRequestMessage>)
+
+      expect(postMessageMock).toHaveBeenCalledWith({
+        id: 'tx-2',
+        type: 'exec-transaction',
+        status: 'error',
+        error: 'constraint failed',
+      })
+    })
+
+    it('should handle empty statements array', async () => {
+      await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
+      mockExec.mockClear()
+
+      await workerSelf.onmessage!({
+        data: {
+          id: 'tx-3',
+          type: 'exec-transaction',
+          payload: { statements: [] },
+        },
+      } as unknown as MessageEvent<WorkerRequestMessage>)
+
+      expect(postMessageMock).toHaveBeenCalledWith({
+        id: 'tx-3',
+        type: 'exec-transaction',
+        status: 'success',
+        result: { executed: 0 },
+      })
     })
   })
 })

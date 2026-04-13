@@ -14,6 +14,10 @@ type ExecResponseMessage =
   | { id: string; type: 'exec'; status: 'success'; result: unknown }
   | { id: string; type: 'exec'; status: 'error'; error: string }
 
+type ExecTransactionResponseMessage =
+  | { id: string; type: 'exec-transaction'; status: 'success'; result: { executed: number } }
+  | { id: string; type: 'exec-transaction'; status: 'error'; error: string }
+
 type ImportResponseMessage =
   | { id: string; type: 'import'; status: 'success' }
   | { id: string; type: 'import'; status: 'error'; error: string }
@@ -27,6 +31,7 @@ export type DbWorkerResponseMessage =
   | OpenResponseMessage
   | CloseResponseMessage
   | ExecResponseMessage
+  | ExecTransactionResponseMessage
   | ImportResponseMessage
   | ExportResponseMessage
 
@@ -91,6 +96,20 @@ export class DbClient {
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject })
       this.worker.postMessage({ id, type: 'exec', payload: { sql, bind } })
+    })
+  }
+
+  async execTransaction(
+    statements: Array<{ sql: string; bind?: unknown[] }>,
+  ): Promise<{ executed: number }> {
+    await this.ready()
+    const id = helpers.generateId()
+    return new Promise<{ executed: number }>((resolve, reject) => {
+      this.pendingRequests.set(id, {
+        resolve: (value) => resolve(value as { executed: number }),
+        reject,
+      })
+      this.worker.postMessage({ id, type: 'exec-transaction', payload: { statements } })
     })
   }
 

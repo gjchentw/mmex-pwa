@@ -25,6 +25,11 @@
         "assets": "資產",
         "exchangeRates": "匯率",
         "settings": "設定",
+        "categories": "類別",
+        "payees": "收款人",
+        "tags": "標籤",
+        "customFields": "自訂欄位",
+        "dateRanges": "日期範圍",
         "about": "關於"
     },
     "database": {
@@ -53,5 +58,130 @@
     "network": {
         "online": "線上",
         "offline": "離線"
+    },
+    "common": {
+        "save": "儲存",
+        "cancel": "取消",
+        "confirm": "確認",
+        "delete": "刪除",
+        "edit": "編輯",
+        "add": "新增",
+        "search": "搜尋",
+        "filter": "篩選",
+        "active": "啟用",
+        "hidden": "隱藏",
+        "error": "錯誤",
+        "success": "成功",
+        "noData": "無資料",
+        "VALIDATION_CATEGORY_NOT_FOUND": "找不到類別",
+        "VALIDATION_CATEGORY_NAME_EMPTY": "類別名稱不可為空",
+        "VALIDATION_CATEGORY_HAS_CHILDREN": "無法刪除有子類別的類別",
+        "VALIDATION_CATEGORY_IN_USE": "無法刪除使用中的類別",
+        "VALIDATION_CATEGORY_DUPLICATE_NAME": "同一父類別下有重複名稱",
+        "VALIDATION_PAYEE_NAME_EMPTY": "收款人名稱不可為空",
+        "VALIDATION_PAYEE_DUPLICATE_NAME": "收款人名稱重複",
+        "VALIDATION_PAYEE_IN_USE": "無法刪除使用中的收款人",
+        "VALIDATION_TAG_NAME_EMPTY": "標籤名稱不可為空",
+        "VALIDATION_TAG_DUPLICATE_NAME": "標籤名稱重複",
+        "VALIDATION_TAG_IN_USE": "無法刪除使用中的標籤",
+        "fieldRequired": "{field} 為必填"
+    },
+    "categories": {
+        "name": "類別名稱",
+        "addRoot": "新增根類別",
+        "addChild": "新增子類別",
+        "rename": "重新命名",
+        "delete": "刪除",
+        "hide": "隱藏",
+        "show": "顯示",
+        "inUse": "類別使用中",
+        "hasChildren": "類別有子類別",
+        "duplicateName": "同一父類別下有重複名稱"
+    },
+    "payees": {
+        "name": "收款人名稱",
+        "defaultCategory": "預設類別",
+        "number": "編號",
+        "website": "網站",
+        "notes": "備註",
+        "pattern": "比對模式",
+        "inUse": "收款人使用中",
+        "duplicateName": "收款人名稱重複"
+    },
+    "tags": {
+        "name": "標籤名稱",
+        "rename": "重新命名",
+        "delete": "刪除",
+        "hide": "隱藏",
+        "show": "顯示",
+        "inUse": "標籤使用中",
+        "duplicateName": "標籤名稱重複",
+        "usageCount": "使用次數"
+    },
+    "relocation": {
+        "mergeTitle": "合併",
+        "source": "來源",
+        "target": "目標",
+        "impactSummary": "影響摘要",
+        "transactions": "交易記錄",
+        "splitTransactions": "分割交易",
+        "recurringTransactions": "定期交易",
+        "budgets": "預算",
+        "budgetSplits": "預算分割",
+        "payeeDefaults": "收款人預設值",
+        "deleteSource": "合併後刪除來源",
+        "confirm": "確認合併",
+        "selfMergeError": "無法將項目合併至自身"
+    },
+    "customFields": {
+        "description": "描述",
+        "type": "類型",
+        "refType": "適用對象",
+        "properties": "屬性",
+        "regex": "正規表達式驗證",
+        "tooltip": "提示文字",
+        "autocomplete": "自動完成",
+        "defaultValue": "預設值",
+        "choices": "選項",
+        "oneOptionPerLine": "每行一個選項",
+        "cascadeDeleteWarning": "刪除此欄位將同時刪除所有已儲存的欄位資料。",
+        "types": {
+            "String": "文字",
+            "Integer": "整數",
+            "Decimal": "小數",
+            "Boolean": "布林值",
+            "Date": "日期",
+            "Time": "時間",
+            "SingleChoice": "單選",
+            "MultiChoice": "多選"
+        }
+    },
+    "settings": {
+        "general": "一般",
+        "appearance": "外觀",
+        "language": "語言",
+        "dateFormat": "日期格式",
+        "baseCurrency": "基礎貨幣",
+        "userName": "使用者名稱",
+        "themeMode": "佈景主題",
+        "light": "淺色",
+        "dark": "深色",
+        "auto": "自動"
+    },
+    "dateRanges": {
+        "label": "標籤",
+        "spec": "規格",
+        "startDate": "開始日期",
+        "endDate": "結束日期",
+        "setDefault": "設為預設",
+        "reorder": "重新排序",
+        "specOptions": {
+            "M": "本月",
+            "M-1": "上月",
+            "Q": "本季",
+            "Q-1": "上季",
+            "Y": "今年",
+            "Y-1": "去年"
+        }
     }
 }

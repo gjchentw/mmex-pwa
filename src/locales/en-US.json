@@ -25,6 +25,11 @@
         "assets": "Assets",
         "exchangeRates": "Exchange Rates",
         "settings": "Settings",
+        "categories": "Categories",
+        "payees": "Payees",
+        "tags": "Tags",
+        "customFields": "Custom Fields",
+        "dateRanges": "Date Ranges",
         "about": "About"
     },
     "database": {
@@ -53,5 +58,130 @@
     "network": {
         "online": "Online",
         "offline": "Offline"
+    },
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "delete": "Delete",
+        "edit": "Edit",
+        "add": "Add",
+        "search": "Search",
+        "filter": "Filter",
+        "active": "Active",
+        "hidden": "Hidden",
+        "error": "Error",
+        "success": "Success",
+        "noData": "No data",
+        "VALIDATION_CATEGORY_NOT_FOUND": "Category not found",
+        "VALIDATION_CATEGORY_NAME_EMPTY": "Category name cannot be empty",
+        "VALIDATION_CATEGORY_HAS_CHILDREN": "Cannot delete category with children",
+        "VALIDATION_CATEGORY_IN_USE": "Cannot delete category in use",
+        "VALIDATION_CATEGORY_DUPLICATE_NAME": "Duplicate category name under the same parent",
+        "VALIDATION_PAYEE_NAME_EMPTY": "Payee name cannot be empty",
+        "VALIDATION_PAYEE_DUPLICATE_NAME": "Duplicate payee name",
+        "VALIDATION_PAYEE_IN_USE": "Cannot delete payee in use",
+        "VALIDATION_TAG_NAME_EMPTY": "Tag name cannot be empty",
+        "VALIDATION_TAG_DUPLICATE_NAME": "Duplicate tag name",
+        "VALIDATION_TAG_IN_USE": "Cannot delete tag in use",
+        "fieldRequired": "{field} is required"
+    },
+    "categories": {
+        "name": "Category Name",
+        "addRoot": "Add Root Category",
+        "addChild": "Add Child Category",
+        "rename": "Rename",
+        "delete": "Delete",
+        "hide": "Hide",
+        "show": "Show",
+        "inUse": "Category is in use",
+        "hasChildren": "Category has children",
+        "duplicateName": "Duplicate category name under the same parent"
+    },
+    "payees": {
+        "name": "Payee Name",
+        "defaultCategory": "Default Category",
+        "number": "Number",
+        "website": "Website",
+        "notes": "Notes",
+        "pattern": "Match Pattern",
+        "inUse": "Payee is in use",
+        "duplicateName": "Duplicate payee name"
+    },
+    "tags": {
+        "name": "Tag Name",
+        "rename": "Rename",
+        "delete": "Delete",
+        "hide": "Hide",
+        "show": "Show",
+        "inUse": "Tag is in use",
+        "duplicateName": "Duplicate tag name",
+        "usageCount": "Usage Count"
+    },
+    "relocation": {
+        "mergeTitle": "Merge",
+        "source": "Source",
+        "target": "Target",
+        "impactSummary": "Impact Summary",
+        "transactions": "Transactions",
+        "splitTransactions": "Split Transactions",
+        "recurringTransactions": "Recurring Transactions",
+        "budgets": "Budgets",
+        "budgetSplits": "Budget Splits",
+        "payeeDefaults": "Payee Defaults",
+        "deleteSource": "Delete source after merge",
+        "confirm": "Confirm Merge",
+        "selfMergeError": "Cannot merge an item into itself"
+    },
+    "customFields": {
+        "description": "Description",
+        "type": "Type",
+        "refType": "Applies To",
+        "properties": "Properties",
+        "regex": "Regex Validation",
+        "tooltip": "Tooltip",
+        "autocomplete": "Autocomplete",
+        "defaultValue": "Default Value",
+        "choices": "Choices",
+        "oneOptionPerLine": "One option per line",
+        "cascadeDeleteWarning": "Deleting this field will also delete all stored data for this field.",
+        "types": {
+            "String": "String",
+            "Integer": "Integer",
+            "Decimal": "Decimal",
+            "Boolean": "Boolean",
+            "Date": "Date",
+            "Time": "Time",
+            "SingleChoice": "Single Choice",
+            "MultiChoice": "Multi Choice"
+        }
+    },
+    "settings": {
+        "general": "General",
+        "appearance": "Appearance",
+        "language": "Language",
+        "dateFormat": "Date Format",
+        "baseCurrency": "Base Currency",
+        "userName": "User Name",
+        "themeMode": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "auto": "Auto"
+    },
+    "dateRanges": {
+        "label": "Label",
+        "spec": "Specification",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "setDefault": "Set as Default",
+        "reorder": "Reorder",
+        "specOptions": {
+            "M": "Current Month",
+            "M-1": "Previous Month",
+            "Q": "Current Quarter",
+            "Q-1": "Previous Quarter",
+            "Y": "Current Year",
+            "Y-1": "Previous Year"
+        }
     }
 }

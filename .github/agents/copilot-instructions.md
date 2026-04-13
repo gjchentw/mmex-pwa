@@ -1,12 +1,12 @@
 # mmex-pwa Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-14
+Auto-generated from all feature plans. Last updated: 2026-03-19
 
 ## Active Technologies
 - TypeScript 5.9 (project runtime), GitHub Actions workflow YAML + Node.js 22 in CI, npm, actions/checkout@v4, actions/setup-node@v4, actions/upload-pages-artifact@v3, actions/deploy-pages@v4, Playwright (001-fix-ci-cd-pages)
 - N/A for runtime feature scope; CI artifacts and GitHub Pages deployment storage (001-fix-ci-cd-pages)
-
-- TypeScript 5.9 (project runtime), GitHub Actions workflow YAML + Node.js 22 runtime in CI, npm, actions/checkout@v4, actions/setup-node@v4, GitHub Pages official deploy actions (001-fix-ci-cd-pages)
+- TypeScript 5.9.0 (strict mode, ES2022 target) + Vue 3.5.22 (Composition API), Quasar 2.18.6, Vue Router 4.6.3, Pinia 3.0.3, vue-i18n 12.0.0-alpha.3 (002-organize-tools-module)
+- OPFS SQLite via @sqlite.org/sqlite-wasm 3.51.1-build1, running in dedicated Web Worker (002-organize-tools-module)
 
 ## Project Structure
 
@@ -28,9 +28,9 @@ npm run test:unit && npm run lint
 TypeScript 5.9 (project runtime), GitHub Actions workflow YAML: Follow standard conventions
 
 ## Recent Changes
-- 001-fix-ci-cd-pages: Added TypeScript 5.9 (project runtime), GitHub Actions workflow YAML + Node.js 22 in CI, npm, actions/checkout@v4, actions/setup-node@v4, actions/upload-pages-artifact@v3, actions/deploy-pages@v4, Playwright
+- 002-organize-tools-module: Added TypeScript 5.9.0 (strict mode, ES2022 target) + Vue 3.5.22 (Composition API), Quasar 2.18.6, Vue Router 4.6.3, Pinia 3.0.3, vue-i18n 12.0.0-alpha.3
+- 002-organize-tools-module: Added OPFS SQLite via @sqlite.org/sqlite-wasm 3.51.1-build1, running in dedicated Web Worker
 
-- 001-fix-ci-cd-pages: Added TypeScript 5.9 (project runtime), GitHub Actions workflow YAML + Node.js 22 runtime in CI, npm, actions/checkout@v4, actions/setup-node@v4, GitHub Pages official deploy actions
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

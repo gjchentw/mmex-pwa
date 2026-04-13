@@ -7,10 +7,17 @@ type MockWorkerResponse =
   | { type: 'init'; status: 'error'; error: string }
   | { id: string; type: 'exec'; status: 'success'; result: unknown }
   | { id: string; type: 'exec'; status: 'error'; error: string }
+  | { id: string; type: 'exec-transaction'; status: 'success'; result: { executed: number } }
+  | { id: string; type: 'exec-transaction'; status: 'error'; error: string }
 type ExecRequestMessage = {
   id: string
   type: 'exec'
   payload: { sql: string; bind?: unknown[] }
+}
+type ExecTransactionRequestMessage = {
+  id: string
+  type: 'exec-transaction'
+  payload: { statements: Array<{ sql: string; bind?: unknown[] }> }
 }
 
 const { MockWorker, handlers, workerInstances } = vi.hoisted(() => {
@@ -162,5 +169,58 @@ describe('DbClient', () => {
     })
 
     await expect(client.exec('INVALID SQL')).rejects.toThrow('Syntax error')
+  })
+
+  describe('execTransaction', () => {
+    it('should send exec-transaction message and resolve on success', async () => {
+      triggerMessage({ type: 'init', status: 'success' })
+      await client.ready()
+
+      postMessageMock.mockImplementationOnce((data: ExecTransactionRequestMessage) => {
+        if (data.type === 'exec-transaction') {
+          setTimeout(() => {
+            triggerMessage({
+              id: data.id,
+              type: 'exec-transaction',
+              status: 'success',
+              result: { executed: 2 },
+            })
+          }, 0)
+        }
+      })
+
+      const statements = [
+        { sql: 'UPDATE t1 SET a=1', bind: [1] },
+        { sql: 'UPDATE t2 SET b=2' },
+      ]
+      const result = await client.execTransaction(statements)
+
+      expect(postMessageMock).toHaveBeenCalledWith({
+        id: '00000000-0000-0000-0000-000000000000',
+        type: 'exec-transaction',
+        payload: { statements },
+      })
+      expect(result).toEqual({ executed: 2 })
+    })
+
+    it('should reject on exec-transaction error', async () => {
+      triggerMessage({ type: 'init', status: 'success' })
+      await client.ready()
+
+      postMessageMock.mockImplementationOnce((data: ExecTransactionRequestMessage) => {
+        if (data.type === 'exec-transaction') {
+          setTimeout(() => {
+            triggerMessage({
+              id: data.id,
+              type: 'exec-transaction',
+              status: 'error',
+              error: 'Transaction failed',
+            })
+          }, 0)
+        }
+      })
+
+      await expect(client.execTransaction([{ sql: 'BAD' }])).rejects.toThrow('Transaction failed')
+    })
   })
 })
