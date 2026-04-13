@@ -36,7 +36,7 @@
           dense
           type="textarea"
           autogrow
-          hint="One option per line"
+          :hint="$t('customFields.oneOptionPerLine')"
         />
       </q-card-section>
 

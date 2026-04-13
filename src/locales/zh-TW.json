@@ -73,6 +73,7 @@
         "error": "錯誤",
         "success": "成功",
         "noData": "無資料",
+        "VALIDATION_CATEGORY_NOT_FOUND": "找不到類別",
         "VALIDATION_CATEGORY_NAME_EMPTY": "類別名稱不可為空",
         "VALIDATION_CATEGORY_HAS_CHILDREN": "無法刪除有子類別的類別",
         "VALIDATION_CATEGORY_IN_USE": "無法刪除使用中的類別",
@@ -82,7 +83,8 @@
         "VALIDATION_PAYEE_IN_USE": "無法刪除使用中的收款人",
         "VALIDATION_TAG_NAME_EMPTY": "標籤名稱不可為空",
         "VALIDATION_TAG_DUPLICATE_NAME": "標籤名稱重複",
-        "VALIDATION_TAG_IN_USE": "無法刪除使用中的標籤"
+        "VALIDATION_TAG_IN_USE": "無法刪除使用中的標籤",
+        "fieldRequired": "{field} 為必填"
     },
     "categories": {
         "name": "類別名稱",
@@ -141,6 +143,7 @@
         "autocomplete": "自動完成",
         "defaultValue": "預設值",
         "choices": "選項",
+        "oneOptionPerLine": "每行一個選項",
         "cascadeDeleteWarning": "刪除此欄位將同時刪除所有已儲存的欄位資料。",
         "types": {
             "String": "文字",

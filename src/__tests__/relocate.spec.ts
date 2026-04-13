@@ -71,7 +71,7 @@ describe('Relocation Logic', () => {
       const { relocate, refresh } = useCategories()
       await refresh()
 
-      await expect(relocate(1, 1, false)).rejects.toThrow('Cannot merge category into itself')
+      await expect(relocate(1, 1, false)).rejects.toThrow('Cannot merge an item into itself')
     })
 
     it('should return relocation stats', async () => {
@@ -121,7 +121,7 @@ describe('Relocation Logic', () => {
       const { relocate, refresh } = usePayees()
       await refresh()
 
-      await expect(relocate(1, 1, false)).rejects.toThrow('Cannot merge payee into itself')
+      await expect(relocate(1, 1, false)).rejects.toThrow('Cannot merge an item into itself')
     })
 
     it('should return relocation stats', async () => {
@@ -171,7 +171,7 @@ describe('Relocation Logic', () => {
       const { relocate, refresh } = useTags()
       await refresh()
 
-      await expect(relocate(1, 1, false)).rejects.toThrow('Cannot merge tag into itself')
+      await expect(relocate(1, 1, false)).rejects.toThrow('Cannot merge an item into itself')
     })
 
     it('should include DELETE source tag when deleteSource is true', async () => {

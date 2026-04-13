@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useQuasar, type QTableColumn } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useCustomFields } from '@/composables/useCustomFields'
@@ -41,12 +41,12 @@ const $q = useQuasar()
 const { t } = useI18n()
 const { fields, loading, refresh, create, update, remove } = useCustomFields()
 
-const columns: QTableColumn[] = [
+const columns = computed<QTableColumn[]>(() => [
   { name: 'description', label: t('customFields.description'), field: 'DESCRIPTION', align: 'left', sortable: true },
   { name: 'refType', label: t('customFields.refType'), field: 'REFTYPE', align: 'left', sortable: true },
   { name: 'type', label: t('customFields.type'), field: 'TYPE', align: 'left' },
   { name: 'actions', label: '', field: 'FIELDID', align: 'right' },
-]
+])
 
 function addField() {
   $q.dialog({

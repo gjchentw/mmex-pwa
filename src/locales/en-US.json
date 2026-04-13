@@ -73,6 +73,7 @@
         "error": "Error",
         "success": "Success",
         "noData": "No data",
+        "VALIDATION_CATEGORY_NOT_FOUND": "Category not found",
         "VALIDATION_CATEGORY_NAME_EMPTY": "Category name cannot be empty",
         "VALIDATION_CATEGORY_HAS_CHILDREN": "Cannot delete category with children",
         "VALIDATION_CATEGORY_IN_USE": "Cannot delete category in use",
@@ -82,7 +83,8 @@
         "VALIDATION_PAYEE_IN_USE": "Cannot delete payee in use",
         "VALIDATION_TAG_NAME_EMPTY": "Tag name cannot be empty",
         "VALIDATION_TAG_DUPLICATE_NAME": "Duplicate tag name",
-        "VALIDATION_TAG_IN_USE": "Cannot delete tag in use"
+        "VALIDATION_TAG_IN_USE": "Cannot delete tag in use",
+        "fieldRequired": "{field} is required"
     },
     "categories": {
         "name": "Category Name",
@@ -141,6 +143,7 @@
         "autocomplete": "Autocomplete",
         "defaultValue": "Default Value",
         "choices": "Choices",
+        "oneOptionPerLine": "One option per line",
         "cascadeDeleteWarning": "Deleting this field will also delete all stored data for this field.",
         "types": {
             "String": "String",

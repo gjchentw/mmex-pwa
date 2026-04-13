@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { dbClient } from '@/workers/db-client'
+import i18n from '@/i18n'
 import type { Category, CategoryNode, RelocationStats } from '@/types/entities'
 
 function rowToCategory(row: unknown[]): Category {
@@ -45,6 +45,7 @@ function buildTree(categories: Category[]): CategoryNode[] {
 export function useCategories() {
   const categories = ref<Category[]>([])
   const loading = ref(false)
+  const t = i18n.global.t
 
   const tree = computed<CategoryNode[]>(() => buildTree(categories.value))
 
@@ -62,16 +63,14 @@ export function useCategories() {
 
   async function create(name: string, parentId: number): Promise<number> {
     const trimmed = name.trim()
-    const { t } = useI18n()
-    if (!trimmed) throw new Error(t('VALIDATION_CATEGORY_NAME_EMPTY'))
+    if (!trimmed) throw new Error(t('common.VALIDATION_CATEGORY_NAME_EMPTY'))
 
     const dup = (await dbClient.exec(
       'SELECT COUNT(*) FROM CATEGORY_V1 WHERE CATEGNAME = ? COLLATE NOCASE AND PARENTID = ?',
       [trimmed, parentId],
     )) as unknown[][]
     if (dup[0] && (dup[0][0] as number) > 0) {
-      const { t } = useI18n()
-      throw new Error(t('VALIDATION_CATEGORY_DUPLICATE_NAME'))
+      throw new Error(t('common.VALIDATION_CATEGORY_DUPLICATE_NAME'))
     }
 
     await dbClient.exec(
@@ -86,17 +85,17 @@ export function useCategories() {
 
   async function rename(categId: number, newName: string): Promise<void> {
     const trimmed = newName.trim()
-    if (!trimmed) throw new Error('Category name cannot be empty')
+    if (!trimmed) throw new Error(t('common.VALIDATION_CATEGORY_NAME_EMPTY'))
 
     const cat = categories.value.find((c) => c.CATEGID === categId)
-    if (!cat) throw new Error('Category not found')
+    if (!cat) throw new Error(t('common.VALIDATION_CATEGORY_NOT_FOUND'))
 
     const dup = (await dbClient.exec(
       'SELECT COUNT(*) FROM CATEGORY_V1 WHERE CATEGNAME = ? COLLATE NOCASE AND PARENTID = ? AND CATEGID != ?',
       [trimmed, cat.PARENTID, categId],
     )) as unknown[][]
     if (dup[0] && (dup[0][0] as number) > 0) {
-      throw new Error('Duplicate category name under the same parent')
+      throw new Error(t('common.VALIDATION_CATEGORY_DUPLICATE_NAME'))
     }
 
     await dbClient.exec('UPDATE CATEGORY_V1 SET CATEGNAME = ? WHERE CATEGID = ?', [
@@ -108,13 +107,11 @@ export function useCategories() {
 
   async function remove(categId: number): Promise<void> {
     if (hasChildren(categId)) {
-      const { t } = useI18n()
-      throw new Error(t('VALIDATION_CATEGORY_HAS_CHILDREN'))
+      throw new Error(t('common.VALIDATION_CATEGORY_HAS_CHILDREN'))
     }
 
     if (await isUsed(categId)) {
-      const { t } = useI18n()
-      throw new Error(t('VALIDATION_CATEGORY_IN_USE'))
+      throw new Error(t('common.VALIDATION_CATEGORY_IN_USE'))
     }
 
     await dbClient.exec('DELETE FROM CATEGORY_V1 WHERE CATEGID = ?', [categId])
@@ -188,7 +185,7 @@ export function useCategories() {
     targetId: number,
     deleteSource: boolean,
   ): Promise<void> {
-    if (sourceId === targetId) throw new Error('Cannot merge category into itself')
+    if (sourceId === targetId) throw new Error(t('relocation.selfMergeError'))
 
     const statements: Array<{ sql: string; bind?: unknown[] }> = [
       { sql: 'UPDATE CHECKINGACCOUNT_V1 SET CATEGID = ? WHERE CATEGID = ?', bind: [targetId, sourceId] },

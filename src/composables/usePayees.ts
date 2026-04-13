@@ -1,6 +1,6 @@
 import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { dbClient } from '@/workers/db-client'
+import i18n from '@/i18n'
 import type { Payee, RelocationStats } from '@/types/entities'
 
 function rowToPayee(row: unknown[]): Payee {
@@ -19,6 +19,7 @@ function rowToPayee(row: unknown[]): Payee {
 export function usePayees() {
   const payees = ref<Payee[]>([])
   const loading = ref(false)
+  const t = i18n.global.t
 
   async function refresh(): Promise<void> {
     loading.value = true
@@ -34,16 +35,14 @@ export function usePayees() {
 
   async function create(name: string): Promise<number> {
     const trimmed = name.trim()
-    const { t } = useI18n()
-    if (!trimmed) throw new Error(t('VALIDATION_PAYEE_NAME_EMPTY'))
+    if (!trimmed) throw new Error(t('common.VALIDATION_PAYEE_NAME_EMPTY'))
 
     const dup = (await dbClient.exec(
       'SELECT COUNT(*) FROM PAYEE_V1 WHERE PAYEENAME = ? COLLATE NOCASE',
       [trimmed],
     )) as unknown[][]
     if (dup[0] && (dup[0][0] as number) > 0) {
-      const { t } = useI18n()
-      throw new Error(t('VALIDATION_PAYEE_DUPLICATE_NAME'))
+      throw new Error(t('common.VALIDATION_PAYEE_DUPLICATE_NAME'))
     }
 
     await dbClient.exec(
@@ -101,8 +100,7 @@ export function usePayees() {
 
   async function remove(payeeId: number): Promise<void> {
     if (await isUsed(payeeId)) {
-      const { t } = useI18n()
-      throw new Error(t('VALIDATION_PAYEE_IN_USE'))
+      throw new Error(t('common.VALIDATION_PAYEE_IN_USE'))
     }
     await dbClient.exec('DELETE FROM PAYEE_V1 WHERE PAYEEID = ?', [payeeId])
     await refresh()
@@ -151,7 +149,7 @@ export function usePayees() {
     targetId: number,
     deleteSource: boolean,
   ): Promise<void> {
-    if (sourceId === targetId) throw new Error('Cannot merge payee into itself')
+    if (sourceId === targetId) throw new Error(t('relocation.selfMergeError'))
 
     const statements: Array<{ sql: string; bind?: unknown[] }> = [
       { sql: 'UPDATE CHECKINGACCOUNT_V1 SET PAYEEID = ? WHERE PAYEEID = ?', bind: [targetId, sourceId] },

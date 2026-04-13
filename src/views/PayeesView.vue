@@ -77,12 +77,12 @@ const { payees, loading, refresh, create, update, remove, toggleActive: toggleAc
 const search = ref('')
 const showFilter = ref('all')
 
-const columns: QTableColumn[] = [
+const columns = computed<QTableColumn[]>(() => [
   { name: 'name', label: t('payees.name'), field: 'PAYEENAME', align: 'left', sortable: true },
   { name: 'category', label: t('payees.defaultCategory'), field: 'CATEGID', align: 'left' },
   { name: 'active', label: t('common.active'), field: 'ACTIVE', align: 'center' },
   { name: 'actions', label: '', field: 'PAYEEID', align: 'right' },
-]
+])
 
 const filteredPayees = computed(() => {
   let list = payees.value

@@ -45,7 +45,7 @@ const errorMsg = ref('')
 function onSubmit() {
   const trimmed = name.value.trim()
   if (!trimmed) {
-    errorMsg.value = t('categories.name') + ' is required'
+    errorMsg.value = t('common.fieldRequired', { field: t('categories.name') })
     return
   }
   errorMsg.value = ''

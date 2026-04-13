@@ -56,7 +56,7 @@ export function useSettings() {
     }
   }
 
-  const language = computed(() => get('LANGUAGE', 'en_US') ?? 'en_US')
+  const language = computed(() => get('LANGUAGE', 'en-US') ?? 'en-US')
   const dateFormat = computed(() => get('DATEFORMAT', '%Y-%m-%d') ?? '%Y-%m-%d')
   const baseCurrencyId = computed(() => {
     const val = get('BASECURRENCYID')

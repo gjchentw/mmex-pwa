@@ -74,7 +74,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useDialogPluginComponent } from 'quasar'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
 import type { RelocationStats } from '@/types/entities'
 
 export interface RelocateOption {
@@ -91,6 +91,7 @@ const props = defineProps<{
 
 defineEmits([...useDialogPluginComponent.emits])
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+const $q = useQuasar()
 
 const sourceId = ref<number | null>(null)
 const targetId = ref<number | null>(null)
@@ -108,13 +109,21 @@ const canConfirm = computed(
 async function onSourceChange() {
   stats.value = null
   if (sourceId.value !== null) {
-    stats.value = await props.getStats(sourceId.value)
+    try {
+      stats.value = await props.getStats(sourceId.value)
+    } catch (err: unknown) {
+      $q.notify({ type: 'negative', message: err instanceof Error ? err.message : String(err) })
+    }
   }
 }
 
 async function onConfirm() {
   if (!canConfirm.value) return
-  await props.relocate(sourceId.value!, targetId.value!, deleteSource.value)
-  onDialogOK()
+  try {
+    await props.relocate(sourceId.value!, targetId.value!, deleteSource.value)
+    onDialogOK()
+  } catch (err: unknown) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : String(err) })
+  }
 }
 </script>

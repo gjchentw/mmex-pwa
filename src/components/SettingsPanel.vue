@@ -60,15 +60,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettings } from '@/composables/useSettings'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const settingsComposable = useSettings()
 
 const form = reactive({
-  language: 'en_US',
+  language: 'en-US',
   dateFormat: '%Y-%m-%d',
   baseCurrencyId: 1 as number | null,
   userName: '',
@@ -78,8 +78,8 @@ const form = reactive({
 const tab = ref('general')
 
 const languageOptions = [
-  { label: 'English', value: 'en_US' },
-  { label: '中文（繁體）', value: 'zh_TW' },
+  { label: 'English', value: 'en-US' },
+  { label: '中文（繁體）', value: 'zh-TW' },
 ]
 
 const dateFormatOptions = [
@@ -89,14 +89,17 @@ const dateFormatOptions = [
   { label: 'DD/MM/YYYY', value: '%d/%m/%Y' },
 ]
 
-const themeOptions = [
+const themeOptions = computed(() => [
   { label: t('settings.light'), value: 'light' },
   { label: t('settings.dark'), value: 'dark' },
   { label: t('settings.auto'), value: 'auto' },
-]
+])
 
 async function saveSetting(key: string, value: string) {
   await settingsComposable.set(key, value)
+  if (key === 'LANGUAGE') {
+    locale.value = value
+  }
 }
 
 onMounted(async () => {

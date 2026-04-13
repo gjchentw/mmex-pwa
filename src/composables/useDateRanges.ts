@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { dbClient } from '@/workers/db-client'
 import type { DateRangeSpec, ResolvedDateRange } from '@/types/entities'
 
-const DATE_RANGES_KEY = 'DATE_RANGES'
+const DATE_RANGES_KEY = 'CUSTOM_DATE_RANGES'
 
 function lastDayOfMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate()

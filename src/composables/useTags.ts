@@ -1,6 +1,6 @@
 import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { dbClient } from '@/workers/db-client'
+import i18n from '@/i18n'
 import type { Tag, RelocationStats } from '@/types/entities'
 
 function rowToTag(row: unknown[]): Tag {
@@ -14,6 +14,7 @@ function rowToTag(row: unknown[]): Tag {
 export function useTags() {
   const tags = ref<Tag[]>([])
   const loading = ref(false)
+  const t = i18n.global.t
 
   async function refresh(): Promise<void> {
     loading.value = true
@@ -29,16 +30,14 @@ export function useTags() {
 
   async function create(name: string): Promise<number> {
     const trimmed = name.trim()
-    const { t } = useI18n()
-    if (!trimmed) throw new Error(t('VALIDATION_TAG_NAME_EMPTY'))
+    if (!trimmed) throw new Error(t('common.VALIDATION_TAG_NAME_EMPTY'))
 
     const dup = (await dbClient.exec(
       'SELECT COUNT(*) FROM TAG_V1 WHERE TAGNAME = ? COLLATE NOCASE',
       [trimmed],
     )) as unknown[][]
     if (dup[0] && (dup[0][0] as number) > 0) {
-      const { t } = useI18n()
-      throw new Error(t('VALIDATION_TAG_DUPLICATE_NAME'))
+      throw new Error(t('common.VALIDATION_TAG_DUPLICATE_NAME'))
     }
 
     await dbClient.exec('INSERT INTO TAG_V1 (TAGNAME, ACTIVE) VALUES (?, 1)', [trimmed])
@@ -50,14 +49,14 @@ export function useTags() {
 
   async function rename(tagId: number, newName: string): Promise<void> {
     const trimmed = newName.trim()
-    if (!trimmed) throw new Error('Tag name cannot be empty')
+    if (!trimmed) throw new Error(t('common.VALIDATION_TAG_NAME_EMPTY'))
 
     const dup = (await dbClient.exec(
       'SELECT COUNT(*) FROM TAG_V1 WHERE TAGNAME = ? COLLATE NOCASE AND TAGID != ?',
       [trimmed, tagId],
     )) as unknown[][]
     if (dup[0] && (dup[0][0] as number) > 0) {
-      throw new Error('Duplicate tag name')
+      throw new Error(t('common.VALIDATION_TAG_DUPLICATE_NAME'))
     }
 
     await dbClient.exec('UPDATE TAG_V1 SET TAGNAME = ? WHERE TAGID = ?', [trimmed, tagId])
@@ -66,8 +65,7 @@ export function useTags() {
 
   async function remove(tagId: number): Promise<void> {
     if (await isUsed(tagId)) {
-      const { t } = useI18n()
-      throw new Error(t('VALIDATION_TAG_IN_USE'))
+      throw new Error(t('common.VALIDATION_TAG_IN_USE'))
     }
     await dbClient.exec('DELETE FROM TAG_V1 WHERE TAGID = ?', [tagId])
     await refresh()
@@ -114,7 +112,7 @@ export function useTags() {
     targetId: number,
     deleteSource: boolean,
   ): Promise<void> {
-    if (sourceId === targetId) throw new Error('Cannot merge tag into itself')
+    if (sourceId === targetId) throw new Error(t('relocation.selfMergeError'))
 
     const statements: Array<{ sql: string; bind?: unknown[] }> = [
       // Update taglinks that won't cause duplicates

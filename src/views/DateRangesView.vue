@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useQuasar, type QTableColumn } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useDateRanges } from '@/composables/useDateRanges'
@@ -49,13 +49,13 @@ const $q = useQuasar()
 const { t } = useI18n()
 const { ranges, loading, refresh, create, update, remove, reorder, setDefault, resolve } = useDateRanges()
 
-const columns: QTableColumn[] = [
+const columns = computed<QTableColumn[]>(() => [
   { name: 'label', label: t('dateRanges.label'), field: 'label', align: 'left', sortable: true },
   { name: 'spec', label: t('dateRanges.spec'), field: 'spec', align: 'left' },
   { name: 'resolved', label: t('dateRanges.startDate') + ' / ' + t('dateRanges.endDate'), field: 'spec', align: 'left' },
   { name: 'isDefault', label: '', field: 'isDefault', align: 'center' },
   { name: 'actions', label: '', field: 'sortOrder', align: 'right' },
-]
+])
 
 function formatResolved(spec: string): string {
   const r = resolve(spec)

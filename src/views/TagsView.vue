@@ -76,11 +76,11 @@ const { tags, loading, refresh, create, rename, remove, toggleActive: toggleActi
 const search = ref('')
 const showFilter = ref('all')
 
-const columns: QTableColumn[] = [
+const columns = computed<QTableColumn[]>(() => [
   { name: 'name', label: t('tags.name'), field: 'TAGNAME', align: 'left', sortable: true },
   { name: 'active', label: t('common.active'), field: 'ACTIVE', align: 'center' },
   { name: 'actions', label: '', field: 'TAGID', align: 'right' },
-]
+])
 
 const filteredTags = computed(() => {
   let list = tags.value
