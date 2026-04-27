@@ -1,4 +1,6 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
+// The ?url import tells Vite to include sqlite3.wasm in the build and gives us the
+// content-hashed URL (e.g. /assets/sqlite3-HASH.wasm).
 import sqliteWasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm?url'
 import tablesSql from '../../mmex/database/tables.sql?raw'
 
@@ -44,16 +46,25 @@ let db: WorkerDatabase | null = null
 const log = (...args: unknown[]) => console.log('DB Worker:', ...args)
 const error = (...args: unknown[]) => console.error('DB Worker:', ...args)
 
-const getSqliteInitOptions = () => ({
-  print: log,
-  printErr: error,
-  locateFile: (file: string, prefix: string) => {
-    if (file === 'sqlite3.wasm') {
-      return sqliteWasmUrl
-    }
-    return prefix + file
-  },
-})
+const getSqliteInitOptions = () => {
+  // The @sqlite.org/sqlite-wasm pre-js unconditionally overwrites Module['locateFile']
+  // with a version that uses new URL(path, import.meta.url), which resolves relative to
+  // the bundled worker script and ignores Vite's content-hashed filename for sqlite3.wasm.
+  // Using Object.defineProperty with a no-op setter prevents that override in strict-mode
+  // ESM code while keeping our function — which returns the correct hashed URL — intact.
+  const locateFile = (file: string, prefix: string) =>
+    file === 'sqlite3.wasm' ? sqliteWasmUrl : prefix + file
+  const opts = { print: log, printErr: error }
+  Object.defineProperty(opts, 'locateFile', {
+    get: () => locateFile,
+    set: () => {
+      // intentionally ignore: the package pre-js attempts to override this
+    },
+    configurable: true,
+    enumerable: true,
+  })
+  return opts
+}
 
 const migrateDb = (db: WorkerDatabase) => {
   const getLegacyVersion = (): number => {
@@ -154,9 +165,7 @@ const migrateDb = (db: WorkerDatabase) => {
 const initDb = async () => {
   try {
     log('Initializing SQLite...')
-    const sqlite3 = await sqlite3InitModule({
-      ...getSqliteInitOptions(),
-    })
+    const sqlite3 = await sqlite3InitModule(getSqliteInitOptions())
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
@@ -178,9 +187,7 @@ const initDb = async () => {
 const openDb = async (importId?: string) => {
   try {
     log('Opening SQLite...')
-    const sqlite3 = await sqlite3InitModule({
-      ...getSqliteInitOptions(),
-    })
+    const sqlite3 = await sqlite3InitModule(getSqliteInitOptions())
 
     log('Running SQLite3 version', sqlite3.version.libVersion)
 
