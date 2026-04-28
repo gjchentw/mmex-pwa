@@ -20,12 +20,15 @@ const mockOpfsDb = vi.fn(() => ({
 
 // Keep a stable reference so tests can inspect call arguments even after vi.resetModules()
 const mockSqlite3Init = vi.fn(
-  async (_opts?: Record<string, unknown>) => ({
-    version: { libVersion: '3.45.0' },
-    oo1: {
-      OpfsDb: mockOpfsDb,
-    },
-  }),
+  async (opts?: Record<string, unknown>) => {
+    void opts
+    return {
+      version: { libVersion: '3.45.0' },
+      oo1: {
+        OpfsDb: mockOpfsDb,
+      },
+    }
+  },
 )
 
 vi.mock('@sqlite.org/sqlite-wasm', () => ({
