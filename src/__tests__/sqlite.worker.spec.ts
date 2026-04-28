@@ -222,16 +222,21 @@ describe('SQLite Worker', () => {
     // recent 'init' message.  Using the stable mockSqlite3Init reference means we survive
     // vi.resetModules() across beforeEach runs.
     const getLastOpts = (): Record<string, unknown> => {
-      const calls = mockSqlite3Init.mock.calls
-      const lastCall = calls.at(-1)
-
-      if (!lastCall || lastCall.length === 0 || !lastCall[0]) {
+      const lastCall = mockSqlite3Init.mock.calls.at(-1)
+    
+      if (!lastCall) {
         throw new Error('sqlite3InitModule was not called with init options')
       }
-
-      return lastCall[0] as Record<string, unknown>
-    }
     
+      const [opts] = lastCall
+    
+      if (!opts) {
+        throw new Error('sqlite3InitModule was not called with init options')
+      }
+    
+      return opts as Record<string, unknown>
+    }
+
     beforeEach(async () => {
       await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
     })
