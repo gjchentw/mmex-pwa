@@ -224,13 +224,13 @@ describe('SQLite Worker', () => {
     const getLastOpts = (): Record<string, unknown> => {
       const lastCall = mockSqlite3Init.mock.calls.at(-1)
     
-      if (!lastCall) {
+      if (!lastCall || lastCall.length === 0) {
         throw new Error('sqlite3InitModule was not called with init options')
       }
     
-      const [opts] = lastCall
+      const opts = lastCall[0]
     
-      if (!opts) {
+      if (opts == null) {
         throw new Error('sqlite3InitModule was not called with init options')
       }
     
