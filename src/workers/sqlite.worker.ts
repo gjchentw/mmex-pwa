@@ -48,21 +48,48 @@ const error = (...args: unknown[]) => console.error('DB Worker:', ...args)
 
 const getSqliteInitOptions = () => {
   // The @sqlite.org/sqlite-wasm pre-js unconditionally overwrites Module['locateFile']
-  // with a version that uses new URL(path, import.meta.url), which resolves relative to
-  // the bundled worker script and ignores Vite's content-hashed filename for sqlite3.wasm.
-  // Using Object.defineProperty with a no-op setter prevents that override in strict-mode
-  // ESM code while keeping our function — which returns the correct hashed URL — intact.
+  // and Module['instantiateWasm'] with versions that use new URL(path, import.meta.url),
+  // which resolves relative to the bundled worker script and ignores Vite's content-hashed
+  // filename for sqlite3.wasm.
+  // Using Object.defineProperty with a no-op setter prevents those overrides and keeps our
+  // functions — which use the Vite-hashed sqliteWasmUrl directly — intact.
   const locateFile = (file: string, prefix: string) =>
     file === 'sqlite3.wasm' ? sqliteWasmUrl : prefix + file
+
+  // Provide our own instantiateWasm that fetches from the Vite-hashed URL.
+  // This is the most robust defence: even if locateFile were somehow bypassed, wasm loading
+  // still uses sqliteWasmUrl rather than a runtime new URL(…, import.meta.url) resolution.
+  const instantiateWasm = (
+    imports: WebAssembly.Imports,
+    successCallback: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void,
+  ) => {
+    const wasmFetch = fetch(sqliteWasmUrl, { credentials: 'same-origin' })
+    const doLoad = WebAssembly.instantiateStreaming
+      ? async () => {
+          const result = await WebAssembly.instantiateStreaming(wasmFetch, imports)
+          successCallback(result.instance, result.module)
+        }
+      : async () => {
+          const bytes = await (await wasmFetch).arrayBuffer()
+          const result = await WebAssembly.instantiate(bytes, imports)
+          successCallback(result.instance, result.module)
+        }
+    doLoad().catch((err) => error('instantiateWasm failed', err))
+    return {} // non-falsy: signals to Emscripten that async loading is in progress
+  }
+
   const opts = { print: log, printErr: error }
-  Object.defineProperty(opts, 'locateFile', {
-    get: () => locateFile,
-    set: () => {
-      // intentionally ignore: the package pre-js attempts to override this
-    },
-    configurable: true,
-    enumerable: true,
-  })
+  const defineProtected = (key: string, value: unknown) =>
+    Object.defineProperty(opts, key, {
+      get: () => value,
+      set: () => {
+        // intentionally ignore: the package pre-js attempts to override this
+      },
+      configurable: true,
+      enumerable: true,
+    })
+  defineProtected('locateFile', locateFile)
+  defineProtected('instantiateWasm', instantiateWasm)
   return opts
 }
 

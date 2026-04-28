@@ -18,15 +18,26 @@ const mockOpfsDb = vi.fn(() => ({
   transaction: mockTransaction,
 }))
 
-vi.mock('@sqlite.org/sqlite-wasm', () => ({
-  default: vi.fn(() =>
-    Promise.resolve({
+// Keep a stable reference so tests can inspect call arguments even after vi.resetModules()
+const mockSqlite3Init = vi.fn(
+  async (opts?: Record<string, unknown>) => {
+    void opts
+    return {
       version: { libVersion: '3.45.0' },
       oo1: {
         OpfsDb: mockOpfsDb,
       },
-    }),
-  ),
+    }
+  },
+)
+
+vi.mock('@sqlite.org/sqlite-wasm', () => ({
+  default: mockSqlite3Init,
+}))
+
+// Provide a predictable hashed URL so we can assert locateFile returns it
+vi.mock('@sqlite.org/sqlite-wasm/sqlite3.wasm?url', () => ({
+  default: '/assets/sqlite3-MOCKED_HASH.wasm',
 }))
 
 // Mock import.meta.glob
@@ -206,6 +217,61 @@ describe('SQLite Worker', () => {
         status: 'success',
         result: { executed: 0 },
       })
+    })
+  })
+
+  describe('wasm URL resolution – getSqliteInitOptions', () => {
+    // Retrieve the init-options object that was passed to sqlite3InitModule on the most
+    // recent 'init' message.  Using the stable mockSqlite3Init reference means we survive
+    // vi.resetModules() across beforeEach runs.
+    const getLastOpts = (): Record<string, unknown> => {
+      const lastCall = mockSqlite3Init.mock.calls.at(-1)
+    
+      if (!lastCall || lastCall.length === 0) {
+        throw new Error('sqlite3InitModule was not called with init options')
+      }
+    
+      const opts = lastCall[0]
+    
+      if (opts == null) {
+        throw new Error('sqlite3InitModule was not called with init options')
+      }
+    
+      return opts as Record<string, unknown>
+    }
+
+    beforeEach(async () => {
+      await workerSelf.onmessage!({ data: { type: 'init' } } as MessageEvent<WorkerRequestMessage>)
+    })
+
+    it('locateFile returns the Vite-hashed wasm URL for sqlite3.wasm', () => {
+      const opts = getLastOpts()
+      const locateFile = opts.locateFile as (file: string, prefix: string) => string
+      expect(locateFile('sqlite3.wasm', '')).toBe('/assets/sqlite3-MOCKED_HASH.wasm')
+      expect(locateFile('sqlite3.wasm', '/some/prefix/')).toBe('/assets/sqlite3-MOCKED_HASH.wasm')
+    })
+
+    it('locateFile falls back to prefix+file for other assets', () => {
+      const opts = getLastOpts()
+      const locateFile = opts.locateFile as (file: string, prefix: string) => string
+      expect(locateFile('other-file.js', '/prefix/')).toBe('/prefix/other-file.js')
+    })
+
+    it('locateFile cannot be overwritten (pre-js override is blocked)', () => {
+      const opts = getLastOpts()
+      const originalLocateFile = opts.locateFile
+      // Simulate the pre-js unconditional override attempt
+      opts.locateFile = () => 'overwritten-by-pre-js'
+      expect(opts.locateFile).toBe(originalLocateFile)
+    })
+
+    it('instantiateWasm is defined and cannot be overwritten (pre-js override is blocked)', () => {
+      const opts = getLastOpts()
+      expect(typeof opts.instantiateWasm).toBe('function')
+      const originalInstantiateWasm = opts.instantiateWasm
+      // Simulate the pre-js unconditional override attempt
+      opts.instantiateWasm = () => 'overwritten-by-pre-js'
+      expect(opts.instantiateWasm).toBe(originalInstantiateWasm)
     })
   })
 })
