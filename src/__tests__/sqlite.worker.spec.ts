@@ -19,7 +19,7 @@ const mockOpfsDb = vi.fn(() => ({
 }))
 
 // Keep a stable reference so tests can inspect call arguments even after vi.resetModules()
-const mockSqlite3Init = vi.fn((opts?: unknown) =>
+const mockSqlite3Init = vi.fn(() =>
   Promise.resolve({
     version: { libVersion: '3.45.0' },
     oo1: {
