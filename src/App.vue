@@ -9,7 +9,9 @@
             <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" />
           </q-avatar>
           <span class="q-ml-sm">Title</span>
-          <div class="text-subtitle2 q-mt-xs">SQLite Status: {{ dbStatus }}</div>
+          <div class="text-subtitle2 q-mt-xs">
+            {{ $t('database.dbStatus', { status: dbStatus }) }}
+          </div>
         </q-toolbar-title>
 
         <q-btn-dropdown
@@ -66,7 +68,7 @@
             <q-item-section>{{ $t('database.syncToDrive') }}</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple>
+          <q-item clickable v-ripple @click="showDestroyDialog = true">
             <q-item-section avatar>
               <q-icon name="mdi-database-plus" />
             </q-item-section>
@@ -83,30 +85,67 @@
     <q-page-container>
       <router-view />
     </q-page-container>
+
+    <ConfirmDestroyDialog
+      v-model="showDestroyDialog"
+      @confirm="onDestroyConfirm"
+    />
   </q-layout>
 </template>
 
 <script lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { RouterLink, RouterView } from 'vue-router'
+import { useDatabaseStore } from './stores/database-store'
 import { dbClient } from './workers/db-client'
-
-const dbStatus = ref('Initializing...')
-const dbResult = ref('')
+import ConfirmDestroyDialog from './components/database/ConfirmDestroyDialog.vue'
 
 export default {
+  components: {
+    ConfirmDestroyDialog,
+  },
   data() {
     return {
-      dbStatus,
-      dbResult,
+      dbResult: '',
     }
   },
   setup() {
     const { locale } = useI18n()
     const leftDrawerOpen = ref(false)
     const rightDrawerOpen = ref(false)
+    const showDestroyDialog = ref(false)
+    const store = useDatabaseStore()
+
+    const dbStatus = computed(() => {
+      switch (store.state) {
+        case 'uninitialized':
+          return 'Uninitialized'
+        case 'probing':
+          return 'Probing...'
+        case 'creating':
+          return 'Creating...'
+        case 'opening':
+          return 'Opening...'
+        case 'migrating':
+          return 'Migrating...'
+        case 'needs-wizard':
+          return 'Needs Setup'
+        case 'ready':
+          return 'Ready'
+        case 'error':
+          return `Error: ${store.error}`
+        default:
+          return store.state
+      }
+    })
+
+    const onDestroyConfirm = async () => {
+      await store.destroyAndRecreate()
+      if (store.state === 'needs-wizard' || store.state === 'probing') {
+        // Router guard will redirect to /init
+      }
+    }
 
     return {
       locale,
@@ -114,33 +153,41 @@ export default {
       toggleLeftDrawer() {
         leftDrawerOpen.value = !leftDrawerOpen.value
       },
-
       rightDrawerOpen,
       toggleRightDrawer() {
         rightDrawerOpen.value = !rightDrawerOpen.value
       },
+      showDestroyDialog,
+      dbStatus,
+      onDestroyConfirm,
     }
   },
   async mounted() {
-    try {
-      await dbClient.ready()
-      dbStatus.value = 'Database Ready'
-
-      const versionResult = await dbClient.exec('PRAGMA user_version')
-      let version = 'Unknown'
-      if (
-        Array.isArray(versionResult) &&
-        versionResult.length > 0 &&
-        Array.isArray(versionResult[0])
-      ) {
-        version = String(versionResult[0][0])
-      }
-
-      dbResult.value = `DB Version: ${version}`
-    } catch (err: unknown) {
-      dbStatus.value = 'Error'
-      console.error(err)
-    }
+    const store = useDatabaseStore()
+    // Wait for DB to be ready before querying version
+    const unwatch = this.$watch(
+      () => store.state,
+      async (val) => {
+        if (val === 'ready') {
+          unwatch()
+          try {
+            const versionResult = await dbClient.exec('PRAGMA user_version')
+            let version = 'Unknown'
+            if (
+              Array.isArray(versionResult) &&
+              versionResult.length > 0 &&
+              Array.isArray(versionResult[0])
+            ) {
+              version = String(versionResult[0][0])
+            }
+            this.dbResult = `DB Version: ${version}`
+          } catch (err: unknown) {
+            console.error(err)
+          }
+        }
+      },
+      { immediate: true },
+    )
   },
 }
 </script>
