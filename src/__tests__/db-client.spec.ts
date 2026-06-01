@@ -5,17 +5,13 @@ const { MockWorker, handlers } = vi.hoisted(() => {
 
   class MockWorker {
     postMessage = vi.fn()
-    addEventListener = vi.fn((event: string, handler: any) => {
-      if (event === 'message') {
-        handlers.push(handler)
-      }
+    addEventListener = vi.fn((_event: string, handler: any) => {
+      handlers.push(handler)
     })
-    removeEventListener = vi.fn((event: string, handler: any) => {
-      if (event === 'message') {
-        const index = handlers.indexOf(handler)
-        if (index > -1) {
-          handlers.splice(index, 1)
-        }
+    removeEventListener = vi.fn((_event: string, handler: any) => {
+      const index = handlers.indexOf(handler)
+      if (index > -1) {
+        handlers.splice(index, 1)
       }
     })
     terminate = vi.fn()
@@ -24,18 +20,14 @@ const { MockWorker, handlers } = vi.hoisted(() => {
   return { MockWorker, handlers }
 })
 
-// Mock the worker import
 vi.mock('../workers/sqlite.worker?worker', () => ({
   default: MockWorker,
 }))
 
-// Try to spy on randomUUID if crypto exists
 if (typeof window !== 'undefined' && window.crypto) {
   try {
     vi.spyOn(window.crypto, 'randomUUID').mockReturnValue('00000000-0000-0000-0000-000000000000')
-  } catch (e) {
-    console.log('Failed to spy on window.crypto.randomUUID:', e)
-    // Fallback or force overwrite
+  } catch {
     Object.defineProperty(window, 'crypto', {
       value: { randomUUID: () => '00000000-0000-0000-0000-000000000000' },
       writable: true,
@@ -52,10 +44,8 @@ describe('DbClient', () => {
   let DbClient: any
   let client: any
   let postMessageMock: any
-  let generateIdMock: any
 
   const triggerMessage = (data: any) => {
-    // Create a copy because handlers might modify the array (removeEventListener)
     ;[...handlers].forEach((h) => h({ data } as MessageEvent))
   }
 
@@ -63,45 +53,63 @@ describe('DbClient', () => {
     vi.clearAllMocks()
     handlers.length = 0
 
-    // Import DbClient dynamically to ensure mocks are in place
     const module = await import('../workers/db-client')
     DbClient = module.DbClient
-
-    // Mock generateId
-    generateIdMock = vi
-      .spyOn(module.helpers, 'generateId')
-      .mockReturnValue('00000000-0000-0000-0000-000000000000')
 
     client = new DbClient()
     postMessageMock = client.worker.postMessage
   })
 
-  it('should initialize correctly', async () => {
-    expect(postMessageMock).toHaveBeenCalledWith({ type: 'init' })
-
-    // Simulate init success
-    triggerMessage({ type: 'init', status: 'success' })
-
-    await expect(client.ready()).resolves.toBeUndefined()
+  it('should not auto-initialize on construction', () => {
+    expect(postMessageMock).not.toHaveBeenCalled()
   })
 
-  it('should handle initialization failure', async () => {
-    // Simulate init failure
-    triggerMessage({
-      type: 'init',
-      status: 'error',
-      error: 'Init failed',
+  it('should send open-or-create message', async () => {
+    const promise = client.openOrCreate()
+
+    expect(postMessageMock).toHaveBeenCalledWith({
+      id: '00000000-0000-0000-0000-000000000000',
+      type: 'open-or-create',
     })
 
-    await expect(client.ready()).rejects.toThrow('Init failed')
+    triggerMessage({
+      id: '00000000-0000-0000-0000-000000000000',
+      type: 'open-or-create',
+      status: 'success',
+      result: { status: 'existing', version: 21 },
+    })
+
+    const result = await promise
+    expect(result).toEqual({ status: 'existing', version: 21 })
   })
 
-  it('should execute query successfully', async () => {
-    // Initialize first
-    triggerMessage({ type: 'init', status: 'success' })
-    await client.ready()
+  it('should send destroy message', async () => {
+    const promise = client.destroy()
 
-    // Setup response trigger when postMessage is called
+    expect(postMessageMock).toHaveBeenCalledWith({
+      id: '00000000-0000-0000-0000-000000000000',
+      type: 'destroy',
+    })
+
+    triggerMessage({
+      id: '00000000-0000-0000-0000-000000000000',
+      type: 'destroy',
+      status: 'success',
+    })
+
+    await expect(promise).resolves.toBeUndefined()
+  })
+
+  it('should execute query after openOrCreate succeeds', async () => {
+    const openPromise = client.openOrCreate()
+    triggerMessage({
+      id: '00000000-0000-0000-0000-000000000000',
+      type: 'open-or-create',
+      status: 'success',
+      result: { status: 'existing', version: 21 },
+    })
+    await openPromise
+
     postMessageMock.mockImplementationOnce((data: any) => {
       if (data.type === 'exec') {
         setTimeout(() => {
@@ -126,11 +134,15 @@ describe('DbClient', () => {
   })
 
   it('should handle query failure', async () => {
-    // Initialize first
-    triggerMessage({ type: 'init', status: 'success' })
-    await client.ready()
+    const openPromise = client.openOrCreate()
+    triggerMessage({
+      id: '00000000-0000-0000-0000-000000000000',
+      type: 'open-or-create',
+      status: 'success',
+      result: { status: 'existing', version: 21 },
+    })
+    await openPromise
 
-    // Setup response trigger when postMessage is called
     postMessageMock.mockImplementationOnce((data: any) => {
       if (data.type === 'exec') {
         setTimeout(() => {

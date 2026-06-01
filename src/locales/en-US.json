@@ -19,9 +19,30 @@
         "home": "Home",
         "about": "About"
     },
+    "common": {
+        "cancel": "Cancel",
+        "create": "Create",
+        "continue": "Continue",
+        "retry": "Retry"
+    },
     "database": {
         "pickFromDrive": "Pick database from Google Drive",
         "syncToDrive": "Sync local database to Google Drive",
-        "startNew": "Start a new local database"
+        "startNew": "Start a new local database",
+        "probing": "Initializing database...",
+        "errorTitle": "Database Error",
+        "retry": "Retry",
+        "newTitle": "Create New Database",
+        "baseCurrency": "Base Currency",
+        "searchCurrency": "Search currency...",
+        "noResults": "No currencies found",
+        "userName": "User Name",
+        "userNamePlaceholder": "Optional",
+        "upgradingText": "Upgrading database v{from} → v{to}...",
+        "doNotClose": "Do not close this window",
+        "destroyTitle": "Create New Database",
+        "destroyWarning": "This will destroy the current database.",
+        "destroyDetail": "All existing data will be lost. This action cannot be undone.",
+        "dbStatus": "SQLite Status: {status}"
     }
 }

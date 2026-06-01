@@ -26,47 +26,47 @@ const latestVersion = Array.from(upgrades.entries()).reduce(
   0,
 )
 
+let sqlite3: Awaited<ReturnType<typeof sqlite3InitModule>> | null = null
 let db: OpfsDatabase | null = null
 
 const log = (...args: unknown[]) => console.log('DB Worker:', ...args)
 const error = (...args: unknown[]) => console.error('DB Worker:', ...args)
 
-const migrateDb = (db: OpfsDatabase) => {
-  const getLegacyVersion = (): number => {
-    try {
-      const result = db.exec({
-        sql: "SELECT INFOVALUE FROM INFOTABLE_V1 WHERE INFONAME = 'DATAVERSION'",
-        returnValue: 'resultRows',
-      })
-      if (result && result.length > 0 && result[0] && result[0].length > 0) {
-        return parseInt(result[0][0] as string, 10)
-      }
-    } catch {
-      // Table likely doesn't exist
-      return -1
+const getVersion = (db: OpfsDatabase): number => {
+  try {
+    const result = db.exec({
+      sql: 'PRAGMA user_version',
+      returnValue: 'resultRows',
+    })
+    if (result && result.length > 0 && result[0] && result[0].length > 0) {
+      return result[0][0] as number
     }
-    return -1
-  }
-
-  const getVersion = (): number => {
-    try {
-      const result = db.exec({
-        sql: 'PRAGMA user_version',
-        returnValue: 'resultRows',
-      })
-      if (result && result.length > 0 && result[0] && result[0].length > 0) {
-        return result[0][0] as number
-      }
-    } catch {
-      return 0
-    }
+  } catch {
     return 0
   }
+  return 0
+}
 
-  let version = getVersion()
+const getLegacyVersion = (db: OpfsDatabase): number => {
+  try {
+    const result = db.exec({
+      sql: "SELECT INFOVALUE FROM INFOTABLE_V1 WHERE INFONAME = 'DATAVERSION'",
+      returnValue: 'resultRows',
+    })
+    if (result && result.length > 0 && result[0] && result[0].length > 0) {
+      return parseInt(result[0][0] as string, 10)
+    }
+  } catch {
+    return -1
+  }
+  return -1
+}
+
+const migrateDb = (db: OpfsDatabase): number => {
+  let version = getVersion(db)
 
   if (version === 0) {
-    const legacyVersion = getLegacyVersion()
+    const legacyVersion = getLegacyVersion(db)
     if (legacyVersion !== -1) {
       log('Legacy database found. Migrating version to PRAGMA user_version:', legacyVersion)
       version = legacyVersion
@@ -74,7 +74,7 @@ const migrateDb = (db: OpfsDatabase) => {
     } else {
       log('Initializing database with tables.sql...')
       db.exec(tablesSql)
-      version = getLegacyVersion()
+      version = getLegacyVersion(db)
       log('Database initialized. Version:', version)
       db.exec(`PRAGMA user_version = ${version}`)
     }
@@ -82,12 +82,12 @@ const migrateDb = (db: OpfsDatabase) => {
     log('Existing database found. Version:', version)
   }
 
+  let lastVersion = version
   let incrementalVersion = version + 1
   while (upgrades.has(incrementalVersion)) {
     log(`Upgrading to version ${incrementalVersion}...`)
     const sql = upgrades.get(incrementalVersion)
     if (sql) {
-      // Split SQL by semicolons and execute each statement individually
       const statements = sql
         .replace(/"/g, "'")
         .split('\n')
@@ -103,7 +103,7 @@ const migrateDb = (db: OpfsDatabase) => {
 
         for (const statement of statements) {
           try {
-            log(` (${incrementalVersion}) Executing statement: ${statement}...`)
+            log(` (${incrementalVersion}) Executing statement: ${statement.substring(0, 60)}...`)
             db.exec(statement)
             successCount++
           } catch (err: unknown) {
@@ -121,88 +121,99 @@ const migrateDb = (db: OpfsDatabase) => {
         )
       })
     }
+    lastVersion = incrementalVersion
     incrementalVersion++
   }
 
-  log('Migration complete. Final Incremental Version:', incrementalVersion - 1)
+  log('Migration complete. Final version:', lastVersion)
+  return lastVersion
 }
 
-const initDb = async () => {
+const openOrCreate = async (): Promise<{ status: string; version: number }> => {
+  log('Initializing SQLite...')
+  sqlite3 = await sqlite3InitModule({
+    print: log,
+    printErr: error,
+  })
+
+  log('Running SQLite3 version', sqlite3.version.libVersion)
+
   try {
-    log('Initializing SQLite...')
-    const sqlite3 = await sqlite3InitModule({
-      print: log,
-      printErr: error,
-    })
-
-    log('Running SQLite3 version', sqlite3.version.libVersion)
-
+    log('Probing for existing database...')
+    db = new sqlite3.oo1.OpfsDb(dbPath)
+    log('Existing database found. Running migration...')
+    const version = migrateDb(db)
+    return { status: 'existing', version }
+  } catch {
+    log('No existing database found. Creating new one...')
     db = new sqlite3.oo1.OpfsDb(dbPath, 'c')
-
-    // initialize database
     db.exec(tablesSql)
     db.exec(`PRAGMA user_version = ${latestVersion}`)
-
-    self.postMessage({ type: 'init', status: 'success' })
-  } catch (err: unknown) {
-    error('Initialization failed', err)
-    self.postMessage({ type: 'init', status: 'error', error: err })
+    log('New database created. Version:', latestVersion)
+    return { status: 'created', version: latestVersion }
   }
 }
 
-const openDb = async () => {
+const deleteFromOpfs = async (path: string): Promise<void> => {
+  // path is like '/.mmex/data.mmb'
+  const parts = path.split('/').filter(Boolean)
+  const filename = parts.pop()!
+  let dirHandle = await navigator.storage.getDirectory()
+  for (const part of parts) {
+    dirHandle = await dirHandle.getDirectoryHandle(part)
+  }
+  await dirHandle.removeEntry(filename)
+}
+
+const destroyDb = async (): Promise<void> => {
+  if (db) {
+    db.close()
+    db = null
+  }
   try {
-    log('Opening SQLite...')
-    const sqlite3 = await sqlite3InitModule({
-      print: log,
-      printErr: error,
-    })
-
-    log('Running SQLite3 version', sqlite3.version.libVersion)
-
-    db = new sqlite3.oo1.OpfsDb(dbPath)
-    migrateDb(db)
-
-    self.postMessage({ type: 'open', status: 'success' })
-  } catch (err: unknown) {
-    error('Opening failed', err)
-    self.postMessage({ type: 'open', status: 'error', error: err })
+    await deleteFromOpfs(dbPath)
+  } catch (err) {
+    error('Failed to delete database file', err)
+    throw new Error('Failed to delete database file')
   }
 }
 
 self.onmessage = async (e) => {
   const { type, payload, id } = e.data
 
-  if (type === 'init') {
-    await initDb()
-    return
-  }
-
-  if (type === 'open') {
-    await openDb()
-    return
-  }
-
-  if (!db) {
-    self.postMessage({ id, type, status: 'error', error: 'Database not initialized' })
-    return
-  }
-
   try {
     switch (type) {
-      case 'exec':
+      case 'open-or-create': {
+        const result = await openOrCreate()
+        self.postMessage({ id, type: 'open-or-create', status: 'success', result })
+        break
+      }
+
+      case 'destroy': {
+        await destroyDb()
+        self.postMessage({ id, type: 'destroy', status: 'success' })
+        break
+      }
+
+      case 'exec': {
+        if (!db) {
+          self.postMessage({ id, type, status: 'error', error: 'Database not initialized' })
+          return
+        }
         const result = db.exec({
           sql: payload.sql,
           bind: payload.bind,
           returnValue: 'resultRows',
         })
-        self.postMessage({ id, type, status: 'success', result })
+        self.postMessage({ id, type: 'exec', status: 'success', result })
         break
+      }
+
       default:
         self.postMessage({ id, type, status: 'error', error: `Unknown message type: ${type}` })
     }
   } catch (err: unknown) {
-    error('Query failed', err)
-    self.postMessage({ id, type, status: 'error', error: err })
+    error('Worker error:', err)
+    self.postMessage({ id, type, status: 'error', error: err instanceof Error ? err.message : String(err) })
   }
 }
