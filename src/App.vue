@@ -86,10 +86,7 @@
       <router-view />
     </q-page-container>
 
-    <ConfirmDestroyDialog
-      v-model="showDestroyDialog"
-      @confirm="onDestroyConfirm"
-    />
+    <ConfirmDestroyDialog v-model="showDestroyDialog" @confirm="onDestroyConfirm" />
   </q-layout>
 </template>
 

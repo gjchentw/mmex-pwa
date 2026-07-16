@@ -7,10 +7,7 @@
       </div>
 
       <div v-else-if="store.state === 'needs-wizard'">
-        <NewDatabaseWizard
-          @create="onWizardCreate"
-          @cancel="onWizardCancel"
-        />
+        <NewDatabaseWizard @create="onWizardCreate" @cancel="onWizardCancel" />
       </div>
 
       <div v-else-if="store.state === 'migrating'">

@@ -1,12 +1,7 @@
 <template>
   <q-card style="width: 100%; max-width: 400px">
     <q-card-section class="text-center">
-      <q-linear-progress
-        :value="progress"
-        size="24px"
-        color="primary"
-        class="q-mb-md"
-      />
+      <q-linear-progress :value="progress" size="24px" color="primary" class="q-mb-md" />
       <div class="text-body1">
         {{ $t('database.upgradingText', { from: migrationFrom, to: migrationTo }) }}
       </div>

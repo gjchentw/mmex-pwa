@@ -214,6 +214,11 @@ self.onmessage = async (e) => {
     }
   } catch (err: unknown) {
     error('Worker error:', err)
-    self.postMessage({ id, type, status: 'error', error: err instanceof Error ? err.message : String(err) })
+    self.postMessage({
+      id,
+      type,
+      status: 'error',
+      error: err instanceof Error ? err.message : String(err),
+    })
   }
 }
