@@ -8,22 +8,17 @@ import { VitePWA } from 'vite-plugin-pwa'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import VueI18nPlugin from 'unplugin-vue-i18n/vite'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    vue({
-      template: { transformAssetUrls },
-    }),
-    // @quasar/plugin-vite options list:
-    // https://github.com/quasarframework/quasar/blob/dev/vite-plugin/index.d.ts
-    quasar(),
-    vueJsx(),
-    VitePWA(),
-    vueDevTools(),
-    VueI18nPlugin({
-      include: [fileURLToPath(new URL('./src/locales/**', import.meta.url))],
-    }),
-  ],
+  plugins: [vue({
+    template: { transformAssetUrls },
+  }), // @quasar/plugin-vite options list:
+  // https://github.com/quasarframework/quasar/blob/dev/vite-plugin/index.d.ts
+  quasar(), vueJsx(), VitePWA(), vueDevTools(), VueI18nPlugin({
+    include: [fileURLToPath(new URL('./src/locales/**', import.meta.url))],
+  }), cloudflare()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
