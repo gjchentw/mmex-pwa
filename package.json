@@ -18,7 +18,12 @@
     "lint": "eslint . --fix --cache",
     "lint:check": "eslint .",
     "format": "prettier --write src/",
-    "format:check": "prettier --check src/"
+    "format:check": "prettier --check src/",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,mts,tsx,vue}": "eslint --max-warnings=0",
+    "src/**/*.{ts,mts,tsx,vue,json,css,scss}": "prettier --check"
   },
   "dependencies": {
     "@quasar/extras": "^1.17.0",
@@ -46,8 +51,10 @@
     "eslint": "^9.37.0",
     "eslint-plugin-playwright": "^2.2.2",
     "eslint-plugin-vue": "~10.5.0",
+    "husky": "^9.1.7",
     "jiti": "^2.6.1",
     "jsdom": "^27.0.1",
+    "lint-staged": "^17.0.8",
     "npm-run-all2": "^8.0.4",
     "prettier": "3.6.2",
     "sass-embedded": "^1.93.3",

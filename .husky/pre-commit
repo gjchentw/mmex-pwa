@@ -1,0 +1,12 @@
+# Fast, staged-file checks. Expensive suites (e2e, build) belong in CI, not here.
+#
+# `set -e` is load-bearing: without it this script would exit with only the LAST
+# command's status, so a lint-staged failure followed by a passing type-check
+# would let the commit through.
+set -e
+
+npx lint-staged
+
+# vue-tsc is project-wide -- it cannot be narrowed to staged files -- but it is
+# incremental and runs in ~2s, which keeps commit latency acceptable.
+npm run type-check
