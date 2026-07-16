@@ -11,8 +11,7 @@ const i18n = createI18n({
       database: {
         destroyTitle: 'Create New Database',
         destroyWarning: 'This will destroy the current database.',
-        destroyDetail:
-          'All existing data will be lost. This action cannot be undone.',
+        destroyDetail: 'All existing data will be lost. This action cannot be undone.',
       },
       common: {
         cancel: 'Cancel',
@@ -24,9 +23,7 @@ const i18n = createI18n({
 
 describe('ConfirmDestroyDialog', () => {
   it('should render with modelValue true', async () => {
-    const ConfirmDestroyDialog = await import(
-      '../components/database/ConfirmDestroyDialog.vue'
-    )
+    const ConfirmDestroyDialog = await import('../components/database/ConfirmDestroyDialog.vue')
 
     const wrapper = mount(ConfirmDestroyDialog.default, {
       global: {
@@ -41,9 +38,7 @@ describe('ConfirmDestroyDialog', () => {
   })
 
   it('should emit confirm on Continue click', async () => {
-    const ConfirmDestroyDialog = await import(
-      '../components/database/ConfirmDestroyDialog.vue'
-    )
+    const ConfirmDestroyDialog = await import('../components/database/ConfirmDestroyDialog.vue')
 
     const wrapper = mount(ConfirmDestroyDialog.default, {
       global: {
@@ -61,9 +56,7 @@ describe('ConfirmDestroyDialog', () => {
   })
 
   it('should emit cancel on Cancel click', async () => {
-    const ConfirmDestroyDialog = await import(
-      '../components/database/ConfirmDestroyDialog.vue'
-    )
+    const ConfirmDestroyDialog = await import('../components/database/ConfirmDestroyDialog.vue')
 
     const wrapper = mount(ConfirmDestroyDialog.default, {
       global: {

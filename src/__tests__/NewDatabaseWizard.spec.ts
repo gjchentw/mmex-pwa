@@ -33,9 +33,7 @@ const i18n = createI18n({
 
 describe('NewDatabaseWizard', () => {
   it('should render the wizard form', async () => {
-    const NewDatabaseWizard = await import(
-      '../components/database/NewDatabaseWizard.vue'
-    )
+    const NewDatabaseWizard = await import('../components/database/NewDatabaseWizard.vue')
 
     const wrapper = mount(NewDatabaseWizard.default, {
       global: {
@@ -49,9 +47,7 @@ describe('NewDatabaseWizard', () => {
   })
 
   it('should emit create event with currency and username', async () => {
-    const NewDatabaseWizard = await import(
-      '../components/database/NewDatabaseWizard.vue'
-    )
+    const NewDatabaseWizard = await import('../components/database/NewDatabaseWizard.vue')
 
     const wrapper = mount(NewDatabaseWizard.default, {
       global: {
@@ -71,9 +67,7 @@ describe('NewDatabaseWizard', () => {
   })
 
   it('should emit cancel event', async () => {
-    const NewDatabaseWizard = await import(
-      '../components/database/NewDatabaseWizard.vue'
-    )
+    const NewDatabaseWizard = await import('../components/database/NewDatabaseWizard.vue')
 
     const wrapper = mount(NewDatabaseWizard.default, {
       global: {
@@ -81,9 +75,7 @@ describe('NewDatabaseWizard', () => {
       },
     })
 
-    const cancelBtn = wrapper.findAll('button').filter(
-      (b) => b.text() === 'Cancel',
-    )[0]
+    const cancelBtn = wrapper.findAll('button').filter((b) => b.text() === 'Cancel')[0]
     if (cancelBtn) {
       await cancelBtn.trigger('click')
       expect(wrapper.emitted('cancel')).toBeTruthy()

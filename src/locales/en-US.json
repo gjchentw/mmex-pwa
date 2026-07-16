@@ -1,48 +1,48 @@
 {
-    "app": {
-        "name": "MMEX PWA",
-        "description": "MMEX PWA",
-        "version": "Version"
-    },
-    "splash": {
-        "welcome": "Welcome to MMEX PWA",
-        "securityNotice": "For your security, you need to sign in with Google each time you visit this app. Your access token is not stored and will be lost when you close or refresh the page.",
-        "signInButton": "Sign in with Google",
-        "signInPrompt": "Please sign in to continue"
-    },
-    "language": {
-        "select": "Language",
-        "en": "English",
-        "zh": "中文"
-    },
-    "menu": {
-        "home": "Home",
-        "about": "About"
-    },
-    "common": {
-        "cancel": "Cancel",
-        "create": "Create",
-        "continue": "Continue",
-        "retry": "Retry"
-    },
-    "database": {
-        "pickFromDrive": "Pick database from Google Drive",
-        "syncToDrive": "Sync local database to Google Drive",
-        "startNew": "Start a new local database",
-        "probing": "Initializing database...",
-        "errorTitle": "Database Error",
-        "retry": "Retry",
-        "newTitle": "Create New Database",
-        "baseCurrency": "Base Currency",
-        "searchCurrency": "Search currency...",
-        "noResults": "No currencies found",
-        "userName": "User Name",
-        "userNamePlaceholder": "Optional",
-        "upgradingText": "Upgrading database v{from} → v{to}...",
-        "doNotClose": "Do not close this window",
-        "destroyTitle": "Create New Database",
-        "destroyWarning": "This will destroy the current database.",
-        "destroyDetail": "All existing data will be lost. This action cannot be undone.",
-        "dbStatus": "SQLite Status: {status}"
-    }
+  "app": {
+    "name": "MMEX PWA",
+    "description": "MMEX PWA",
+    "version": "Version"
+  },
+  "splash": {
+    "welcome": "Welcome to MMEX PWA",
+    "securityNotice": "For your security, you need to sign in with Google each time you visit this app. Your access token is not stored and will be lost when you close or refresh the page.",
+    "signInButton": "Sign in with Google",
+    "signInPrompt": "Please sign in to continue"
+  },
+  "language": {
+    "select": "Language",
+    "en": "English",
+    "zh": "中文"
+  },
+  "menu": {
+    "home": "Home",
+    "about": "About"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "create": "Create",
+    "continue": "Continue",
+    "retry": "Retry"
+  },
+  "database": {
+    "pickFromDrive": "Pick database from Google Drive",
+    "syncToDrive": "Sync local database to Google Drive",
+    "startNew": "Start a new local database",
+    "probing": "Initializing database...",
+    "errorTitle": "Database Error",
+    "retry": "Retry",
+    "newTitle": "Create New Database",
+    "baseCurrency": "Base Currency",
+    "searchCurrency": "Search currency...",
+    "noResults": "No currencies found",
+    "userName": "User Name",
+    "userNamePlaceholder": "Optional",
+    "upgradingText": "Upgrading database v{from} → v{to}...",
+    "doNotClose": "Do not close this window",
+    "destroyTitle": "Create New Database",
+    "destroyWarning": "This will destroy the current database.",
+    "destroyDetail": "All existing data will be lost. This action cannot be undone.",
+    "dbStatus": "SQLite Status: {status}"
+  }
 }

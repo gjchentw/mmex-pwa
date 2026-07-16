@@ -17,11 +17,7 @@
 
       <q-card-actions align="right">
         <q-btn flat :label="$t('common.cancel')" @click="onCancel" />
-        <q-btn
-          color="negative"
-          :label="$t('common.continue')"
-          @click="onConfirm"
-        />
+        <q-btn color="negative" :label="$t('common.continue')" @click="onConfirm" />
       </q-card-actions>
     </q-card>
   </q-dialog>

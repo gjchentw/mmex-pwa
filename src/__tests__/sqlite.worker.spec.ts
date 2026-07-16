@@ -80,9 +80,7 @@ describe('SQLite Worker', () => {
   })
 
   it('should handle open-or-create when DB exists', async () => {
-    mockExec
-      .mockReturnValueOnce([[4]])
-      .mockReturnValueOnce([])
+    mockExec.mockReturnValueOnce([[4]]).mockReturnValueOnce([])
 
     await self.onmessage!({
       data: { id: 'test-2', type: 'open-or-create' },
