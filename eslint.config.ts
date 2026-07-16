@@ -16,16 +16,29 @@ export default defineConfigWithVueTs(
     files: ['**/*.{ts,mts,tsx,vue}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  // `mmex/**` holds the upstream MoneyManagerEx submodules. They are vendored,
+  // not ours to lint or fix -- and `npm run lint` passes `--fix`, so without this
+  // ignore it would rewrite files inside the submodules.
+  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/mmex/**']),
 
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
-  
+
   {
     ...pluginVitest.configs.recommended,
     files: ['src/**/__tests__/*'],
   },
-  
+
+  {
+    name: 'app/tests-allow-any',
+    files: ['src/**/__tests__/*'],
+    rules: {
+      // `any` is idiomatic when hand-rolling mocks; typing them fully adds noise, not safety.
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+
+
   {
     ...pluginPlaywright.configs['flat/recommended'],
     files: ['e2e/**/*.{test,spec}.{js,ts,jsx,tsx}'],

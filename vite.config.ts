@@ -29,7 +29,17 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  // SQLite WASM + OPFS need SharedArrayBuffer, which browsers only expose in a
+  // cross-origin isolated context. Vite reads dev and preview headers from
+  // separate sections, so both must set them -- Playwright runs the CI e2e suite
+  // against `vite preview`, which would otherwise serve no isolation headers.
   server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+  preview: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',

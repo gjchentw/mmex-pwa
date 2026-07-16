@@ -47,8 +47,6 @@ export const useDatabaseStore = defineStore('database', () => {
   async function initNewDb(currencyId: number, userName: string) {
     state.value = 'creating'
     try {
-      const baseCurrencyId = currencyId
-
       await dbClient.exec(
         `INSERT OR REPLACE INTO CURRENCYFORMATS_V1 (CURRENCYID, CURRENCYNAME, PFX_SYMBOL, SFX_SYMBOL, DECIMAL_POINT, GROUP_SEPARATOR, UNIT_NAME, CENT_NAME, SCALE, BASECONVRATE, CURRENCY_SYMBOL, CURRENCY_TYPE)
          SELECT CURRENCYID, CURRENCYNAME, PFX_SYMBOL, SFX_SYMBOL, DECIMAL_POINT, GROUP_SEPARATOR, UNIT_NAME, CENT_NAME, SCALE, BASECONVRATE, CURRENCY_SYMBOL, CURRENCY_TYPE

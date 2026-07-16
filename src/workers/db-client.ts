@@ -8,11 +8,11 @@ export class DbClient {
   private worker: Worker
   private pendingRequests = new Map<
     string,
-    { resolve: (value: unknown) => void; reject: (reason?: any) => void }
+    { resolve: (value: unknown) => void; reject: (reason?: unknown) => void }
   >()
   private readyPromise: Promise<void> | null = null
   private readyResolve: (() => void) | null = null
-  private readyReject: ((reason?: any) => void) | null = null
+  private readyReject: ((reason?: unknown) => void) | null = null
 
   constructor() {
     this.worker = new SqliteWorker()

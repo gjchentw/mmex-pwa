@@ -1,0 +1,4 @@
+# SPA fallback for Cloudflare Pages: serve the app shell for any path that is not
+# a real static asset, so deep links resolve on first load -- before the service
+# worker exists to handle navigation itself. Static assets are matched first.
+/*  /index.html  200
