@@ -9,34 +9,39 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 ## 1. Ratify the Baseline
 
 - [ ] 1.1 Operator reviews and approves the specification; confirm the governed stack table matches `package.json` exactly (Requirement: Governed Technology Stack Baseline)
-- [ ] 1.2 Resolve Open Question: confirm `main` is the intended default branch, and fix the README CI badge which currently targets `master`
-- [ ] 1.3 Record that the already-compliant requirements (Frontend Framework, Build System, Persistence, i18n, Styling, Quality Toolchain, Testing Toolchain, Provenance) are satisfied by the current tree — no code change required
+- [ ] 1.2 Fix the README CI badge: it targets `?branch=master`, but no `master` branch exists on the remote — retarget to `main` and to the new workflow file
+- [ ] 1.3 Record that the already-compliant requirements (Frontend Framework, Build System, Persistence, i18n, Styling, Testing Toolchain, Provenance) are satisfied by the current tree — no code change required
 
 ## 2. Local Hygiene (no behavior change)
 
 - [ ] 2.1 Add a runtime version file (`.nvmrc` or `.node-version`) pinning a version that satisfies `engines: ^20.19.0 || >=22.12.0`; verify a fresh `nvm use` selects it (Requirement: Runtime and Package Management Baseline)
-- [ ] 2.2 Create and commit `.env.example` enumerating every required variable with placeholder values and comments, including the Google OAuth client id (Requirement: Configuration and Secrets Management)
+- [ ] 2.2 Create and commit `.env.example` enumerating `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_API_KEY`, and `VITE_GOOGLE_APP_ID` (full Google Picker configuration) with placeholder values and comments noting that all `VITE_*` values are publicly readable in the shipped bundle (Requirement: Configuration and Secrets Management)
 - [ ] 2.3 Add `.env` and related real environment files to `.gitignore`; confirm no secret is currently tracked (Requirement: Configuration and Secrets Management)
 - [ ] 2.4 Design and add a product icon set to `public/`, and configure `VitePWA()` with a product-specific manifest: name, short name, description, icons, and `theme_color` matching the Quasar primary `#006800` — replacing the plugin defaults (Requirement: Progressive Web App and Offline Baseline)
 - [ ] 2.5 Set a product-specific `<title>` in `index.html`, replacing the default "Vite App" (Requirement: Progressive Web App and Offline Baseline)
 - [ ] 2.6 Add a runtime diagnostic that detects `crossOriginIsolated === false` and surfaces an explicit, actionable error instead of an opaque persistence failure (Requirement: Cross-Origin Isolation)
+- [ ] 2.7 Mirror the COOP/COEP headers from `vite.config.ts`'s `server` section into a `preview` section. Vite reads preview headers separately, so `vite preview` currently serves none — and Playwright runs the CI e2e suite against it, so every persistence test would fail once e2e joins the gate (Requirement: Cross-Origin Isolation, design.md D9)
 
 ## 3. Pre-Commit Quality Gate
 
-- [ ] 3.1 Run `npm run lint`, `npm run format`, and `npm run type-check` across the current tree and fix all existing violations **before** any gate is enforced (per design.md: enforcing a gate on a dirty tree makes the next unrelated PR fail)
+- [ ] 3.0a Add `**/mmex/**` to the ESLint global ignores. ESLint currently walks the vendored submodules and reports 939 errors in upstream code, and the `--fix` in the `lint` script would rewrite those files, dirtying the submodules (Requirement: Continuous Integration Quality Gate, design.md D7b)
+- [ ] 3.0b Add a non-mutating `lint:check` script (`eslint .` without `--fix`) for the pipeline, keeping the auto-fixing `lint` script for local use. A gate that repairs its own input verifies nothing (design.md D7a)
+- [ ] 3.0c Relax `@typescript-eslint/no-explicit-any` for `src/**/__tests__/*`, where `any` in mock objects is idiomatic
+- [ ] 3.1 Clear the 23 first-party violations: remove the unused `RouterLink`/`RouterView` imports in `App.vue`; remove the unused `baseCurrencyId` assignment in `database-store.ts` (behaviour-preserving — see design.md Open Question 3); drop the unnecessary `as any[]` cast in `NewDatabaseWizard.vue` (the JSON's shape is already inferred); and type the two `reject` callbacks in `db-client.ts` as `unknown`. Must land **before** the gate is enforced
 - [ ] 3.2 Add git-hook tooling plus a staged-file runner, provisioned automatically on install via a `prepare` script (Requirement: Pre-Commit Quality Gate)
 - [ ] 3.3 Configure the `pre-commit` hook to lint and format-check staged files and run the type checker; keep expensive suites out of the hook
 - [ ] 3.4 Verify the gate: a staged file with a deliberate lint violation SHALL block the commit, and a fresh clone SHALL provision the hook on install with no manual step
 
 ## 4. Continuous Integration Quality Gate
 
-- [ ] 4.1 Extend `.github/workflows/test.yml` to check out submodules (already done), provision the pinned Node version from the runtime version file, and install via `npm ci` (Requirement: Continuous Integration Quality Gate)
-- [ ] 4.2 Add a lint stage and a type-check stage to the pipeline
-- [ ] 4.3 Add an e2e stage: install Playwright browsers, build, and run the suite against the preview server (`playwright.config.ts` already handles CI port 4173 and retries)
-- [ ] 4.4 Add a production build stage
-- [ ] 4.5 Add a CI check asserting the runtime version file satisfies the `engines` range (Requirement: Runtime and Package Management Baseline)
-- [ ] 4.6 Add a CI check asserting the emitted manifest does not retain PWA plugin defaults (name/theme color) (Requirement: Progressive Web App and Offline Baseline)
-- [ ] 4.7 Verify the gate: a PR containing a lint error, a type error, or a failing test SHALL be blocked from merging
+- [ ] 4.1 Replace `.github/workflows/test.yml` with `.github/workflows/ci.yml`: check out submodules, provision Node from the runtime version file (`node-version-file`, not a hardcoded major), and install via `npm ci` (Requirement: Continuous Integration Quality Gate)
+- [ ] 4.2 Add a `quality` job running `lint:check`, `type-check`, and unit tests
+- [ ] 4.3 Add a `build` job that builds and asserts `_headers` survives into the build output
+- [ ] 4.4 Delete `test.yml` so a single workflow owns the gate
+- [ ] 4.5 Add a CI check asserting the runtime version file satisfies the `engines` range (Requirement: Runtime and Package Management Baseline) — satisfied by `.npmrc` `engine-strict` plus `node-version-file`, which makes `npm ci` fail with EBADENGINE on drift
+- [ ] 4.6 Add a CI check asserting the emitted manifest does not retain PWA plugin defaults (name/theme color). **Blocked on task 2.4** — the manifest IS the default today, so the assertion would fail every run (Requirement: Progressive Web App and Offline Baseline)
+- [ ] 4.7 Enable the `e2e` job (written and commented out in `ci.yml`). **Blocked on P1** — the production build renders raw i18n keys, so the existing e2e assertion on "Initializing" cannot pass (design.md Open Question 0)
+- [ ] 4.8 Verify the gate: a push containing a lint error, a type error, or a failing test SHALL fail the pipeline, and the deploy job SHALL be skipped
 
 ## 5. Cross-Origin Isolation Validation (do before Drive work)
 
@@ -46,12 +51,16 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 
 ## 6. Deployment and Hosting
 
-- [ ] 6.1 Provision the Cloudflare Pages project and resolve Open Question: ownership and whether PR preview deployments are enabled (Requirement: Deployment and Hosting)
-- [ ] 6.2 Add a `_headers` file to the build output setting `Cross-Origin-Opener-Policy: same-origin` and the COEP value chosen in 5.2 (Requirement: Cross-Origin Isolation)
-- [ ] 6.3 Configure SPA fallback so unmatched navigation paths serve the application shell and client-side routing resolves (Requirement: Deployment and Hosting)
-- [ ] 6.4 Store the Google OAuth client id in the Cloudflare/CI secret store and inject it at build time; confirm no secret enters version control
-- [ ] 6.5 Add a CI deploy stage that publishes to Cloudflare Pages from the default branch only, with CI as the sole producer of deployed artifacts (Requirement: Deployment and Hosting, design.md D6)
-- [ ] 6.6 Verify the deployment end-to-end: the production URL returns COOP/COEP headers, `window.crossOriginIsolated === true`, the database opens from OPFS, a deep link resolves, and the app is installable and loads offline
+**Precondition: P2 MUST be fixed before 6.4.** The built worker requests an unhashed `sqlite3.wasm` that the SPA fallback answers with `index.html`, so the database cannot open in a production build. Deploying first would ship an app that is broken for every user (design.md Open Question 0).
+
+- [ ] 6.0 Fix P1/P2/P3 under their own change — i18n production compilation, SQLite WASM path resolution (see the two existing `copilot/fix-*wasm*` branches), and the COEP-blocked Quasar CDN logo
+- [ ] 6.1 Provision the Cloudflare Pages project (assumed name `mmex-pwa`) and set the repository secrets `CLOUDFLARE_API_TOKEN` (scoped to Pages:Edit on that project only) and `CLOUDFLARE_ACCOUNT_ID` (Requirement: Deployment and Hosting)
+- [ ] 6.2 Add `public/_headers` setting `Cross-Origin-Opener-Policy: same-origin` and the COEP value chosen in 5.2, so it is copied to the build output root (Requirement: Cross-Origin Isolation)
+- [ ] 6.3 Add `public/_redirects` with an SPA fallback so unmatched navigation paths serve the application shell on first load, before the service worker exists (Requirement: Deployment and Hosting)
+- [ ] 6.4 Add a `deploy` job to `ci.yml`: `needs:` every gate job, conditional on a push to `main`, downloading the verified artifact and publishing it with `wrangler pages deploy` (Requirement: Deployment and Hosting, design.md D6)
+- [ ] 6.5 Supply `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_API_KEY`, and `VITE_GOOGLE_APP_ID` to the build step from repository secrets; confirm no secret enters version control, and note that all `VITE_*` values are readable in the shipped bundle (Requirement: Configuration and Secrets Management)
+- [ ] 6.6 Verify the gate is structural: push a deliberate lint error to `main` and confirm the deploy job is skipped rather than merely reported (Requirement: Deployment and Hosting)
+- [ ] 6.7 Verify production end-to-end: the production URL returns COOP/COEP headers, `window.crossOriginIsolated === true`, the database opens from OPFS, a deep link resolves, and the app is installable and loads offline
 
 ## 7. Follow-Ups
 

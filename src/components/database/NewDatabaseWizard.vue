@@ -68,7 +68,7 @@ export default {
     const loading = ref(false)
 
     onMounted(() => {
-      allCurrencies.value = (currenciesData as any[]).map((c) => ({
+      allCurrencies.value = currenciesData.map((c) => ({
         id: c.id,
         label: `${c.name} (${c.code})`,
         code: c.code,

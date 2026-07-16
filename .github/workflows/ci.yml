@@ -1,0 +1,163 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+# A newer push to the same ref makes the in-flight run obsolete. Never cancel on
+# main: once the deploy job is enabled, that run may be mid-deploy.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  quality:
+    name: lint / type-check / unit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code and submodules
+        uses: actions/checkout@v4
+        with:
+          # The build imports the schema from mmex/database. Without submodules
+          # it fails at import time.
+          submodules: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      # .npmrc sets engine-strict and Node came from .nvmrc, so this step doubles
+      # as the check that .nvmrc still satisfies package.json engines: if they
+      # drift apart, npm fails here with EBADENGINE.
+      - name: Install dependencies
+        run: npm ci
+
+      # Deliberately NOT `npm run lint`: that script passes --fix, which would
+      # repair violations and then report success. A gate must not mutate its input.
+      - name: Lint
+        run: npm run lint:check
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Unit tests
+        run: npm run test:unit -- --run
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+          VITE_GOOGLE_APP_ID: ${{ secrets.VITE_GOOGLE_APP_ID }}
+
+      # `_headers` carries cross-origin isolation to Cloudflare. It is a plain
+      # text file with no schema validation, so a rename or typo fails open --
+      # silently disabling SharedArrayBuffer in production. Assert it survives.
+      - name: Assert _headers reached the build output
+        run: |
+          test -f dist/_headers || { echo 'dist/_headers missing -- production would lose cross-origin isolation'; exit 1; }
+          grep -q 'Cross-Origin-Opener-Policy' dist/_headers || { echo 'COOP missing from dist/_headers'; exit 1; }
+          grep -q 'Cross-Origin-Embedder-Policy' dist/_headers || { echo 'COEP missing from dist/_headers'; exit 1; }
+          echo '_headers present with COOP + COEP.'
+
+# ---------------------------------------------------------------------------
+# NOT YET ENABLED -- blocked on real defects, not on missing pipeline work.
+#
+# The e2e and deploy jobs below are written and verified, but are deliberately
+# left disabled: the app does not currently work in a *production build*, so
+# enabling them would mean a permanently red gate and a deploy that ships a
+# broken app. Enabling them before the blockers land would teach everyone to
+# ignore CI, which is worse than not having the gate.
+#
+# Blockers (see openspec/changes/infrastructure-baseline/design.md):
+#
+#   P1  i18n renders raw keys ("database.probing") in the production build,
+#       though it is fine under `vite dev`. This is what fails the e2e test,
+#       which looks for the rendered "Initializing database...".
+#
+#   P2  The built worker requests the UNHASHED /assets/sqlite3.wasm while the
+#       emitted asset is hashed (sqlite3-<hash>.wasm). The unhashed path does
+#       not 404 -- the SPA fallback returns index.html, so WebAssembly.compile
+#       fails on 'text/html'. The database cannot open in a production build.
+#       WIP branches exist: copilot/fix-hashed-wasm-url-request,
+#       copilot/fix-sqlite-wasm-path-resolution.
+#
+#   P3  COEP `require-corp` blocks the cross-origin Quasar CDN logo in App.vue
+#       (NotSameOriginAfterDefaultedToSameOriginByCoep). Self-host the asset or
+#       switch to COEP `credentialless`.
+#
+# To enable: fix P1/P2, uncomment both jobs, add `- name: Upload verified bundle`
+# to the build job, and set the CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID
+# repository secrets. Everything below was validated locally against
+# `vite preview`, which now serves COOP/COEP correctly.
+# ---------------------------------------------------------------------------
+#
+#  e2e:
+#    name: e2e
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#        with:
+#          submodules: true
+#      - uses: actions/setup-node@v4
+#        with:
+#          node-version-file: .nvmrc
+#          cache: 'npm'
+#      - run: npm ci
+#      - run: npm run build
+#      - run: npx playwright install --with-deps
+#      # playwright.config.ts serves `npm run preview` on CI, which now carries
+#      # the same COOP/COEP headers as the dev server, so this exercises a
+#      # genuinely cross-origin isolated context.
+#      - run: npm run test:e2e
+#      - uses: actions/upload-artifact@v4
+#        if: ${{ !cancelled() }}
+#        with:
+#          name: playwright-report
+#          path: playwright-report/
+#          retention-days: 7
+#
+#  deploy:
+#    name: deploy to Cloudflare Pages
+#    # The gate is structural: this job is unreachable unless every gate passes.
+#    needs: [quality, build, e2e]
+#    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#    runs-on: ubuntu-latest
+#    steps:
+#      # Publish the exact artifact the gate verified, rather than rebuilding.
+#      - uses: actions/download-artifact@v4
+#        with:
+#          name: dist
+#          path: dist
+#      - uses: cloudflare/wrangler-action@v3
+#        with:
+#          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+#          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+#          command: pages deploy dist --project-name=mmex-pwa --branch=main

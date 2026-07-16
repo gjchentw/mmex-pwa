@@ -1,0 +1,13 @@
+# Cloudflare Pages response headers. Copied verbatim into the build output root.
+#
+# SQLite WASM + OPFS require SharedArrayBuffer, which browsers expose only in a
+# cross-origin isolated context. Without both headers below, `crossOriginIsolated`
+# is false and the entire persistence layer fails at runtime -- so these are a
+# hard precondition for the app, not a hardening measure.
+#
+# Keep in sync with the `server` and `preview` header blocks in vite.config.ts.
+# If Google Sign-In / Drive breaks under `require-corp`, switch both here and
+# there to `credentialless` (see openspec design.md D5).
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp

@@ -25,8 +25,9 @@ The current state of the repository:
 ```mermaid
 flowchart TD
     Dev[Developer] -->|npm run dev| Vite[Vite dev server<br/>COOP + COEP]
-    CI[CI pipeline] -->|build| Bundle[Static bundle<br/>+ _headers]
-    Bundle --> CF[Cloudflare Pages<br/>COOP + COEP]
+    Push[Push to default branch] --> CI[CI quality gate]
+    CI -->|Pass| Deploy[Actions deploy job<br/>wrangler pages deploy]
+    Deploy --> CF[Cloudflare Pages<br/>_headers: COOP + COEP]
     Vite --> App[Vue + Quasar app]
     CF --> App
     App --> Store[Pinia store]
@@ -34,9 +35,9 @@ flowchart TD
     Client -->|postMessage| Worker[Dedicated Web Worker]
     Worker --> Engine[SQLite WASM]
     Engine --> OPFS[(OPFS)]
-    Sub[(Vendored schema submodule)] -->|build-time import| Bundle
+    Sub[(Vendored schema submodule)] -->|build-time import| CI
 ```
-*Caption: System architecture — both the dev server and the production host must supply cross-origin isolation for the persistence layer to function.*
+*Caption: System architecture — both the dev server and the production host must supply cross-origin isolation for the persistence layer to function. CI both gates and publishes, so a red gate cannot reach Cloudflare.*
 
 ## Goals / Non-Goals
 
@@ -80,7 +81,7 @@ Requirement bodies state the *capability* ("an embedded SQL engine compiled to W
 | GitHub Pages | **Not supported** | Rejected — would force a `coi-serviceworker` shim, adding a fragile moving part to a hard precondition |
 | Vercel / Netlify | Supported (`vercel.json` / `netlify.toml`) | Viable alternative; no decisive advantage |
 
-Cloudflare Pages also offers a generous static-hosting free tier and a clean CI deploy path. The `_headers` file lives in the repository, so the isolation contract is version-controlled and reviewable alongside the code that depends on it.
+Cloudflare Pages also offers a generous static-hosting free tier and a scriptable publish path (`wrangler pages deploy`) that lets CI own the deployment (see D6). The `_headers` file lives in the repository and travels with the build output, so the isolation contract is version-controlled and reviewable alongside the code that depends on it.
 **Trade-off**: Introduces a new external account dependency. Mitigated by the fact that the requirement is written at the capability level ("the deployed site SHALL emit the isolation headers"), so migrating hosts later would change `tasks.md` and one config file, not the spec's intent.
 
 ### D4: Defense in depth — pre-commit gate *and* CI gate
@@ -97,13 +98,45 @@ Both a `pre-commit` hook and a full CI pipeline are specified.
 **Rationale**: `require-corp` is the stricter, better-supported choice and is what the dev server uses today. However, it requires every cross-origin subresource to opt in via CORP/CORS — and this project intends to integrate Google Sign-In and Google Drive, whose endpoints and popups are cross-origin and may not cooperate. `credentialless` relaxes this by sending such requests without credentials while preserving isolation. Because the OAuth integration is not yet wired up, pinning one value now would be guessing. Specifying the *outcome* (`crossOriginIsolated === true`) and permitting either mechanism keeps the requirement verifiable while leaving the implementation room to resolve the Google interaction empirically.
 **Alternatives considered**: Mandating `require-corp` — rejected as premature; it could force a spec amendment the moment Drive sync lands.
 
-### D6: Build artifacts are produced by CI, never committed
+### D6: GitHub Actions builds, gates, and publishes; the gate is structural
 
-**Rationale**: A committed build directory diverges silently from source and makes reviews noisy. Making CI the sole producer of deployed bundles guarantees that what ships is what passed the gate. The repository is compliant today — `dist/` exists locally but is correctly gitignored and untracked — so this requirement preserves the status quo rather than correcting it, and guards against regression once a deployment pipeline exists and the temptation to hand-publish appears.
+Deployment uses a GitHub Actions job that runs `wrangler pages deploy`, with the deploy job declaring `needs:` on every quality-gate job. Cloudflare's own git integration is deliberately **not** connected.
+
+**Rationale**: This makes the quality gate *structural* rather than procedural. A failing lint, type-check, unit, or e2e stage does not merely discourage deployment — it makes the deploy job unreachable in the dependency graph. The pipeline is also the sole artifact producer, so what ships is byte-for-byte what the gate verified, rather than a second build that could differ.
+
+**Why not Cloudflare's git integration** (evaluated and rejected): connecting the repository to Cloudflare Pages is simpler to set up and yields free pull-request previews, but Cloudflare would build *independently* of GitHub Actions — with no knowledge of whether the gate passed. It publishes whatever lands on the default branch. Under that model the gate can only be preserved indirectly, via branch protection requiring a passing run before merge, which (a) makes the gate contingent on a repository setting that an administrator can bypass, and (b) forces a pull-request workflow onto a repository whose established practice is committing directly to `main`. The Actions approach imposes neither constraint: direct pushes to `main` remain safe, because the gate runs on the push itself and the deploy cannot execute unless it passes.
+
+**Trade-offs accepted**: a Cloudflare API token and account id must be stored as repository secrets and rotated periodically; `wrangler` becomes a pipeline dependency; and pull-request previews are not provided (see D8).
+
+**Alternatives considered**: (a) Cloudflare git integration — rejected above. (b) Two workflows with `workflow_run` chaining — rejected: `workflow_run` is indirect, harder to debug, and provides no stronger guarantee than `needs:` within one workflow.
+
+### D6a: Build artifacts are never committed
+
+**Rationale**: A committed build directory diverges silently from source and makes reviews noisy. With the pipeline as sole producer, a committed `dist/` would be dead weight that no longer corresponds to what ships. The repository is compliant today — `dist/` exists locally but is gitignored and untracked — so this requirement guards against regression rather than correcting a defect.
+
+### D7a: The gate must not repair its own input
+
+Quality-gate commands in the pipeline are non-mutating. The repository's existing `lint` script is `eslint . --fix --cache`, which auto-repairs violations; a gate invoking it would silently fix problems and report success, verifying nothing. A separate non-fixing command is therefore introduced for the pipeline, leaving the auto-fixing script for local developer use.
+
+### D7b: Linting is scoped to first-party source
+
+`eslint.config.ts` ignores only `dist`, `dist-ssr`, and `coverage`. It does not ignore `mmex/`, so ESLint currently walks the vendored MoneyManagerEx submodules and reports **939 errors** in upstream code the project does not own — against 23 in first-party `src/`. Worse, because the `lint` script passes `--fix`, running it would *rewrite files inside the submodules*, dirtying them and corrupting the provenance that D7 depends on. The vendored tree is therefore excluded from linting, which is both a correctness fix and the difference between a gate that is actionable and one that is noise.
 
 ### D7: Schema stays vendored via pinned submodules
 
 **Rationale**: The upstream `moneymanagerex/database` repository is the source of truth for `tables.sql` and the incremental migrations. Vendoring by pinned submodule (rather than copying) makes upstream drift an explicit, reviewable pointer bump and keeps provenance auditable. The cost is that submodule initialization becomes a hard prerequisite for any build — which is precisely why the spec requires CI and local setup to initialize submodules, and requires a clear failure when they are absent.
+
+### D8: Production-only deployment; no pull-request previews
+
+**Rationale**: Operator decision. The repository's working practice is committing directly to `main`, so pull requests are rare and previews would seldom trigger. Skipping them keeps the deploy job a single conditional stage and keeps the Cloudflare token off pull-request runs entirely — notably, previews for fork-originated pull requests could not work anyway, since GitHub withholds secrets from them.
+
+**Trade-off**: cross-origin isolation and the Google OAuth interaction can only be verified against production rather than before merge. This is materially mitigated by D9: the preview server now carries the same isolation headers, so the e2e suite exercises an isolated context inside the gate.
+
+### D9: Cross-origin isolation belongs to every served environment, including preview
+
+`vite.config.ts` sets COOP/COEP under `server` only. Vite reads preview-server headers from a *separate* `preview` section, so `vite preview` currently serves **no** isolation headers — and `playwright.config.ts` runs the e2e suite against `npm run preview` on CI. Adding e2e to the gate without fixing this would fail every persistence-touching test, because `crossOriginIsolated` would be false and `SharedArrayBuffer` unavailable.
+
+This is why `Requirement: Cross-Origin Isolation` is written to bind *every* environment that serves the application rather than naming the dev server: the dev/preview split is exactly the kind of gap an environment-specific requirement would have permitted. The fix mirrors the headers into `preview`, which additionally makes the e2e suite a genuine check on isolation.
 
 ## Risks / Trade-offs
 
@@ -111,6 +144,8 @@ Both a `pre-commit` hook and a full CI pipeline are specified.
 - **`vue-i18n` is a pre-release (`^12.0.0-alpha.3`)** → Likelihood: medium. Impact: medium (API churn, unpatched defects). Mitigation: recorded in the governed stack table so the exposure is visible; `tasks.md` includes evaluating a move to the latest stable line.
 - **E2E tests in CI increase pipeline time and flakiness** → Likelihood: medium. Impact: low-medium. Mitigation: Playwright is already configured with CI-aware retries and single-worker execution; keep the e2e suite thin and reserve it for critical paths.
 - **Cross-origin isolation regresses silently in a new environment** → Likelihood: low. Impact: high (persistence fails wholesale). Mitigation: the spec requires a runtime diagnostic when `crossOriginIsolated` is false, and requires CI/e2e to exercise a preview build, so a header regression surfaces as a test failure rather than a user-facing mystery.
+- **Cloudflare API token leakage or expiry** → Likelihood: low. Impact: medium (a leaked token permits unauthorized deploys; an expired one silently breaks CD). This is the cost of D6's structural gate. Mitigation: scope the token to Pages:Edit on the single project, store it only as a repository secret, and rotate it periodically. Note the deploy job runs only on the default branch, so pull requests — including from forks — never receive the secret.
+- **`_headers` not applied, silently disabling isolation** → Likelihood: medium (it is a plain text file with no schema validation; a typo fails open, not loud). Impact: high (persistence breaks in production only). Mitigation: verification of `crossOriginIsolated` on the deployed URL is a required task, and the e2e assertion runs against the preview server which now carries the same headers.
 - **Cloudflare account dependency** → Likelihood: low. Impact: low. Mitigation: requirement written at capability level (D3); host migration would not require a spec change.
 - **Spec/implementation drift over time** → Likelihood: medium. Impact: medium. Mitigation: the governed stack table is verifiable against `package.json`, making drift a mechanical check that can later be automated in CI.
 
@@ -120,15 +155,30 @@ The specification describes a target state; the repository partially meets it to
 
 1. **Ratify** (no code change) — accept the spec; the already-compliant requirements are satisfied on merge.
 2. **Local hygiene** — runtime version file, `.env.example`, PWA manifest and title, remove committed build output. Low risk, no behavior change.
-3. **Gates** — pre-commit hook, then extend CI to lint + type-check + unit + e2e + build. Ordering matters: fix any existing violations *before* the gate is enforced, or the first PR after enforcement fails for unrelated reasons.
-4. **Deploy** — Cloudflare Pages project, `_headers`, SPA fallback, CI deploy from the default branch; verify `crossOriginIsolated === true` and a successful database open on the deployed URL.
+3. **Gates** — scope linting to first-party source (D7b), clear the resulting 23 first-party violations, add a non-mutating lint command (D7a), then extend CI to lint + type-check + unit + build + e2e. Ordering matters: the violations must be cleared *before* the gate is enforced, or the very next push fails for reasons unrelated to its content.
+4. **Deploy** — add `_headers` and SPA fallback, then the Actions deploy job gated by `needs:`; verify `crossOriginIsolated === true` and a successful database open against the deployed URL.
 
-**Rollback**: Each phase is an independent commit. The deployment phase is the only one with external state; rolling back means disabling the CI deploy step — the application continues to work locally and no user data is affected (all data is client-side by construction).
+**Rollback**: Each phase is an independent commit. The deployment phase is the only one with external state; rolling back means reverting the default branch to a known-good commit, which re-runs the gate and redeploys, or revoking the API token to halt deploys entirely. The application continues to work locally and no user data is affected — all data is client-side by construction, so a bad deploy cannot corrupt anyone's database.
 
 ## Open Questions
 
-These do not block the specification but require operator input before or during implementation:
+Resolved by operator decision:
 
-1. **README CI badge branch** — the badge targets `master`, but the repository's active branch is `main` (remote: `gjchentw/mmex-pwa`). Confirm `main` is the intended default branch; the badge is currently broken and the CI deploy trigger depends on the answer.
-2. **Google OAuth client id variable name** — commit history references adding a Google Client ID to `.env.example`, but no such file was ever committed and no `import.meta.env.VITE_*` consumer exists yet. `VITE_GOOGLE_CLIENT_ID` is assumed; confirm the final name when the Drive integration lands.
-3. **Cloudflare project provisioning** — who owns the account/project, and should preview deployments be enabled for pull requests (they would also need the `_headers` file, which they get automatically as part of the build output).
+- ~~**README CI badge branch**~~ — Resolved factually: the remote has no `master` branch at all (only `main` and several topic branches), so the badge's `?branch=master` is simply broken. Fix to `main` (task 1.2).
+- ~~**Google OAuth variables**~~ — Resolved: `.env.example` enumerates `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_API_KEY`, and `VITE_GOOGLE_APP_ID` (full Google Picker configuration), so the Drive integration will not require a follow-up spec amendment for configuration.
+- ~~**Deployment mechanism**~~ — Resolved: GitHub Actions runs the quality gate and publishes via `wrangler pages deploy`, with the deploy job gated by `needs:` (D6). Cloudflare's git integration is deliberately not connected. Production-only; no previews (D8). This supersedes an earlier decision to use the git integration, which was reversed because it made the gate contingent on branch protection and would have forced a pull-request workflow.
+- ~~**Default-branch workflow**~~ — Resolved by D6: direct pushes to `main` remain safe, because the gate runs on the push and the deploy job cannot execute unless it passes. No branch protection or pull-request workflow is required.
+
+Outstanding:
+
+0. **The application does not work in a production build.** Verified empirically while implementing the pipeline, against `vite preview` with cross-origin isolation confirmed active (`crossOriginIsolated === true`). All three defects are pre-existing and reproduce without any change from this work. They block the e2e gate and deployment — not because the pipeline is incomplete, but because the app itself fails:
+
+   - **P1 — i18n renders raw keys in production.** The built app displays `database.probing` and `database.dbStatus` rather than their translated strings; `vite dev` renders correctly. Suspected cause: vue-i18n's bundler build resolves to the runtime-only variant (no message compiler) while the catalogs are not being precompiled by `unplugin-vue-i18n`. This is what fails the existing e2e test, which asserts on the rendered text "Initializing".
+   - **P2 — SQLite WASM path resolution is broken in production.** The built worker requests the unhashed `/assets/sqlite3.wasm`, but the emitted asset is content-hashed (`sqlite3-<hash>.wasm`). The unhashed request does not 404: the SPA fallback serves `index.html`, so `WebAssembly.compile` fails with `Incorrect response MIME type. Expected 'application/wasm'`. **The database cannot open in a production build.** Upstream WIP branches already target this: `copilot/fix-hashed-wasm-url-request`, `copilot/fix-sqlite-wasm-path-resolution`.
+   - **P3 — COEP blocks the Quasar CDN logo.** `src/App.vue` loads `https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg`, which `require-corp` blocks (`ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep`). This is the D5 risk, now observed rather than predicted. Fix by self-hosting the asset, or by adopting COEP `credentialless`.
+
+   These are application/build defects and therefore outside this capability's scope. They are recorded here because they are the reason two required gates ship disabled, and they warrant their own change. **Deploying before P2 is fixed would ship an app whose database never opens.**
+
+1. **Cloudflare provisioning** — the Pages project must exist and two repository secrets must be set (`CLOUDFLARE_API_TOKEN`, scoped to Pages:Edit on that project, and `CLOUDFLARE_ACCOUNT_ID`) before the deploy job can succeed. The project name is assumed to be `mmex-pwa`, matching the repository and `package.json`; confirm or correct it in the workflow.
+2. **COEP value** — `require-corp` is used, mirroring the dev server. Whether it survives the Google Sign-In / Drive integration is unresolved and is deliberately scheduled for empirical validation before that feature is built (tasks 5.1–5.2). Switching to `credentialless` requires editing two files and no spec change.
+3. **Base-currency defect (out of scope, reported for the record)** — `initNewDb` in `src/stores/database-store.ts` assigns the user's selected `currencyId` to an unused variable and inserts `{ currencies: [] }`, so the chosen base currency is silently discarded. This surfaced because it triggers a lint error that the gate would block on. The unused assignment is removed to clear the gate — a behaviour-preserving change that does **not** fix the underlying defect, which lies in application logic and is outside this capability's scope. It warrants its own change.

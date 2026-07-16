@@ -324,6 +324,8 @@ Continuous integration SHALL verify every push and pull request through a comple
 - The pipeline SHALL provision the pinned runtime version and perform a lockfile-respecting install.
 - The pipeline SHALL run, at minimum: lint, type-check, unit tests, end-to-end tests, and a production build.
 - Any failing stage SHALL fail the pipeline and block the merge.
+- Quality-gate commands SHALL be non-mutating: the pipeline SHALL verify the code as committed, and SHALL NOT auto-fix or reformat it. A gate that repairs its own input cannot report a failure.
+- Linting SHALL be scoped to first-party source. Vendored submodule contents SHALL be excluded from linting and formatting, since they are upstream-owned and modifying them would corrupt the provenance guaranteed by `Requirement: Vendored Source Provenance`.
 
 ```mermaid
 flowchart LR
@@ -332,13 +334,13 @@ flowchart LR
     C --> D[Lint]
     D --> E[Type-check]
     E --> F[Unit tests]
-    F --> G[E2E tests]
-    G --> H[Build]
-    H --> I{Default branch?}
-    I -->|Yes| J[Deploy to<br/>Cloudflare Pages]
-    I -->|No| K[Report status]
+    F --> G[Build]
+    G --> H[E2E tests]
+    H --> I{All pass?}
+    I -->|Yes, on default branch| J[Deploy]
+    I -->|No| K[Fail: deploy unreachable]
 ```
-*Caption: The continuous integration quality gate, and its promotion to deployment on the default branch.*
+*Caption: The continuous integration quality gate and the deploy stage it gates. The deploy stage depends on every gate stage, so failure makes publishing impossible rather than merely inadvisable.*
 
 Traceability: [.github/workflows/](../../../../../.github/workflows/).
 
@@ -354,23 +356,26 @@ Traceability: [.github/workflows/](../../../../../.github/workflows/).
 
 ### Requirement: Deployment and Hosting
 
-The application SHALL be deployed as a static site to Cloudflare Pages, configured to preserve cross-origin isolation and single-page-application routing.
+The application SHALL be deployed as a static site to Cloudflare Pages by the continuous integration pipeline, configured to preserve cross-origin isolation and single-page-application routing.
 
-- Deployment SHALL be performed by continuous integration from the default branch, not from a contributor workstation.
-- The deployed site SHALL emit the cross-origin isolation headers defined in `Requirement: Cross-Origin Isolation`, configured via a `_headers` file in the build output.
+- Deployment SHALL be performed by the continuous integration pipeline, triggered only by a push to the default branch. No contributor workstation SHALL publish to production.
+- The deploy stage SHALL declare a dependency on every quality-gate stage, so that a failing gate makes deployment **unreachable** rather than merely discouraged. Gating SHALL NOT rely on branch protection or reviewer discipline.
+- The deployed bundle SHALL be the exact artifact that passed the quality gate, not a rebuild.
+- The deployed site SHALL emit the cross-origin isolation headers defined in `Requirement: Cross-Origin Isolation`, configured via a `_headers` file carried in the build output.
 - The host SHALL serve the application shell for unmatched navigation paths so that client-side routing resolves.
-- Build-time environment variables SHALL be injected by the deployment pipeline from the host's secret store.
-- Build artifacts SHALL NOT be committed to version control; the deployed bundle SHALL be produced by the pipeline.
+- Build-time environment variables SHALL be supplied to the pipeline from the repository's secret store.
+- Build artifacts SHALL NOT be committed to version control; the pipeline SHALL be the sole producer of the deployed bundle.
 
 ```mermaid
 flowchart LR
-    A[Default branch] --> B[CI build]
-    B --> C[Static bundle<br/>+ _headers]
-    C --> D[Cloudflare Pages]
-    D --> E[Browser<br/>crossOriginIsolated = true]
-    E --> F[SQLite WASM + OPFS]
+    A[Push to<br/>default branch] --> B[Quality gate<br/>lint / type-check / unit / e2e]
+    B -->|Any stage fails| C[Deploy unreachable]
+    B -->|All pass| D[Verified artifact]
+    D --> E[Deploy to<br/>Cloudflare Pages]
+    E --> F[Browser<br/>crossOriginIsolated = true]
+    F --> G[SQLite WASM + OPFS]
 ```
-*Caption: Deployment path — the `_headers` file carries cross-origin isolation from build output to the browser.*
+*Caption: Deployment path — the deploy stage depends on the gate, so a red pipeline physically cannot publish. The artifact deployed is the one the gate verified.*
 
 #### Scenario: Deployed site preserves cross-origin isolation
 
@@ -387,6 +392,17 @@ flowchart LR
 
 - **WHEN** a commit adds build output to version control
 - **THEN** the change SHALL be rejected, as the pipeline is the sole producer of deployed artifacts
+
+#### Scenario: Quality gate fails on the default branch
+
+- **WHEN** a push to the default branch fails any quality-gate stage
+- **THEN** the deploy stage SHALL NOT execute, and the previously deployed version SHALL remain live
+
+#### Scenario: Change is pushed to a non-default branch
+
+- **WHEN** a push or pull request targets any branch other than the default branch
+- **THEN** the quality gate SHALL run and report status
+- **AND** the deploy stage SHALL NOT execute
 
 ### Requirement: Configuration and Secrets Management
 

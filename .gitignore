@@ -43,3 +43,11 @@ test-results/
 playwright-report/
 .spectra/
 openspec/.vector-search.db*
+.claude/*
+
+# Local environment files. `.env.example` is committed as the documented
+# contract; real values never are.
+.env
+.env.*
+!.env.example
+

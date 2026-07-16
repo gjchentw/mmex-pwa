@@ -93,7 +93,6 @@
 <script lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink, RouterView } from 'vue-router'
 import { useDatabaseStore } from './stores/database-store'
 import { dbClient } from './workers/db-client'
 import ConfirmDestroyDialog from './components/database/ConfirmDestroyDialog.vue'
