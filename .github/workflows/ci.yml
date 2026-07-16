@@ -87,20 +87,64 @@ jobs:
           grep -q 'Cross-Origin-Embedder-Policy' dist/_headers || { echo 'COEP missing from dist/_headers'; exit 1; }
           echo '_headers present with COOP + COEP.'
 
+      # deploy downloads this rather than rebuilding, so the bundle that ships is
+      # byte-for-byte the one the gate verified.
+      - name: Upload verified bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  deploy:
+    name: deploy to Cloudflare Pages
+    # The gate is structural: this job is unreachable unless every gate job
+    # passes. A red pipeline cannot publish -- that is the whole reason CI owns
+    # the deploy rather than Cloudflare's git integration building on its own.
+    #
+    # `e2e` is intentionally absent from this list because that job is disabled
+    # (see the block below). Add it back to `needs:` when e2e is re-enabled.
+    needs: [quality, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      # Publish the exact artifact the gate verified, rather than rebuilding.
+      - name: Download verified bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Publish to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # The Pages project must already exist. `pages deploy` can create one,
+          # but it prompts for the production branch, and prompting in CI is an
+          # error -- so a missing project fails here rather than self-healing.
+          command: pages deploy dist --project-name=mmex-pwa --branch=main
+
+      - name: Deployment URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}"
+
 # ---------------------------------------------------------------------------
-# NOT YET ENABLED -- blocked on real defects, not on missing pipeline work.
+# e2e -- NOT YET ENABLED. Blocked on a real defect, not on missing pipeline work.
 #
-# The e2e and deploy jobs below are written and verified, but are deliberately
-# left disabled: the app does not currently work in a *production build*, so
-# enabling them would mean a permanently red gate and a deploy that ships a
-# broken app. Enabling them before the blockers land would teach everyone to
-# ignore CI, which is worse than not having the gate.
+# The job below is written and was validated locally, but stays disabled: the
+# production build renders raw i18n keys, so the existing e2e assertion cannot
+# pass. Enabling it would mean a permanently red gate, which teaches everyone to
+# ignore CI -- worse than not having the gate at all.
 #
-# Blockers (see openspec/changes/infrastructure-baseline/design.md):
+# Known production defects (see openspec/changes/infrastructure-baseline/design.md):
 #
 #   P1  i18n renders raw keys ("database.probing") in the production build,
 #       though it is fine under `vite dev`. This is what fails the e2e test,
-#       which looks for the rendered "Initializing database...".
+#       which looks for the rendered "Initializing database...". BLOCKS e2e.
 #
 #   P2  The built worker requests the UNHASHED /assets/sqlite3.wasm while the
 #       emitted asset is hashed (sqlite3-<hash>.wasm). The unhashed path does
@@ -113,10 +157,13 @@ jobs:
 #       (NotSameOriginAfterDefaultedToSameOriginByCoep). Self-host the asset or
 #       switch to COEP `credentialless`.
 #
-# To enable: fix P1/P2, uncomment both jobs, add `- name: Upload verified bundle`
-# to the build job, and set the CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID
-# repository secrets. Everything below was validated locally against
-# `vite preview`, which now serves COOP/COEP correctly.
+# NOTE: deploy above is deliberately enabled ahead of P2, by operator decision.
+# The site therefore ships with a database that cannot open. This is an accepted
+# trade-off while the app has no users: it proves the pipeline and verifies that
+# _headers really delivers COOP/COEP on Cloudflare. Do not treat the deployed URL
+# as a working product until P2 lands.
+#
+# To enable e2e: fix P1, uncomment below, and add `e2e` back to deploy's `needs:`.
 # ---------------------------------------------------------------------------
 #
 #  e2e:
@@ -143,21 +190,3 @@ jobs:
 #          name: playwright-report
 #          path: playwright-report/
 #          retention-days: 7
-#
-#  deploy:
-#    name: deploy to Cloudflare Pages
-#    # The gate is structural: this job is unreachable unless every gate passes.
-#    needs: [quality, build, e2e]
-#    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#    runs-on: ubuntu-latest
-#    steps:
-#      # Publish the exact artifact the gate verified, rather than rebuilding.
-#      - uses: actions/download-artifact@v4
-#        with:
-#          name: dist
-#          path: dist
-#      - uses: cloudflare/wrangler-action@v3
-#        with:
-#          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-#          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-#          command: pages deploy dist --project-name=mmex-pwa --branch=main

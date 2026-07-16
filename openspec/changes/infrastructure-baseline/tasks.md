@@ -51,16 +51,17 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 
 ## 6. Deployment and Hosting
 
-**Precondition: P2 MUST be fixed before 6.4.** The built worker requests an unhashed `sqlite3.wasm` that the SPA fallback answers with `index.html`, so the database cannot open in a production build. Deploying first would ship an app that is broken for every user (design.md Open Question 0).
+**Note: deploy is enabled ahead of P2 by operator decision** (design.md Open Question 0). The deployed database will not open until P2 lands; the URL serves as a pipeline smoke test, not a product. Task 6.7 is therefore split into what is verifiable now (6.7) and what needs P2 (6.8).
 
 - [ ] 6.0 Fix P1/P2/P3 under their own change — i18n production compilation, SQLite WASM path resolution (see the two existing `copilot/fix-*wasm*` branches), and the COEP-blocked Quasar CDN logo
-- [ ] 6.1 Provision the Cloudflare Pages project (assumed name `mmex-pwa`) and set the repository secrets `CLOUDFLARE_API_TOKEN` (scoped to Pages:Edit on that project only) and `CLOUDFLARE_ACCOUNT_ID` (Requirement: Deployment and Hosting)
-- [ ] 6.2 Add `public/_headers` setting `Cross-Origin-Opener-Policy: same-origin` and the COEP value chosen in 5.2, so it is copied to the build output root (Requirement: Cross-Origin Isolation)
-- [ ] 6.3 Add `public/_redirects` with an SPA fallback so unmatched navigation paths serve the application shell on first load, before the service worker exists (Requirement: Deployment and Hosting)
-- [ ] 6.4 Add a `deploy` job to `ci.yml`: `needs:` every gate job, conditional on a push to `main`, downloading the verified artifact and publishing it with `wrangler pages deploy` (Requirement: Deployment and Hosting, design.md D6)
-- [ ] 6.5 Supply `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_API_KEY`, and `VITE_GOOGLE_APP_ID` to the build step from repository secrets; confirm no secret enters version control, and note that all `VITE_*` values are readable in the shipped bundle (Requirement: Configuration and Secrets Management)
-- [ ] 6.6 Verify the gate is structural: push a deliberate lint error to `main` and confirm the deploy job is skipped rather than merely reported (Requirement: Deployment and Hosting)
-- [ ] 6.7 Verify production end-to-end: the production URL returns COOP/COEP headers, `window.crossOriginIsolated === true`, the database opens from OPFS, a deep link resolves, and the app is installable and loads offline
+- [ ] 6.1 **Manual** — provision the Cloudflare Pages project named `mmex-pwa` with production branch `main`, via `wrangler pages project create` or the dashboard. It must exist first: `pages deploy` prompts for the production branch when creating one, and prompting in CI is an error (Requirement: Deployment and Hosting)
+- [ ] 6.2 **Manual** — create an API token with the single permission Account → Cloudflare Pages → Edit, and set the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (Requirement: Deployment and Hosting)
+- [x] 6.3 Add `public/_headers` setting `Cross-Origin-Opener-Policy: same-origin` and the COEP value chosen in 5.2, so it is copied to the build output root (Requirement: Cross-Origin Isolation)
+- [x] 6.4 Add `public/_redirects` with an SPA fallback so unmatched navigation paths serve the application shell on first load, before the service worker exists (Requirement: Deployment and Hosting)
+- [x] 6.5 Add a `deploy` job to `ci.yml`: `needs:` the gate jobs, conditional on a push to `main`, downloading the verified artifact and publishing it with `wrangler pages deploy`. `e2e` is absent from `needs:` only because that job is disabled — restore it when e2e is re-enabled (Requirement: Deployment and Hosting, design.md D6)
+- [x] 6.6 Supply `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_API_KEY`, and `VITE_GOOGLE_APP_ID` to the build step from repository secrets; confirm no secret enters version control, and note that all `VITE_*` values are readable in the shipped bundle (Requirement: Configuration and Secrets Management)
+- [ ] 6.7 Verify what is checkable now: the deploy job runs on `main` and reports a URL; the production URL returns COOP/COEP and `window.crossOriginIsolated === true`; a deep link resolves to the app shell; and pushing a deliberate lint error leaves the deploy job **skipped**, proving the gate is structural rather than advisory (Requirement: Deployment and Hosting)
+- [ ] 6.8 **Blocked on P2** — verify the database opens from OPFS in production and the app is installable and loads offline. Until then the deployed console is expected to show `Incorrect response MIME type. Expected 'application/wasm'`, which confirms P2 rather than a deployment fault
 
 ## 7. Follow-Ups
 

@@ -49,11 +49,25 @@ These are configured in [`vite.config.ts`](vite.config.ts) (for both `dev` and `
 
 ## CI/CD
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs lint, format-check, type-check, unit tests, and a production build on every push and pull request.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs lint, format-check, type-check, unit tests, and a production build on every push and pull request. On a push to `main`, a `deploy` job publishes to Cloudflare Pages.
 
-The **e2e** and **Cloudflare Pages deploy** jobs are written but commented out. They are blocked on defects in the production build — most importantly, the built worker requests an unhashed `sqlite3.wasm` that the SPA fallback answers with `index.html`, so the database cannot open in a built app. Enabling deployment before that is fixed would ship an app that is broken for everyone. The blockers are documented in [`openspec/changes/infrastructure-baseline/design.md`](openspec/changes/infrastructure-baseline/design.md) and in the comment block at the bottom of the workflow.
+The gate is **structural**, not procedural: `deploy` declares `needs: [quality, build]`, so a failing check makes deployment unreachable rather than merely discouraged. It publishes the exact artifact the gate verified rather than rebuilding.
 
-When enabled, deploying will require two repository secrets: `CLOUDFLARE_API_TOKEN` (scoped to Pages:Edit) and `CLOUDFLARE_ACCOUNT_ID`.
+> **The deployed site's database does not open yet.** The built worker requests an unhashed `sqlite3.wasm` while the emitted asset is content-hashed; the SPA fallback answers the missing path with `index.html`, so `WebAssembly.compile` fails on `text/html`. Deployment is enabled ahead of that fix deliberately — to prove the pipeline and verify cross-origin isolation on real infrastructure — so treat the URL as a pipeline smoke test, not a working product. See [`openspec/changes/infrastructure-baseline/design.md`](openspec/changes/infrastructure-baseline/design.md).
+
+The **e2e** job remains commented out: the production build renders raw i18n keys, so its assertion cannot pass.
+
+### Deployment setup
+
+1. **Create the Pages project first** — `npx wrangler pages project create mmex-pwa --production-branch=main`, or via the dashboard (Workers & Pages → Create → Pages → Upload assets). It must be named `mmex-pwa` to match `--project-name` in the workflow. `pages deploy` will not create it unattended: it prompts for the production branch, and prompting in CI is an error.
+2. **Create an API token** at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens) → Create Token → Custom token, with the single permission **Account → Cloudflare Pages → Edit**.
+3. **Add repository secrets** under Settings → Secrets and variables → Actions:
+
+| Secret | Value | Required |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | The token from step 2 | Yes |
+| `CLOUDFLARE_ACCOUNT_ID` | Account ID (Workers & Pages sidebar, or the dashboard URL) | Yes |
+| `VITE_GOOGLE_CLIENT_ID` / `VITE_GOOGLE_API_KEY` / `VITE_GOOGLE_APP_ID` | Google Picker credentials | No — nothing reads them yet |
 
 ## Specifications
 
