@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 const { MockWorker, handlers } = vi.hoisted(() => {
@@ -119,5 +119,54 @@ describe('database-store', () => {
     expect(store.state).toBe('uninitialized')
     expect(store.version).toBeNull()
     expect(store.error).toBeNull()
+  })
+
+  // Spec: infrastructure-baseline, Requirement "Cross-Origin Isolation",
+  // Scenario "Isolation headers are absent".
+  describe('when the page is not cross-origin isolated', () => {
+    const setIsolated = (value: boolean | undefined) => {
+      Object.defineProperty(window, 'crossOriginIsolated', {
+        value,
+        configurable: true,
+        writable: true,
+      })
+    }
+
+    afterEach(() => {
+      // jsdom does not implement the flag; restore that rather than leaking
+      // `false` into later tests, which would short-circuit their probe().
+      setIsolated(undefined)
+    })
+
+    // Note this awaits probe() with no triggerMessage: that it resolves at all
+    // proves the check short-circuits before reaching the worker. Had it gone
+    // through, the promise would hang forever waiting on a worker response --
+    // which is the opaque failure this diagnostic exists to prevent.
+    it('fails fast with a diagnostic naming the missing headers', async () => {
+      setIsolated(false)
+
+      await store.probe()
+
+      expect(store.state).toBe('error')
+      expect(store.error).toMatch(/cross-origin isolated/i)
+      expect(store.error).toContain('Cross-Origin-Opener-Policy')
+      expect(store.error).toContain('Cross-Origin-Embedder-Policy')
+      expect(store.isReady).toBe(false)
+    })
+
+    it('proceeds normally when the flag is unimplemented (undefined)', async () => {
+      setIsolated(undefined)
+
+      const probePromise = store.probe()
+      triggerMessage({
+        id: '00000000-0000-0000-0000-000000000000',
+        type: 'open-or-create',
+        status: 'success',
+        result: { status: 'existing', version: 21 },
+      })
+      await probePromise
+
+      expect(store.state).toBe('ready')
+    })
   })
 })

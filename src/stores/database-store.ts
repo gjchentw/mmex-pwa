@@ -25,6 +25,23 @@ export const useDatabaseStore = defineStore('database', () => {
     state.value = 'probing'
     error.value = null
 
+    // SQLite WASM and OPFS need SharedArrayBuffer, which browsers expose only to
+    // cross-origin isolated pages. Check it up front: otherwise the failure
+    // surfaces later as an opaque WASM/OPFS error that points nowhere near the
+    // actual cause -- a missing pair of response headers.
+    //
+    // Compared against `false` explicitly, not for falsiness: environments that
+    // do not implement the flag at all (jsdom under unit tests) leave it
+    // undefined, and those must not be reported as un-isolated.
+    if (typeof window !== 'undefined' && window.crossOriginIsolated === false) {
+      state.value = 'error'
+      error.value =
+        'This page is not cross-origin isolated, so the database cannot be opened. ' +
+        'The server must send both "Cross-Origin-Opener-Policy: same-origin" and ' +
+        '"Cross-Origin-Embedder-Policy: require-corp" with this page.'
+      return
+    }
+
     try {
       const result = await dbClient.openOrCreate()
 
