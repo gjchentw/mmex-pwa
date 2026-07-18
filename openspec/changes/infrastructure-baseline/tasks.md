@@ -17,7 +17,7 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 - [x] 2.1 Add a runtime version file (`.nvmrc` or `.node-version`) pinning a version that satisfies `engines: ^20.19.0 || >=22.12.0`; verify a fresh `nvm use` selects it (Requirement: Runtime and Package Management Baseline)
 - [x] 2.2 Create and commit `.env.example` enumerating `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_API_KEY`, and `VITE_GOOGLE_APP_ID` (full Google Picker configuration) with placeholder values and comments noting that all `VITE_*` values are publicly readable in the shipped bundle (Requirement: Configuration and Secrets Management)
 - [x] 2.3 Add `.env` and related real environment files to `.gitignore`; confirm no secret is currently tracked (Requirement: Configuration and Secrets Management)
-- [ ] 2.4 Design and add a product icon set to `public/`, and configure `VitePWA()` with a product-specific manifest: name, short name, description, icons, and `theme_color` matching the Quasar primary `#006800` — replacing the plugin defaults (Requirement: Progressive Web App and Offline Baseline)
+- [x] 2.4 Design and add a product icon set to `public/`, and configure `VitePWA()` with a product-specific manifest: name, short name, description, icons, and `theme_color` matching the Quasar primary `#006800` — replacing the plugin defaults (Requirement: Progressive Web App and Offline Baseline)
 - [x] 2.5 Set a product-specific `<title>` in `index.html`, replacing the default "Vite App" (Requirement: Progressive Web App and Offline Baseline)
 - [x] 2.6 Add a runtime diagnostic that detects `crossOriginIsolated === false` and surfaces an explicit, actionable error instead of an opaque persistence failure (Requirement: Cross-Origin Isolation)
 - [x] 2.7 Mirror the COOP/COEP headers from `vite.config.ts`'s `server` section into a `preview` section. Vite reads preview headers separately, so `vite preview` currently serves none — and Playwright runs the CI e2e suite against it, so every persistence test would fail once e2e joins the gate (Requirement: Cross-Origin Isolation, design.md D9)
@@ -39,7 +39,7 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 - [x] 4.3 Add a `build` job that builds and asserts `_headers` survives into the build output
 - [x] 4.4 Delete `test.yml` so a single workflow owns the gate
 - [x] 4.5 Add a CI check asserting the runtime version file satisfies the `engines` range (Requirement: Runtime and Package Management Baseline) — satisfied by `.npmrc` `engine-strict` plus `node-version-file`, which makes `npm ci` fail with EBADENGINE on drift
-- [ ] 4.6 Add a CI check asserting the emitted manifest does not retain PWA plugin defaults (name/theme color). **Blocked on task 2.4** — the manifest IS the default today, so the assertion would fail every run (Requirement: Progressive Web App and Offline Baseline)
+- [x] 4.6 Add a CI check asserting the emitted manifest does not retain PWA plugin defaults (name/theme color/icons/maskable). Landed together with task 2.4, which customized the manifest (Requirement: Progressive Web App and Offline Baseline)
 - [x] 4.7 Enable the `e2e` job (written and commented out in `ci.yml`). **Unblocked by the P1 fix** (task 7.1): enabled on the governed Chromium engine set, `npx playwright install --with-deps chromium`, and added to the deploy job's `needs:` (design.md D10)
 - [ ] 4.8 Verify the gate: a push containing a lint error, a type error, or a failing test SHALL fail the pipeline, and the deploy job SHALL be skipped
 

@@ -87,6 +87,22 @@ jobs:
           grep -q 'Cross-Origin-Embedder-Policy' dist/_headers || { echo 'COEP missing from dist/_headers'; exit 1; }
           echo '_headers present with COOP + COEP.'
 
+      # The PWA manifest must carry the product identity, not vite-plugin-pwa
+      # defaults -- a silent regression here makes the app uninstallable or
+      # mislabeled. (`.webmanifest` cannot be require()d; parse it as JSON.)
+      - name: Assert PWA manifest is not the plugin default
+        run: |
+          node -e "
+            const m = JSON.parse(require('fs').readFileSync('./dist/manifest.webmanifest', 'utf8'))
+            const bad = []
+            if (m.theme_color === '#42b883') bad.push('theme_color is the vite-plugin-pwa default')
+            if (m.name === 'mmex-pwa') bad.push('name is the package-name default')
+            if (!m.icons || m.icons.length === 0) bad.push('no icons declared -- app is not installable')
+            if (!m.icons.some(i => i.purpose === 'maskable')) bad.push('no maskable icon declared')
+            if (bad.length) { console.error('Manifest retains defaults:\n  - ' + bad.join('\n  - ')); process.exit(1) }
+            console.log('Manifest is customized:', m.name, m.theme_color, m.icons.length + ' icons')
+          "
+
       # deploy downloads this rather than rebuilding, so the bundle that ships is
       # byte-for-byte the one the gate verified.
       - name: Upload verified bundle

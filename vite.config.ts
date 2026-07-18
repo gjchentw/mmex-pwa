@@ -18,7 +18,24 @@ export default defineConfig({
     // https://github.com/quasarframework/quasar/blob/dev/vite-plugin/index.d.ts
     quasar(),
     vueJsx(),
-    VitePWA(),
+    VitePWA({
+      manifest: {
+        name: 'MoneyManagerEx PWA',
+        short_name: 'MMEX',
+        description:
+          'MoneyManagerEx as an installable web app: client-side SQLite finance tracking with no backend',
+        // Matches the Quasar brand primary set in main.ts.
+        theme_color: '#006800',
+        background_color: '#ffffff',
+        // Programmatically generated placeholders (brand tile + "M"), not a
+        // finished product identity. Replace when real artwork exists.
+        icons: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+    }),
     vueDevTools(),
     VueI18nPlugin({
       include: [fileURLToPath(new URL('./src/locales/**', import.meta.url))],
