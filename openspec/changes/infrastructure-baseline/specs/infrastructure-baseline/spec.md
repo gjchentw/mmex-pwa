@@ -1,8 +1,8 @@
 # Infrastructure Baseline Specification
 
 **Capability**: `infrastructure-baseline`
-**Version**: 1.0.0
-**Last Updated**: 2026-07-16
+**Version**: 1.1.0
+**Last Updated**: 2026-07-18
 
 **Scope**: This specification governs the development and deployment infrastructure of the project ONLY — runtime, package management, frontend framework, build system, data-persistence infrastructure, cross-origin isolation, quality tooling, testing, quality gates, hosting, configuration, and source provenance. It does NOT govern application or business logic (accounts, transactions, reports, financial rules, or database schema semantics); those are reserved for future capability specifications.
 
@@ -23,7 +23,7 @@ The `npm package` column is machine-readable: an automated drift check compares 
 
 | Concern | Governed component | npm package | Version constraint |
 |---|---|---|---|
-| Runtime | Node.js | n/a | `^20.19.0 \|\| >=22.12.0` |
+| Runtime | Node.js | n/a | `>=24.0.0` |
 | Package manager | npm (with committed lockfile) | n/a | bundled with Node |
 | UI framework | Vue | `vue` | `^3.5.22` |
 | Component library | Quasar | `quasar` | `^2.18.6` |

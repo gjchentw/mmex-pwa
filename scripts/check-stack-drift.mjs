@@ -47,6 +47,18 @@ if (rows.length === 0) {
 const failures = []
 let checked = 0
 for (const { concern, pkgName, constraint } of rows) {
+  // The Runtime row has no npm package, but its constraint IS engines.node.
+  // It gets an explicit comparison because an EOL Node range once survived in
+  // the table unnoticed -- n/a rows had no automated check at all.
+  if (concern === 'Runtime') {
+    checked++
+    const actual = pkg.engines?.node
+    const expected = constraint.replace(/\\\|/g, '|')
+    if (actual !== expected) {
+      failures.push(`engines.node (Runtime): spec says '${expected}', package.json says '${actual}'`)
+    }
+    continue
+  }
   if (pkgName === 'n/a') continue
   checked++
   const actual = deps[pkgName]

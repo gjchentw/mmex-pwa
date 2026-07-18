@@ -1,8 +1,8 @@
 # Infrastructure Baseline — Design
 
 **Change**: `infrastructure-baseline`
-**Version**: 1.0.0
-**Last Updated**: 2026-07-16
+**Version**: 1.1.0
+**Last Updated**: 2026-07-18
 
 Related artifacts: [proposal.md](./proposal.md) (motivation), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md) (requirements), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../AGENTS.md).
 
@@ -147,6 +147,22 @@ The e2e suite runs on Chromium alone; Firefox and WebKit are removed from the pr
 **The binding return condition**: when task 5.3 lands and the suite starts asserting `crossOriginIsolated`, `SharedArrayBuffer`, and a real OPFS database open, engine behavior *does* diverge — and **WebKit comes back first**. iOS mandates WebKit for every browser, so WebKit is not "one of three engines"; it is 100% of iOS. A finance PWA whose storage layer is untested on the only engine iOS allows would be discovered broken by an iOS user rather than by CI. This condition is written into the spec's Automated Testing Toolchain requirement, not just here.
 
 **Trade-off accepted**: until 5.3, engine-specific regressions (in practice: WebKit OPFS quirks) are invisible to CI. Mitigated by the fact that the persistence layer is not e2e-asserted on any engine yet — the exposure window is bounded by 5.3 itself.
+
+### D11: Raise the runtime floor to Node 24 (Active LTS)
+
+The `engines` range moves from `^20.19.0 || >=22.12.0` to `>=24.0.0`, and the pinned runtime (`.nvmrc`, and therefore CI) moves from 22.12.0 to the latest v24 release.
+
+**Rationale**: Three facts, verified against the official Node.js release schedule on 2026-07-18:
+
+- **Node 20 reached end-of-life on 2026-04-30**, yet the `engines` range still advertised support for it — the governed baseline was formally endorsing a dead runtime. The Runtime row's package cell is `n/a`, so the automated drift check does not cover it; the staleness survived on eyeball-audit alone (see the hardening task this motivates).
+- **Node 24 has been Active LTS since 2025-10-28** (codename Krypton, maintained until 2028-04-30). Node 22 entered maintenance in 2025-10. Node 26 is Current and does not reach LTS until 2026-10.
+- **Nothing blocks it**: a scan of all 463 packages in the dependency tree that declare `engines.node` found zero that exclude Node 24, so the `engine-strict` install cannot fail on the floor raise.
+
+**Why this is low-risk**: the application runs entirely in the browser; Node is toolchain-only (build, tests, CI, deploy upload). The shipped bundle does not change. Every surface Node touches is behind the quality gate, which re-verifies under the new runtime.
+
+**Why a floor (`>=24.0.0`) rather than a caret**: development machines already run ahead of CI (Node 26 locally vs 22 in CI today), and Node 26 becomes LTS in 2026-10. A floor accepts newer majors without another spec amendment, while `.nvmrc` keeps CI deterministic. The cost — contributors on Node 22 are hard-blocked by `engine-strict` — is zero in practice for a single-developer repository whose one machine runs 26.
+
+**Alternatives considered**: (a) pin bump only (`.nvmrc` → 24, `engines` untouched) — rejected because it leaves the EOL v20 endorsement in place; (b) jump to Node 26 — rejected: not LTS until 2026-10; the floor form makes that a `.nvmrc`-only follow-up when the time comes.
 
 ## Risks / Trade-offs
 

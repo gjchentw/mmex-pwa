@@ -1,8 +1,8 @@
 # Infrastructure Baseline — Proposal
 
 **Change**: `infrastructure-baseline`
-**Version**: 1.0.0
-**Last Updated**: 2026-07-16
+**Version**: 1.1.0
+**Last Updated**: 2026-07-18
 
 Related artifacts: [design.md](./design.md) (how), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md) (requirements), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../AGENTS.md).
 
@@ -17,6 +17,7 @@ The project's development infrastructure (framework, build system, client-side d
 - Prescribe the following **gap-closing** requirements as normative:
   - Mandatory cross-origin isolation (`COOP: same-origin` + `COEP`) in **every** environment, not just the dev server, because SQLite-WASM/OPFS/`SharedArrayBuffer` depend on it.
   - Exact Node version pinning via `.nvmrc`/`.node-version` aligned with `engines`.
+  - A runtime floor of Node 24 (Active LTS): `engines >=24.0.0`, replacing a range that still advertised Node 20 after its 2026-04-30 end-of-life (design.md D11).
   - A pre-commit quality gate (lint, format, type-check on staged files).
   - A full CI quality gate: lint + type-check + unit + e2e + build (submodules checked out), extending the current unit-tests-only pipeline.
   - Deployment to Cloudflare Pages with a `_headers` file that sets COOP/COEP, plus SPA fallback and build-time environment injection.

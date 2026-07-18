@@ -1,8 +1,8 @@
 # Infrastructure Baseline — Tasks
 
 **Change**: `infrastructure-baseline`
-**Version**: 1.0.0
-**Last Updated**: 2026-07-16
+**Version**: 1.1.0
+**Last Updated**: 2026-07-18
 
 Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md) for WHAT, [design.md](./design.md) for HOW (phase ordering follows the Migration Plan). Requirement IDs below refer to spec requirement names.
 
@@ -69,3 +69,13 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 - [x] 7.2 Automated the governed-stack-table-vs-`package.json` drift check in CI (Requirement: Governed Technology Stack Baseline)
 - [x] 7.3 Update `README.md` with the documented setup contract: submodule initialization, runtime version file, `.env.example` copy step, and the full command set
 - [ ] 7.4 Archive this change with `/opsx:archive` once implementation is complete and verified, promoting the spec to `openspec/specs/infrastructure-baseline/`
+
+## 8. Node 24 Runtime Upgrade (design.md D11; spec v1.1.0)
+
+The governed table now records `engines >=24.0.0`; these tasks bring the implementation to match. Until 8.1–8.2 land, the table intentionally leads the tree — the normal state of an unapplied amendment.
+
+- [x] 8.1 Update `package.json` `engines.node` to `>=24.0.0` (drops EOL Node 20 and maintenance-line Node 22; `.npmrc` engine-strict makes this binding at install time)
+- [x] 8.2 Pin `.nvmrc` to `24.18.0` (latest v24 "Krypton" as of 2026-07-18; adjust to the newest v24 patch at implementation time). CI follows automatically via `node-version-file`
+- [x] 8.3 Swap `@tsconfig/node22` → `@tsconfig/node24` (update the `extends` in `tsconfig.node.json`) and `@types/node` → `^24`
+- [x] 8.4 Run the full gate under the new floor — `npm ci` (engine-strict), drift-check, lint, format-check, type-check, unit, build, e2e — and verify the preview still serves COOP/COEP. Local verification ran on Node 26 (satisfies `>=24.0.0`); the exact pinned 24.18.0 is exercised by CI via `node-version-file`
+- [x] 8.5 Harden the drift check: teach `scripts/check-stack-drift.mjs` to compare the Runtime row's constraint against `package.json` `engines.node`. The EOL-v20 range survived precisely because `n/a`-package rows are eyeball-only (design.md D11)
