@@ -1,7 +1,7 @@
 # infrastructure-baseline Specification
 
 **Capability**: `infrastructure-baseline`
-**Version**: 1.3.0
+**Version**: 1.4.0
 **Last Updated**: 2026-07-18
 
 ## Purpose
@@ -14,7 +14,6 @@ Governing rules: all content complies with [AGENTS.md](../../AGENTS.md). Change 
 - **Governed component**: a technology listed in the governed stack table of `Requirement: Governed Technology Stack Baseline`.
 - **Cross-origin isolated**: a browsing context in which `window.crossOriginIsolated === true`.
 - **Quality gate**: an automated check that blocks an action (commit, merge, or deploy) on failure.
-
 ## Requirements
 ### Requirement: Governed Technology Stack Baseline
 
@@ -50,7 +49,7 @@ The `npm package` column is machine-readable: an automated drift check compares 
 | Staged-file runner | lint-staged | `lint-staged` | `^17.0.8` |
 | Hosting | Cloudflare Pages | n/a | n/a |
 
-Traceability: [package.json](../../../../../package.json), [.gitmodules](../../../../../.gitmodules).
+Traceability: [package.json](../../../package.json), [.gitmodules](../../../.gitmodules).
 
 #### Scenario: Governed stack matches the dependency manifest
 
@@ -70,7 +69,7 @@ The project SHALL declare a supported runtime version range, SHALL pin an exact 
 - The repository SHALL contain a runtime version file (`.nvmrc` or `.node-version`) whose value satisfies the declared `engines` range.
 - The lockfile SHALL be committed, and reproducible installs SHALL use a lockfile-respecting install command.
 
-Traceability: [package.json](../../../../../package.json), [package-lock.json](../../../../../package-lock.json).
+Traceability: [package.json](../../../package.json), [package-lock.json](../../../package-lock.json).
 
 #### Scenario: Contributor provisions a fresh clone
 
@@ -91,7 +90,7 @@ The application SHALL be built as a single-page application using a component-ba
 - Single-file components SHALL declare their script blocks as typed.
 - Application state SHALL be managed by the governed state-management library; navigation SHALL be managed by the governed router.
 
-Traceability: [src/main.ts](../../../../../src/main.ts), [tsconfig.app.json](../../../../../tsconfig.app.json), [src/router/index.ts](../../../../../src/router/index.ts), [src/stores/](../../../../../src/stores/).
+Traceability: [src/main.ts](../../../src/main.ts), [tsconfig.app.json](../../../tsconfig.app.json), [src/router/index.ts](../../../src/router/index.ts), [src/stores/](../../../src/stores/).
 
 #### Scenario: Strict type-checking is enforced
 
@@ -112,7 +111,7 @@ The project SHALL use a single governed build system that produces an optimized 
 - Web Workers SHALL be authored as module workers resolved by the build system.
 - A production build SHALL be reproducible from a clean checkout with no manual steps beyond installing dependencies and providing environment variables.
 
-Traceability: [vite.config.ts](../../../../../vite.config.ts).
+Traceability: [vite.config.ts](../../../vite.config.ts).
 
 #### Scenario: Production build succeeds from a clean checkout
 
@@ -134,7 +133,7 @@ The application SHALL be distributable as an installable Progressive Web App wit
 - The manifest theme color SHALL match the application's primary brand color.
 - The document title SHALL be product-specific and SHALL NOT retain the build-tool default.
 
-Traceability: [vite.config.ts](../../../../../vite.config.ts), [index.html](../../../../../index.html), [public/](../../../../../public/).
+Traceability: [vite.config.ts](../../../vite.config.ts), [index.html](../../../index.html), [public/](../../../public/).
 
 #### Scenario: Build emits an installable PWA
 
@@ -171,7 +170,7 @@ flowchart TD
 ```
 *Caption: Client-side persistence infrastructure — all database work is isolated off the main thread and persisted in OPFS.*
 
-Traceability: [src/workers/sqlite.worker.ts](../../../../../src/workers/sqlite.worker.ts), [src/workers/db-client.ts](../../../../../src/workers/db-client.ts), [src/stores/database-store.ts](../../../../../src/stores/database-store.ts).
+Traceability: [src/workers/sqlite.worker.ts](../../../src/workers/sqlite.worker.ts), [src/workers/db-client.ts](../../../src/workers/db-client.ts), [src/stores/database-store.ts](../../../src/stores/database-store.ts).
 
 #### Scenario: Database is opened off the main thread
 
@@ -207,7 +206,7 @@ flowchart TD
 ```
 *Caption: Cross-origin isolation is a hard precondition for the persistence layer in every environment.*
 
-Traceability: [vite.config.ts](../../../../../vite.config.ts).
+Traceability: [vite.config.ts](../../../vite.config.ts).
 
 #### Scenario: Development server serves an isolated context
 
@@ -235,7 +234,7 @@ The application SHALL externalize all user-facing strings into locale message ca
 - The project SHALL provide at least `en-US` and `zh-TW` catalogs, and SHALL declare a fallback locale.
 - Message catalogs SHALL be type-augmented so that missing keys are detectable by the type checker.
 
-Traceability: [src/main.ts](../../../../../src/main.ts), [src/locales/](../../../../../src/locales/), [src/i18n.d.ts](../../../../../src/i18n.d.ts).
+Traceability: [src/main.ts](../../../src/main.ts), [src/locales/](../../../src/locales/), [src/i18n.d.ts](../../../src/i18n.d.ts).
 
 #### Scenario: User switches the active locale
 
@@ -255,7 +254,7 @@ The application SHALL derive its visual presentation from the governed component
 - Iconography SHALL be provided by the governed icon set.
 - Layout and spacing SHALL prefer the component library's utilities over ad-hoc custom CSS.
 
-Traceability: [src/main.ts](../../../../../src/main.ts).
+Traceability: [src/main.ts](../../../src/main.ts).
 
 #### Scenario: Brand color is changed
 
@@ -271,7 +270,7 @@ The repository SHALL enforce a single linting configuration, a single formatting
 - Editor-agnostic whitespace conventions SHALL be declared in an `.editorconfig` file consistent with the formatter's settings.
 - Lint, format-check, and type-check SHALL each be runnable as a discrete command.
 
-Traceability: [eslint.config.ts](../../../../../eslint.config.ts), [.prettierrc.json](../../../../../.prettierrc.json), [.editorconfig](../../../../../.editorconfig).
+Traceability: [eslint.config.ts](../../../eslint.config.ts), [.prettierrc.json](../../../.prettierrc.json), [.editorconfig](../../../.editorconfig).
 
 #### Scenario: Repository passes the quality toolchain
 
@@ -295,7 +294,7 @@ The project SHALL maintain automated unit tests and end-to-end tests, each runna
 - (History: the set was Chromium-only while the suite asserted routing and rendered text. The binding condition — WebKit returns first when the suite begins asserting isolation or database opening — was fulfilled on 2026-07-18 by the `fix-wasm-path-resolution` change; CI execution was removed the same day by operator decision.)
 - Test files SHALL follow a single naming and placement convention.
 
-Traceability: [vitest.config.ts](../../../../../vitest.config.ts), [playwright.config.ts](../../../../../playwright.config.ts), [src/__tests__/](../../../../../src/__tests__/), [e2e/](../../../../../e2e/).
+Traceability: [vitest.config.ts](../../../vitest.config.ts), [playwright.config.ts](../../../playwright.config.ts), [src/__tests__/](../../../src/__tests__/), [e2e/](../../../e2e/).
 
 #### Scenario: Test suites run independently
 
@@ -351,7 +350,7 @@ flowchart LR
 ```
 *Caption: The continuous integration quality gate and the deploy stage it gates. The deploy stage depends on every gate stage, so failure makes publishing impossible rather than merely inadvisable.*
 
-Traceability: [.github/workflows/](../../../../../.github/workflows/).
+Traceability: [.github/workflows/](../../../.github/workflows/).
 
 #### Scenario: Pull request fails a quality stage
 
@@ -446,7 +445,7 @@ Upstream MoneyManagerEx sources SHALL be vendored as pinned git submodules, and 
 - Local setup and continuous integration SHALL both initialize submodules before building.
 - Advancing a submodule pointer SHALL be an explicit, reviewable commit.
 
-Traceability: [.gitmodules](../../../../../.gitmodules).
+Traceability: [.gitmodules](../../../.gitmodules).
 
 #### Scenario: Fresh clone without submodule initialization
 
@@ -458,4 +457,43 @@ Traceability: [.gitmodules](../../../../../.gitmodules).
 - **WHEN** a maintainer advances the vendored schema submodule to a newer upstream tag
 - **THEN** the new pointer SHALL appear as an explicit change in review
 - **AND** the continuous integration quality gate SHALL re-verify the build and tests against it
+
+### Requirement: Production Binary Asset Resolution
+
+Runtime-fetched binary assets (WebAssembly modules and worker scripts) SHALL be resolved through the build system, so that every environment loads exactly the artifact the build emitted. Implicit, location-relative resolution SHALL NOT be relied upon, because content hashing renames emitted assets and the single-page-application fallback masks missing paths with a successful HTML response instead of a failure.
+
+- Every URL the embedded SQL engine requests at runtime (its WebAssembly binary and its OPFS helper worker) SHALL correspond to a real asset emitted by the build, in every environment: development server, preview server, and deployed host.
+- Runtime-fetched assets that are addressed by fixed names SHALL be served with content-correct caching: the service worker SHALL precache them with content-based revisions, so an upgraded dependency can never pair a new bundle with a stale cached binary.
+- An end-to-end suite SHALL exist that asserts, against a built artifact, that the browsing context is cross-origin isolated and that a database actually opens. It SHALL be runnable as a local command; execution in continuous integration was removed by operator decision on 2026-07-18 (infrastructure-baseline design.md D12), so a regression in asset resolution, isolation headers, or engine initialization is detected only when the suite is run.
+
+```mermaid
+flowchart TD
+    A[Engine computes asset URL<br/>relative to its module] --> B{Does an emitted asset<br/>exist at that URL?}
+    B -->|Yes: build emits it there| C[Served with correct<br/>content type]
+    C --> D[WASM compiles, OPFS proxy starts<br/>database opens]
+    B -->|No| E[SPA fallback answers<br/>index.html, HTTP 200]
+    E --> F[Failure far from cause:<br/>MIME error or SQLITE_CANTOPEN]
+    F --> G[e2e database-opening<br/>assertion fails when run]
+```
+*Caption: The engine's URL computation cannot be overridden, so the build must guarantee a real asset exists at every URL it computes — and the end-to-end assertion makes any regression observable when the suite is run (CI execution was removed by operator decision; see infrastructure-baseline design.md D12).*
+
+Traceability: [src/workers/sqlite.worker.ts](../../../src/workers/sqlite.worker.ts), [e2e/vue.spec.ts](../../../e2e/vue.spec.ts), [vite.config.ts](../../../vite.config.ts).
+
+#### Scenario: Database opens in a built artifact
+
+- **WHEN** the end-to-end suite runs against a preview of the production build
+- **THEN** `window.crossOriginIsolated` SHALL evaluate to `true`
+- **AND** the database SHALL initialize to the point that the application leaves its loading state (the new-database wizard or the ready state appears)
+
+#### Scenario: Engine asset requests are answered by real assets
+
+- **WHEN** the built worker fetches the SQL engine's WebAssembly binary and its OPFS helper worker
+- **THEN** each request SHALL be answered by an emitted asset with the correct content type
+- **AND** no engine asset request SHALL be answered by the single-page-application fallback
+
+#### Scenario: Resolution regression is detectable
+
+- **WHEN** a change reintroduces implicit script-directory WASM resolution and the end-to-end suite is run against a preview build
+- **THEN** the database-opening assertion SHALL fail
+- **AND** the SPA-fallback detection SHALL name the mis-resolved asset path
 
