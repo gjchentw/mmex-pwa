@@ -68,7 +68,7 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 - [x] 7.1 Evaluate migrating `vue-i18n` off the `^12.0.0-alpha.3` pre-release to the latest stable line; update the governed stack table via an OpenSpec change (design.md risks). **Outcome**: migrated to `vue-i18n@^11.4.6`, and replaced the lookalike `unplugin-vue-i18n` with the official `@intlify/unplugin-vue-i18n@^11.2.4` — which fixed P1 (see design.md resolved risks)
 - [x] 7.2 Automated the governed-stack-table-vs-`package.json` drift check in CI (Requirement: Governed Technology Stack Baseline)
 - [x] 7.3 Update `README.md` with the documented setup contract: submodule initialization, runtime version file, `.env.example` copy step, and the full command set
-- [ ] 7.4 Archive this change with `/opsx:archive` once implementation is complete and verified, promoting the spec to `openspec/specs/infrastructure-baseline/`
+- [x] 7.4 Archived 2026-07-18 with operator confirmation, promoting the spec to `openspec/specs/infrastructure-baseline/`. Carried forward open: 4.8 (negative gate verification — positive path verified), and 5.1/5.2 (COEP-vs-Google empirical validation — transfers to the future cloud-file-sync change, which owns the Drive work that triggers it)
 
 ## 8. Node 24 Runtime Upgrade (design.md D11; spec v1.1.0)
 
