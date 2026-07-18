@@ -77,6 +77,10 @@ The governed-engine-set sentence and table row live in the still-active `infrast
 - **e2e asserting wizard text couples to i18n strings** → Likelihood: low. Impact: low. Mitigation: assert on a stable selector/heading; the task notes this.
 - **Archive-order dependency between the two changes** → Likelihood: low. Impact: low (tooling error at archive time). Recorded in the proposal and here; baseline archives first.
 
+## Post-Deployment Observation: stale service workers can blank the page
+
+After this fix deployed, a browser that had visited *earlier* deployments showed a blank page, while a fresh profile rendered perfectly (verified 2026-07-18: fresh profile renders, database opens, zero errors, and the app still works after the new service worker takes over on reload). Cause: an old service worker's precached shell references hashed assets that no longer exist on the server and whose caches have been cleaned across update cycles. Remedy for affected browsers: clear site data, or close every tab of the site so the waiting worker activates. **Future-change candidate (not in scope here)**: an explicit in-app update flow (`useRegisterSW` prompt or auto-reload on update) so stranded shells recover without manual intervention.
+
 ## Migration Plan
 
 Single deployable step; no data, schema, or host-config changes. Rollback is `git revert` of one commit. Client-side databases are untouched by construction — the fix changes how the engine *loads*, not what it does.

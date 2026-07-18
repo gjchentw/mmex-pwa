@@ -27,4 +27,4 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 ## 4. Gate and Production Verification
 
 - [x] 4.1 Full gate green: drift-check, lint:check, format:check, type-check, unit, build; plus local Chromium e2e against the preview build (the gate no longer includes e2e per D12)
-- [ ] 4.2 After the operator pushes and CI deploys: verify on https://mmex.beerops.dev/ that the database opens (wizard appears on a fresh profile), the WASM request targets the hashed asset, and no COEP resource errors remain — then check off baseline task 6.8 (production database verification)
+- [x] 4.2 Verified on production (https://mmex.beerops.dev/, 2026-07-18, fresh browser profile): the database opens (`SQLite Status: Ready`; the app reaches Ready rather than the wizard, consistent with local behavior), `sqlite3.wasm` served as `application/wasm`, the OPFS proxy as `application/javascript`, `crossOriginIsolated === true`, zero console errors (no COEP blocks), and the app still renders after the new service worker takes over on reload. Baseline task 6.8 checked accordingly
