@@ -49,13 +49,15 @@ These are configured in [`vite.config.ts`](vite.config.ts) (for both `dev` and `
 
 ## CI/CD
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs lint, format-check, type-check, unit tests, a production build, and the Playwright e2e suite on every push and pull request. On a push to `main`, a `deploy` job publishes to Cloudflare Pages.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs lint, format-check, type-check, unit tests, and a production build on every push and pull request. On a push to `main`, a `deploy` job publishes to Cloudflare Pages.
 
-The gate is **structural**, not procedural: `deploy` declares `needs: [quality, build, e2e]`, so a failing check makes deployment unreachable rather than merely discouraged. It publishes the exact artifact the gate verified rather than rebuilding.
+The gate is **structural**, not procedural: `deploy` declares `needs: [quality, build]`, so a failing check makes deployment unreachable rather than merely discouraged. It publishes the exact artifact the gate verified rather than rebuilding.
 
-E2E runs on **Chromium only** — the governed engine set. The current suite asserts routing and rendered text, which never diverge across engines; when it starts asserting cross-origin isolation and database opening, WebKit comes back first (iOS mandates WebKit for every browser).
+The Playwright e2e suite (cross-origin isolation + the database actually opening against a preview build) is **not part of CI** — removed by operator decision on 2026-07-18 ([design.md D12](openspec/changes/infrastructure-baseline/design.md)). Run it locally before shipping risky changes:
 
-> **The deployed site's database does not open yet.** The built worker requests an unhashed `sqlite3.wasm` while the emitted asset is content-hashed; the SPA fallback answers the missing path with `index.html`, so `WebAssembly.compile` fails on `text/html`. Deployment is enabled ahead of that fix deliberately — to prove the pipeline and verify cross-origin isolation on real infrastructure — so treat the URL as a pipeline smoke test, not a working product. See [`openspec/changes/infrastructure-baseline/design.md`](openspec/changes/infrastructure-baseline/design.md).
+```bash
+npm run build && CI=true npm run test:e2e -- --project=chromium
+```
 
 ### Deployment setup
 

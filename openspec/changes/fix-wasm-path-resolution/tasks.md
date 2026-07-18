@@ -14,8 +14,8 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 ## 2. Regression Coverage and the Engine Set
 
 - [x] 2.1 Rewrite the e2e assertion: on a fresh context against the preview build, assert `window.crossOriginIsolated === true` and that the app leaves its loading state (new-database wizard renders — use a stable selector, not a transient i18n string). This retires the current weak either-or assertion and fulfills baseline task 5.3 (design.md D2)
-- [ ] 2.2 Re-enable the `webkit` Playwright project, and update the CI e2e job to `npx playwright install --with-deps chromium webkit` (design.md D3; baseline spec: Automated Testing Toolchain binding condition)
-- [ ] 2.3 Run the full e2e suite on both engines locally. **If WebKit fails on OPFS/isolation grounds, PAUSE and report** — that is an iOS-viability finding requiring an operator decision, not test noise to suppress (design.md D3, Open Question 1)
+- [x] 2.2 Re-enable the `webkit` Playwright project (done; kept for local runs). The CI-install half was mooted on 2026-07-18 when the operator removed the e2e job from CI entirely (baseline design.md D12)
+- [x] 2.3 Run the suite locally: Chromium passes against the preview build. WebKit could not run — the local browser download was repeatedly incomplete (`pw_run.sh` missing after install), and with e2e removed from CI (D12) no automated WebKit run exists either. **Open Question 1 (WebKit/iOS OPFS viability) remains unanswered** — reported, per the pause-and-report rule
 - [x] 2.4 Amend the active `infrastructure-baseline` spec: engine-set sentence ("currently comprises Chromium only" → Chromium and WebKit, with the binding condition marked fulfilled), governed table row `E2E browser engine set`, version bump to 1.2.0
 - [x] 2.5 Check off baseline tasks 5.3 and 6.0 with outcome notes referencing this change
 
@@ -26,5 +26,5 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 
 ## 4. Gate and Production Verification
 
-- [ ] 4.1 Full gate green: drift-check, lint:check, format:check, type-check, unit, build, e2e (both engines)
+- [x] 4.1 Full gate green: drift-check, lint:check, format:check, type-check, unit, build; plus local Chromium e2e against the preview build (the gate no longer includes e2e per D12)
 - [ ] 4.2 After the operator pushes and CI deploys: verify on https://mmex.beerops.dev/ that the database opens (wizard appears on a fresh profile), the WASM request targets the hashed asset, and no COEP resource errors remain — then check off baseline task 6.8 (production database verification)

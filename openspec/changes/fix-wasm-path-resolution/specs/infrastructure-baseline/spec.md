@@ -13,7 +13,7 @@ Runtime-fetched binary assets (WebAssembly modules and worker scripts) SHALL be 
 
 - Every URL the embedded SQL engine requests at runtime (its WebAssembly binary and its OPFS helper worker) SHALL correspond to a real asset emitted by the build, in every environment: development server, preview server, and deployed host.
 - Runtime-fetched assets that are addressed by fixed names SHALL be served with content-correct caching: the service worker SHALL precache them with content-based revisions, so an upgraded dependency can never pair a new bundle with a stale cached binary.
-- The end-to-end suite SHALL assert, against a built artifact, that the browsing context is cross-origin isolated and that a database actually opens — so a regression in asset resolution, isolation headers, or engine initialization fails continuous integration instead of shipping.
+- An end-to-end suite SHALL exist that asserts, against a built artifact, that the browsing context is cross-origin isolated and that a database actually opens. It SHALL be runnable as a local command; execution in continuous integration was removed by operator decision on 2026-07-18 (infrastructure-baseline design.md D12), so a regression in asset resolution, isolation headers, or engine initialization is detected only when the suite is run.
 
 ```mermaid
 flowchart TD
@@ -22,9 +22,9 @@ flowchart TD
     C --> D[WASM compiles, OPFS proxy starts<br/>database opens]
     B -->|No| E[SPA fallback answers<br/>index.html, HTTP 200]
     E --> F[Failure far from cause:<br/>MIME error or SQLITE_CANTOPEN]
-    F --> G[e2e database-opening<br/>assertion fails CI]
+    F --> G[e2e database-opening<br/>assertion fails when run]
 ```
-*Caption: The engine's URL computation cannot be overridden, so the build must guarantee a real asset exists at every URL it computes — and the end-to-end assertion turns any regression into a CI failure instead of a shipped defect.*
+*Caption: The engine's URL computation cannot be overridden, so the build must guarantee a real asset exists at every URL it computes — and the end-to-end assertion makes any regression observable when the suite is run (CI execution was removed by operator decision; see infrastructure-baseline design.md D12).*
 
 Traceability: [src/workers/sqlite.worker.ts](../../../../../src/workers/sqlite.worker.ts), [e2e/vue.spec.ts](../../../../../e2e/vue.spec.ts), [vite.config.ts](../../../../../vite.config.ts).
 
@@ -40,8 +40,8 @@ Traceability: [src/workers/sqlite.worker.ts](../../../../../src/workers/sqlite.w
 - **THEN** each request SHALL be answered by an emitted asset with the correct content type
 - **AND** no engine asset request SHALL be answered by the single-page-application fallback
 
-#### Scenario: Resolution regression is caught before deployment
+#### Scenario: Resolution regression is detectable
 
-- **WHEN** a change reintroduces implicit script-directory WASM resolution
-- **THEN** the end-to-end database-opening assertion SHALL fail in continuous integration
-- **AND** the deploy job SHALL be unreachable
+- **WHEN** a change reintroduces implicit script-directory WASM resolution and the end-to-end suite is run against a preview build
+- **THEN** the database-opening assertion SHALL fail
+- **AND** the SPA-fallback detection SHALL name the mis-resolved asset path

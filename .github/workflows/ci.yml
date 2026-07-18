@@ -122,7 +122,10 @@ jobs:
     # The gate is structural: this job is unreachable unless every gate job
     # passes. A red pipeline cannot publish -- that is the whole reason CI owns
     # the deploy rather than Cloudflare's git integration building on its own.
-    needs: [quality, build, e2e]
+    # e2e is NOT part of the gate: removed by operator decision 2026-07-18
+    # (openspec: infrastructure-baseline design.md D12). The suite remains
+    # runnable locally via `npm run test:e2e`.
+    needs: [quality, build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -149,48 +152,3 @@ jobs:
 
       - name: Deployment URL
         run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}"
-
-  # Runs the governed engine set: Chromium + WebKit (openspec: Automated
-  # Testing Toolchain). The suite asserts cross-origin isolation and an actual
-  # database open against the preview build -- the regression coverage whose
-  # absence let P2 ship green. A WebKit-specific failure is an iOS-viability
-  # signal (iOS permits only WebKit), not test noise.
-  e2e:
-    name: e2e
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code and submodules
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      # Chromium + WebKit: the governed engine set. WebKit rejoined when the
-      # suite began asserting database opening (iOS is WebKit-only).
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
-
-      # playwright.config.ts serves `npm run preview` on CI, which carries the
-      # same COOP/COEP headers as the dev server, so this exercises a genuinely
-      # cross-origin isolated context.
-      - name: E2E tests
-        run: npm run test:e2e
-
-      - name: Upload Playwright report
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7

@@ -22,7 +22,7 @@ This is why the entire quality gate stayed green while production was broken: no
 
 **Goals:**
 - Production, preview, and development all load the exact WASM artifact the build emitted.
-- A regression in this area fails CI (and therefore blocks deploy) rather than shipping.
+- A regression in this area is observable through an automated assertion (originally CI-blocking; e2e was removed from CI by operator decision on 2026-07-18 — see D2/D3 status notes — so the assertion now runs locally).
 - Fulfill the baseline's binding condition: WebKit rejoins the governed engine set the moment the suite asserts database opening.
 - Close P3 (COEP-blocked CDN logo) with a local asset.
 
@@ -48,11 +48,15 @@ Since the engine's URLs cannot be changed, the build makes them correct:
 
 ### D2: The regression test asserts outcomes, not mechanisms
 
+> **Status update (2026-07-18)**: after this change was implemented and the assertions verified on Chromium, the operator removed e2e execution from CI entirely (infrastructure-baseline design.md D12). The assertions remain and run locally.
+
 The e2e suite gains assertions that `window.crossOriginIsolated === true` and that the app *leaves its loading state* — on a fresh browser context the database creates, and the new-database wizard renders. Wizard-visible is the observable proof that WASM compiled, OPFS mounted, and the schema applied.
 
 **Rationale**: asserting the wizard rather than network internals keeps the test resilient to refactoring while still failing for every failure class that matters here (headers lost, WASM unresolvable, OPFS unavailable, schema broken). It also retires the current weak assertion, which passed whether or not the app worked ("Database Error" *or* "Initializing").
 
 ### D3: WebKit rejoins the governed engine set now
+
+> **Status update (2026-07-18)**: WebKit stays in the local Playwright project matrix, but with CI e2e execution removed (D12), no automated WebKit run exists. The local WebKit browser install was additionally flaky on the development machine (incomplete download); Open Question 1 therefore remains empirically unanswered.
 
 The baseline's Automated Testing Toolchain requirement states: WHEN the suite begins asserting cross-origin isolation or database opening, WebKit SHALL be added back **first**, because every iOS browser is WebKit and OPFS + `SharedArrayBuffer` is exactly where that engine diverges. D2 triggers that condition, so this change re-enables the WebKit Playwright project and installs it in CI (`playwright install --with-deps chromium webkit`). Firefox stays out — no binding condition covers it, and desktop Firefox users have Chromium-equivalent OPFS behavior for our purposes.
 
