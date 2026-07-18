@@ -40,14 +40,14 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 - [x] 4.4 Delete `test.yml` so a single workflow owns the gate
 - [x] 4.5 Add a CI check asserting the runtime version file satisfies the `engines` range (Requirement: Runtime and Package Management Baseline) — satisfied by `.npmrc` `engine-strict` plus `node-version-file`, which makes `npm ci` fail with EBADENGINE on drift
 - [x] 4.6 Add a CI check asserting the emitted manifest does not retain PWA plugin defaults (name/theme color/icons/maskable). Landed together with task 2.4, which customized the manifest (Requirement: Progressive Web App and Offline Baseline)
-- [x] 4.7 Enable the `e2e` job (written and commented out in `ci.yml`). **Unblocked by the P1 fix** (task 7.1): enabled on the governed Chromium engine set, `npx playwright install --with-deps chromium`, and added to the deploy job's `needs:` (design.md D10)
+- [x] 4.7 Enable the `e2e` job (written and commented out in `ci.yml`). **Unblocked by the P1 fix** (task 7.1) and enabled on 2026-07-18; **removed from CI the same day by operator decision** (design.md D12). The suite remains local-only
 - [ ] 4.8 Verify the gate negatively: a push containing a lint error, a type error, or a failing test SHALL fail the pipeline and leave the deploy job skipped. (The positive path is verified: the 2026-07-18 push ran all gates green and the deploy job executed)
 
 ## 5. Cross-Origin Isolation Validation (do before Drive work)
 
 - [ ] 5.1 Empirically determine whether Google Sign-In / Drive endpoints function under COEP `require-corp`; if they do not, adopt `credentialless` (Requirement: Cross-Origin Isolation, design.md D5)
 - [ ] 5.2 Record the chosen COEP value and the evidence behind it, and align the dev server and `_headers` on the same value
-- [x] 5.3 Add an e2e assertion that `window.crossOriginIsolated === true` and that a database opens successfully, so header regressions fail as a test. **When this lands, re-add WebKit to the governed engine set FIRST** — iOS permits only WebKit, and OPFS + `SharedArrayBuffer` is where it diverges (design.md D10; spec: Automated Testing Toolchain). **Done by `fix-wasm-path-resolution` (2026-07-18)**: e2e asserts isolation + database opening against the preview build, and WebKit rejoined the engine set
+- [x] 5.3 Add an e2e assertion that `window.crossOriginIsolated === true` and that a database opens successfully, so header regressions fail as a test. **When this lands, re-add WebKit to the governed engine set FIRST** — iOS permits only WebKit, and OPFS + `SharedArrayBuffer` is where it diverges (design.md D10; spec: Automated Testing Toolchain). **Done by `fix-wasm-path-resolution` (2026-07-18)**: the suite asserts isolation + database opening against the preview build, and WebKit rejoined the engine set. Runs locally only — CI execution removed by operator decision (design.md D12)
 
 ## 6. Deployment and Hosting
 

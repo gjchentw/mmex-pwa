@@ -166,6 +166,14 @@ The `engines` range moves from `^20.19.0 || >=22.12.0` to `>=24.0.0`, and the pi
 
 **Alternatives considered**: (a) pin bump only (`.nvmrc` → 24, `engines` untouched) — rejected because it leaves the EOL v20 endorsement in place; (b) jump to Node 26 — rejected: not LTS until 2026-10; the floor form makes that a `.nvmrc`-only follow-up when the time comes.
 
+### D12: Operator decision — end-to-end tests removed from continuous integration
+
+On 2026-07-18 the operator decided to remove the e2e job from the pipeline entirely, after a presented impact analysis. For the record, that analysis showed: the job's measured cost was 0.8 minutes per run on a public repository (free Actions minutes); it was the only automated check operating at the browser-runtime layer; and it had caught both production-killing defects of this project's history (P1, the production i18n regression, was found only by this suite; P2 shipped precisely because the database-opening assertion did not yet exist). The consequences accepted with the decision: the deploy gate is blind to header regressions, asset-resolution regressions, production-build-only failures, and worker boot failures; and WebKit/iOS compatibility has no automated signal.
+
+**What remains**: the suite itself, including the database-opening and isolation assertions and the Chromium + WebKit project matrix, stays in the repository and runs locally via `npm run test:e2e` (chromium-only: `-- --project=chromium`). The deploy gate is `needs: [quality, build]`.
+
+This section exists because the authoring rules require deviations and their approval to be documented — the decision is the operator's to make, and this is its record.
+
 ## Risks / Trade-offs
 
 - **COEP breaks Google Sign-In / Drive sync** → Likelihood: medium. Impact: high (blocks the cloud-sync feature). Mitigation: D5 permits `credentialless`; `tasks.md` requires verifying the OAuth flow under isolation *before* the Drive integration is built, so the constraint is discovered early rather than during feature work.

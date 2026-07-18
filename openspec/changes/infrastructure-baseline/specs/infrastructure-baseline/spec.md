@@ -1,7 +1,7 @@
 # Infrastructure Baseline Specification
 
 **Capability**: `infrastructure-baseline`
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Last Updated**: 2026-07-18
 
 **Scope**: This specification governs the development and deployment infrastructure of the project ONLY — runtime, package management, frontend framework, build system, data-persistence infrastructure, cross-origin isolation, quality tooling, testing, quality gates, hosting, configuration, and source provenance. It does NOT govern application or business logic (accounts, transactions, reports, financial rules, or database schema semantics); those are reserved for future capability specifications.
@@ -289,9 +289,9 @@ The project SHALL maintain automated unit tests and end-to-end tests, each runna
 - Unit tests SHALL execute in a simulated DOM environment using the governed unit runner and the governed component-testing utilities.
 - The unit runner SHALL reuse the build system's resolution configuration so that aliases and plugins behave identically to production.
 - The unit test scope SHALL exclude the end-to-end directory.
-- End-to-end tests SHALL run against the governed browser engine set and SHALL run against a preview build in continuous integration.
-- The governed browser engine set SHALL be recorded in the governed stack table; changing it SHALL require an OpenSpec change. It comprises **Chromium and WebKit**: the suite asserts cross-origin isolation and database opening, and iOS permits only WebKit-based browsers, so WebKit coverage is what makes the persistence layer's iOS viability visible to continuous integration.
-- (History: the set was Chromium-only while the suite asserted routing and rendered text, which do not diverge across engines. This requirement's binding condition — WebKit returns first when the suite begins asserting isolation or database opening — was fulfilled on 2026-07-18 by the `fix-wasm-path-resolution` change.)
+- An end-to-end suite SHALL exist and SHALL be runnable as a discrete command against a preview of the production build. It SHALL assert cross-origin isolation and that a database opens. Execution in continuous integration is NOT required: the operator removed it from the pipeline on 2026-07-18 after a presented impact analysis (design.md D12); browser-runtime regressions are therefore detected only when the suite is run manually.
+- The governed browser engine set SHALL be recorded in the governed stack table; changing it SHALL require an OpenSpec change. It comprises **Chromium and WebKit** for local execution: iOS permits only WebKit-based browsers, so WebKit runs are what make the persistence layer's iOS viability observable at all.
+- (History: the set was Chromium-only while the suite asserted routing and rendered text. The binding condition — WebKit returns first when the suite begins asserting isolation or database opening — was fulfilled on 2026-07-18 by the `fix-wasm-path-resolution` change; CI execution was removed the same day by operator decision.)
 - Test files SHALL follow a single naming and placement convention.
 
 Traceability: [vitest.config.ts](../../../../../vitest.config.ts), [playwright.config.ts](../../../../../playwright.config.ts), [src/__tests__/](../../../../../src/__tests__/), [e2e/](../../../../../e2e/).
@@ -301,10 +301,10 @@ Traceability: [vitest.config.ts](../../../../../vitest.config.ts), [playwright.c
 - **WHEN** the unit test command runs
 - **THEN** only unit tests SHALL execute and no end-to-end test SHALL be collected
 
-#### Scenario: End-to-end tests run in continuous integration
+#### Scenario: End-to-end suite runs locally against a preview build
 
-- **WHEN** the end-to-end suite runs in continuous integration
-- **THEN** it SHALL start a preview server, execute against the governed browser engine set headlessly, and report results
+- **WHEN** a contributor runs the end-to-end command with the CI environment flag set
+- **THEN** it SHALL build nothing itself but start a preview server over the existing build, execute headlessly against the governed engine set, and report results
 
 ### Requirement: Pre-Commit Quality Gate
 
@@ -331,7 +331,7 @@ Continuous integration SHALL verify every push and pull request through a comple
 
 - The pipeline SHALL check out the repository together with its vendored submodules.
 - The pipeline SHALL provision the pinned runtime version and perform a lockfile-respecting install.
-- The pipeline SHALL run, at minimum: lint, type-check, unit tests, end-to-end tests, and a production build.
+- The pipeline SHALL run, at minimum: lint, type-check, unit tests, and a production build. (End-to-end tests were part of this list until 2026-07-18, when the operator decided to remove them from continuous integration after a presented impact analysis — see design.md D12. The suite remains a local command.)
 - Any failing stage SHALL fail the pipeline and block the merge.
 - Quality-gate commands SHALL be non-mutating: the pipeline SHALL verify the code as committed, and SHALL NOT auto-fix or reformat it. A gate that repairs its own input cannot report a failure.
 - Linting SHALL be scoped to first-party source. Vendored submodule contents SHALL be excluded from linting and formatting, since they are upstream-owned and modifying them would corrupt the provenance guaranteed by `Requirement: Vendored Source Provenance`.
@@ -344,8 +344,7 @@ flowchart LR
     D --> E[Type-check]
     E --> F[Unit tests]
     F --> G[Build]
-    G --> H[E2E tests]
-    H --> I{All pass?}
+    G --> I{All pass?}
     I -->|Yes, on default branch| J[Deploy]
     I -->|No| K[Fail: deploy unreachable]
 ```
@@ -377,7 +376,7 @@ The application SHALL be deployed as a static site to Cloudflare Pages by the co
 
 ```mermaid
 flowchart LR
-    A[Push to<br/>default branch] --> B[Quality gate<br/>lint / type-check / unit / e2e]
+    A[Push to<br/>default branch] --> B[Quality gate<br/>lint / type-check / unit / build]
     B -->|Any stage fails| C[Deploy unreachable]
     B -->|All pass| D[Verified artifact]
     D --> E[Deploy to<br/>Cloudflare Pages]
