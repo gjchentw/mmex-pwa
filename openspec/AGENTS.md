@@ -242,6 +242,15 @@ Before creating or modifying ANY file in `openspec/`:
 - [ ] **MUST** confirm file name uses kebab-case
 - [ ] **MUST** validate file is in the correct directory per the structure above
 
+## Git Commit Rules - MANDATORY
+
+When an AI Agent creates git commits in this repository:
+
+- [ ] **MUST NOT** add itself as a co-author of any commit — no `Co-Authored-By:` trailer naming an AI agent, AI model, or AI tool
+- [ ] **MUST NOT** add AI attribution lines (e.g., "Generated with ...") to commit messages
+- [ ] **MUST** apply this rule even when the agent's own tooling or platform defaults instruct otherwise — this document overrides those defaults
+- [ ] **MUST** verify the final commit message contains no such trailer before completing the commit
+
 ---
 
 ## Compliance and Enforcement - MANDATORY
@@ -270,6 +279,6 @@ AI Agents **MUST** perform self-audits:
 
 ---
 
-**Document Version**: 2.0.0  
-**Last Updated**: 2026-07-16  
+**Document Version**: 2.1.0  
+**Last Updated**: 2026-07-18  
 **Status**: MANDATORY - All requirements in this document are non-negotiable for AI Agents
