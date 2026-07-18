@@ -6,6 +6,9 @@ export const helpers = {
 
 export class DbClient {
   private worker: Worker
+  // Invoked after every successful mutating exec (openspec: cloud-file-sync
+  // design.md D3). Injected by the sync store to avoid a store<->client cycle.
+  private mutationListener: (() => void) | null = null
   private pendingRequests = new Map<
     string,
     { resolve: (value: unknown) => void; reject: (reason?: unknown) => void }
@@ -79,12 +82,49 @@ export class DbClient {
     })
   }
 
+  setMutationListener(listener: (() => void) | null) {
+    this.mutationListener = listener
+  }
+
   async exec(sql: string, bind?: unknown[]): Promise<unknown> {
     await this.ready()
     const id = helpers.generateId()
-    return new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject })
       this.worker.postMessage({ id, type: 'exec', payload: { sql, bind } })
+    })
+    if (this.mutationListener && !/^\s*(select|pragma|explain)\b/i.test(sql)) {
+      this.mutationListener()
+    }
+    return result
+  }
+
+  /** Raw database file bytes (openspec: cloud-file-sync — seeds new Drive files). */
+  async exportDatabase(): Promise<ArrayBuffer> {
+    await this.ready()
+    const id = helpers.generateId()
+    return new Promise((resolve, reject) => {
+      this.pendingRequests.set(id, {
+        resolve: (result) => resolve(result as ArrayBuffer),
+        reject,
+      })
+      this.worker.postMessage({ id, type: 'export' })
+    })
+  }
+
+  /**
+   * Replace the database with imported bytes and reopen it. The worker closes
+   * its handle first; callers must reload database state afterwards
+   * (openspec: cloud-file-sync, scenario "Import a pre-existing database file").
+   */
+  async importDatabase(bytes: ArrayBuffer): Promise<{ status: string; version: number }> {
+    const id = helpers.generateId()
+    return new Promise((resolve, reject) => {
+      this.pendingRequests.set(id, {
+        resolve: (result) => resolve(result as { status: string; version: number }),
+        reject,
+      })
+      this.worker.postMessage({ id, type: 'import', payload: { bytes } }, [bytes])
     })
   }
 }

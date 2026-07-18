@@ -185,6 +185,40 @@ const destroyDb = async (): Promise<void> => {
   }
 }
 
+const resolveDbFile = async (create: boolean) => {
+  const parts = dbPath.split('/').filter(Boolean)
+  const filename = parts.pop()!
+  let dirHandle = await navigator.storage.getDirectory()
+  for (const part of parts) {
+    dirHandle = await dirHandle.getDirectoryHandle(part, { create })
+  }
+  return dirHandle.getFileHandle(filename, { create })
+}
+
+// Read the raw database file bytes (openspec: cloud-file-sync -- used to seed a
+// newly created Drive file with the current database).
+const exportDb = async (): Promise<ArrayBuffer> => {
+  const fileHandle = await resolveDbFile(false)
+  const file = await fileHandle.getFile()
+  return file.arrayBuffer()
+}
+
+// Replace the database file with imported bytes, then reopen and migrate. The
+// open handle MUST be closed first: OPFS sync-access handles are exclusive
+// (openspec: cloud-file-sync, spec scenario "Import a pre-existing database file").
+const importDb = async (bytes: ArrayBuffer): Promise<{ status: string; version: number }> => {
+  if (db) {
+    db.close()
+    db = null
+  }
+  const fileHandle = await resolveDbFile(true)
+  const writable = await fileHandle.createWritable()
+  await writable.write(bytes)
+  await writable.close()
+  log('Imported database bytes:', bytes.byteLength)
+  return openOrCreate()
+}
+
 self.onmessage = async (e) => {
   const { type, payload, id } = e.data
 
@@ -199,6 +233,19 @@ self.onmessage = async (e) => {
       case 'destroy': {
         await destroyDb()
         self.postMessage({ id, type: 'destroy', status: 'success' })
+        break
+      }
+
+      case 'export': {
+        const result = await exportDb()
+        // The buffer is transferred, not copied.
+        self.postMessage({ id, type: 'export', status: 'success', result }, { transfer: [result] })
+        break
+      }
+
+      case 'import': {
+        const result = await importDb(payload.bytes as ArrayBuffer)
+        self.postMessage({ id, type: 'import', status: 'success', result })
         break
       }
 

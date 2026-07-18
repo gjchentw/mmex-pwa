@@ -69,7 +69,7 @@ npm run build && CI=true npm run test:e2e -- --project=chromium
 | --- | --- | --- |
 | `CLOUDFLARE_API_TOKEN` | The token from step 2 | Yes |
 | `CLOUDFLARE_ACCOUNT_ID` | Account ID (Workers & Pages sidebar, or the dashboard URL) | Yes |
-| `VITE_GOOGLE_CLIENT_ID` / `VITE_GOOGLE_API_KEY` / `VITE_GOOGLE_APP_ID` | Google Picker credentials | No — nothing reads them yet |
+| `VITE_GOOGLE_CLIENT_ID` | The sole Google credential — OAuth client id for sign-in and Drive sync | For sync builds |
 
 ## Specifications
 
