@@ -66,6 +66,6 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 ## 7. Follow-Ups
 
 - [x] 7.1 Evaluate migrating `vue-i18n` off the `^12.0.0-alpha.3` pre-release to the latest stable line; update the governed stack table via an OpenSpec change (design.md risks). **Outcome**: migrated to `vue-i18n@^11.4.6`, and replaced the lookalike `unplugin-vue-i18n` with the official `@intlify/unplugin-vue-i18n@^11.2.4` — which fixed P1 (see design.md resolved risks)
-- [ ] 7.2 Consider automating the governed-stack-table-vs-`package.json` drift check in CI (Requirement: Governed Technology Stack Baseline)
+- [x] 7.2 Automated the governed-stack-table-vs-`package.json` drift check in CI (Requirement: Governed Technology Stack Baseline)
 - [x] 7.3 Update `README.md` with the documented setup contract: submodule initialization, runtime version file, `.env.example` copy step, and the full command set
 - [ ] 7.4 Archive this change with `/opsx:archive` once implementation is complete and verified, promoting the spec to `openspec/specs/infrastructure-baseline/`

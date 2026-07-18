@@ -38,6 +38,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The governed stack table in the openspec spec must match package.json;
+      # it drifted twice within a day of being written, so this is automated.
+      - name: Check governed stack drift
+        run: node scripts/check-stack-drift.mjs
+
       # Deliberately NOT `npm run lint`: that script passes --fix, which would
       # repair violations and then report success. A gate must not mutate its input.
       - name: Lint
