@@ -47,13 +47,13 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 
 - [ ] 5.1 Empirically determine whether Google Sign-In / Drive endpoints function under COEP `require-corp`; if they do not, adopt `credentialless` (Requirement: Cross-Origin Isolation, design.md D5)
 - [ ] 5.2 Record the chosen COEP value and the evidence behind it, and align the dev server and `_headers` on the same value
-- [ ] 5.3 Add an e2e assertion that `window.crossOriginIsolated === true` and that a database opens successfully, so header regressions fail as a test. **When this lands, re-add WebKit to the governed engine set FIRST** — iOS permits only WebKit, and OPFS + `SharedArrayBuffer` is where it diverges (design.md D10; spec: Automated Testing Toolchain)
+- [x] 5.3 Add an e2e assertion that `window.crossOriginIsolated === true` and that a database opens successfully, so header regressions fail as a test. **When this lands, re-add WebKit to the governed engine set FIRST** — iOS permits only WebKit, and OPFS + `SharedArrayBuffer` is where it diverges (design.md D10; spec: Automated Testing Toolchain). **Done by `fix-wasm-path-resolution` (2026-07-18)**: e2e asserts isolation + database opening against the preview build, and WebKit rejoined the engine set
 
 ## 6. Deployment and Hosting
 
 **Note: deploy is enabled ahead of P2 by operator decision** (design.md Open Question 0). The deployed database will not open until P2 lands; the URL serves as a pipeline smoke test, not a product. Task 6.7 is therefore split into what is verifiable now (6.7) and what needs P2 (6.8).
 
-- [ ] 6.0 Fix P2/P3 under their own change — SQLite WASM path resolution and the COEP-blocked Quasar CDN logo. **P1 is fixed** (task 7.1 root-caused it to a lookalike i18n plugin; see design.md). Note: the `copilot/fix-*wasm*` reference branches were deleted in the 2026-07-18 branch cleanup (operator decision); P2 will be fixed from scratch
+- [x] 6.0 Fix P2/P3 under their own change — SQLite WASM path resolution and the COEP-blocked Quasar CDN logo. **All three fixed**: P1 by task 7.1 (lookalike i18n plugin); P2 and P3 by the `fix-wasm-path-resolution` change (2026-07-18), developed from scratch after the reference branches were deleted in the branch cleanup
 - [x] 6.1 **Manual** — provision the Cloudflare Pages project named `mmex-pwa` with production branch `main`, via `wrangler pages project create` or the dashboard. It must exist first: `pages deploy` prompts for the production branch when creating one, and prompting in CI is an error (Requirement: Deployment and Hosting)
 - [x] 6.2 **Manual** — create an API token with the single permission Account → Cloudflare Pages → Edit, and set the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (Requirement: Deployment and Hosting)
 - [x] 6.3 Add `public/_headers` setting `Cross-Origin-Opener-Policy: same-origin` and the COEP value chosen in 5.2, so it is copied to the build output root (Requirement: Cross-Origin Isolation)

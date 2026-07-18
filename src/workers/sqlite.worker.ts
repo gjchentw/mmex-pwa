@@ -1,4 +1,10 @@
 import sqlite3InitModule, { OpfsDatabase } from '@sqlite.org/sqlite-wasm'
+// Resolved through the bundler: dev-server path in development, content-hashed
+// asset URL in production. Without this, Emscripten falls back to resolving the
+// bare filename against the script directory -- which in a built app requests an
+// unhashed /assets/sqlite3.wasm that the SPA fallback answers with index.html,
+// and the database never opens (openspec: Production Binary Asset Resolution).
+import wasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm?url'
 import tablesSql from '../../mmex/database/tables.sql?raw'
 
 const dbPath = '/.mmex/data.mmb'
@@ -134,6 +140,7 @@ const openOrCreate = async (): Promise<{ status: string; version: number }> => {
   sqlite3 = await sqlite3InitModule({
     print: log,
     printErr: error,
+    locateFile: () => wasmUrl,
   })
 
   log('Running SQLite3 version', sqlite3.version.libVersion)

@@ -6,10 +6,12 @@
 
         <q-toolbar-title>
           <q-avatar>
-            <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" />
+            <!-- Local product icon: COEP require-corp blocks cross-origin
+                 subresources, and this was the app shell's only one. -->
+            <img src="/icon-192.png" />
           </q-avatar>
           <span class="q-ml-sm">Title</span>
-          <div class="text-subtitle2 q-mt-xs">
+          <div class="text-subtitle2 q-mt-xs" data-testid="db-status">
             {{ $t('database.dbStatus', { status: dbStatus }) }}
           </div>
         </q-toolbar-title>
