@@ -53,7 +53,7 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 
 **Note: deploy is enabled ahead of P2 by operator decision** (design.md Open Question 0). The deployed database will not open until P2 lands; the URL serves as a pipeline smoke test, not a product. Task 6.7 is therefore split into what is verifiable now (6.7) and what needs P2 (6.8).
 
-- [ ] 6.0 Fix P1/P2/P3 under their own change — i18n production compilation, SQLite WASM path resolution (see the two existing `copilot/fix-*wasm*` branches), and the COEP-blocked Quasar CDN logo
+- [ ] 6.0 Fix P2/P3 under their own change — SQLite WASM path resolution (see the two existing `copilot/fix-*wasm*` branches) and the COEP-blocked Quasar CDN logo. **P1 is fixed** (task 7.1 root-caused it to a lookalike i18n plugin; see design.md)
 - [ ] 6.1 **Manual** — provision the Cloudflare Pages project named `mmex-pwa` with production branch `main`, via `wrangler pages project create` or the dashboard. It must exist first: `pages deploy` prompts for the production branch when creating one, and prompting in CI is an error (Requirement: Deployment and Hosting)
 - [ ] 6.2 **Manual** — create an API token with the single permission Account → Cloudflare Pages → Edit, and set the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (Requirement: Deployment and Hosting)
 - [x] 6.3 Add `public/_headers` setting `Cross-Origin-Opener-Policy: same-origin` and the COEP value chosen in 5.2, so it is copied to the build output root (Requirement: Cross-Origin Isolation)
@@ -65,7 +65,7 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 
 ## 7. Follow-Ups
 
-- [ ] 7.1 Evaluate migrating `vue-i18n` off the `^12.0.0-alpha.3` pre-release to the latest stable line; update the governed stack table via an OpenSpec change (design.md risks)
+- [x] 7.1 Evaluate migrating `vue-i18n` off the `^12.0.0-alpha.3` pre-release to the latest stable line; update the governed stack table via an OpenSpec change (design.md risks). **Outcome**: migrated to `vue-i18n@^11.4.6`, and replaced the lookalike `unplugin-vue-i18n` with the official `@intlify/unplugin-vue-i18n@^11.2.4` — which fixed P1 (see design.md resolved risks)
 - [ ] 7.2 Consider automating the governed-stack-table-vs-`package.json` drift check in CI (Requirement: Governed Technology Stack Baseline)
 - [x] 7.3 Update `README.md` with the documented setup contract: submodule initialization, runtime version file, `.env.example` copy step, and the full command set
 - [ ] 7.4 Archive this change with `/opsx:archive` once implementation is complete and verified, promoting the spec to `openspec/specs/infrastructure-baseline/`

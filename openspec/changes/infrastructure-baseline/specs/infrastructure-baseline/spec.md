@@ -30,7 +30,7 @@ The project SHALL build on the governed technology stack recorded in the table b
 | PWA/service worker | vite-plugin-pwa (Workbox) | `^1.1.0` |
 | State management | Pinia | `^3.0.3` |
 | Routing | vue-router | `^4.6.3` |
-| Internationalization | vue-i18n + unplugin-vue-i18n | `^12.0.0-alpha.3` / `^1.0.11` |
+| Internationalization | vue-i18n + @intlify/unplugin-vue-i18n | `^11.4.6` / `^11.2.4` |
 | Embedded SQL engine | @sqlite.org/sqlite-wasm | `^3.51.1-build1` |
 | Cloud file sync | opfs-cloud-file | `^0.1.4` |
 | CSS preprocessor | sass-embedded | `^1.93.3` |
