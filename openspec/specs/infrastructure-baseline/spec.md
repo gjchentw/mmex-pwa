@@ -1,7 +1,7 @@
 # infrastructure-baseline Specification
 
 **Capability**: `infrastructure-baseline`
-**Version**: 1.4.0
+**Version**: 1.5.0
 **Last Updated**: 2026-07-18
 
 ## Purpose
@@ -35,7 +35,7 @@ The `npm package` column is machine-readable: an automated drift check compares 
 | Internationalization runtime | vue-i18n | `vue-i18n` | `^11.4.6` |
 | Internationalization build plugin | Intlify unplugin | `@intlify/unplugin-vue-i18n` | `^11.2.4` |
 | Embedded SQL engine | SQLite WASM | `@sqlite.org/sqlite-wasm` | `^3.51.1-build1` |
-| Cloud file sync | opfs-cloud-file | `opfs-cloud-file` | `^0.1.4` |
+| Cloud file sync | opfs-cloud-file | `opfs-cloud-file` | `^0.1.5` |
 | CSS preprocessor | Sass (embedded) | `sass-embedded` | `^1.93.3` |
 | Icon set | Quasar extras (MDI v7) | `@quasar/extras` | `^1.17.0` |
 | Linter | ESLint (flat config) | `eslint` | `^9.37.0` |
