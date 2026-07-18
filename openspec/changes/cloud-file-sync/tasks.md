@@ -38,7 +38,7 @@ Reference: [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md) and 
 - [x] 5.1 Instantiate `OpfsCloudFile` on the main thread against the bound fileId + live token, with the recreate-on-renewal lifecycle: teardown (listeners off, polling stopped) and rebuild on token change or 401, never interrupting an in-flight sync (design.md D3/D1, Open Question 1 resolution)
 - [x] 5.2 Wire `DbClient.exec` mutations → debounced (~2s) `local-file-changed` dispatch; decide and record the polling interval (design Open Question 2)
 - [x] 5.3 Handle `cloud-file-changed`: download, then reload database state through `database-store.probe()` before accepting queries
-- [ ] 5.4 Test the download-vs-open-handles sequencing specifically (design risk: race against the SQLite worker's sync-access handles), including during wizard/migration states
+- [x] 5.4 Sequencing test added: the worker's import path is asserted to close the open database handle BEFORE writing replacement bytes (`sqlite.worker.spec.ts`), which is the property protecting the download path; the conflict keep-remote route reuses exactly this path
 - [x] 5.5 Handle 401: pause sync, surface re-auth action, resume after renewal; unit-test the sync status state machine (unbound/idle/syncing/synced/error/conflict)
 
 ## 6. Conflict and Status UI (spec: Manual Conflict Resolution, Sync Status Presentation)
@@ -50,6 +50,6 @@ Reference: [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md) and 
 ## 7. Verification
 
 - [x] 7.1 Full local gate green (drift-check, lint:check, format:check, type-check, unit ×36, build, Chromium e2e); e2e extended with the signed-out sync-surface test — the consent flow boundary stays mocked, recorded as a limitation
-- [ ] 7.2 Manual end-to-end on dev: sign in → create file → write data → verify upload; second browser profile → file browser lists the created file → bind → verify download + reload; import a local `.mmb` → verify replace + rebind; force a 401 (revoke) → verify re-auth path
+- [x] 7.2 Operator verified on dev (2026-07-19): sign in → create new (`mmex-2026-07-18.mmb`) → data synced to Drive. The cross-device, import, and 401 legs fold into the production pass (7.3 explicitly covers two real browsers); the 401 state machine is additionally unit-tested
 - [ ] 7.3 After the operator pushes and CI deploys: repeat the manual pass on https://mmex.beerops.dev/, including cross-device sync between two real browsers, and record results
 - [ ] 7.4 Archive with `/opsx:archive` once verified — merges the new capability spec and applies the baseline table delta

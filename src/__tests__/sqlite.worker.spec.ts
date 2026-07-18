@@ -4,8 +4,23 @@ const mockExec = vi.fn()
 const mockClose = vi.fn()
 const mockTransaction = vi.fn((cb) => cb())
 const mockRemoveEntry = vi.fn()
+const opfsCallOrder: string[] = []
+const mockWritable = {
+  write: vi.fn(() => {
+    opfsCallOrder.push('write')
+    return Promise.resolve()
+  }),
+  close: vi.fn(() => Promise.resolve()),
+}
+const mockGetFileHandle = vi.fn(() =>
+  Promise.resolve({
+    createWritable: vi.fn(() => Promise.resolve(mockWritable)),
+    getFile: vi.fn(() => Promise.resolve({ arrayBuffer: () => new ArrayBuffer(4) })),
+  }),
+)
 const makeMockDirHandle = () => ({
   getDirectoryHandle: mockGetDirectoryHandle,
+  getFileHandle: mockGetFileHandle,
   removeEntry: mockRemoveEntry,
 })
 const mockGetDirectoryHandle = vi.fn(() => Promise.resolve(makeMockDirHandle()))
@@ -164,6 +179,33 @@ describe('SQLite Worker', () => {
       type: 'exec',
       status: 'error',
       error: 'SQL Error',
+    })
+  })
+
+  // openspec: cloud-file-sync task 5.4 -- the download/import path must release
+  // the SQLite worker's exclusive OPFS handle BEFORE the file is replaced, or
+  // the write collides with the open sync-access handle.
+  it('import closes the open database handle before writing the new bytes', async () => {
+    // clearAllMocks does not reset implementations left by earlier tests.
+    mockExec.mockImplementation(() => [])
+
+    await self.onmessage!({
+      data: { id: 'test-9', type: 'open-or-create' },
+    } as MessageEvent)
+
+    opfsCallOrder.length = 0
+    mockClose.mockImplementation(() => opfsCallOrder.push('close'))
+
+    await self.onmessage!({
+      data: { id: 'test-10', type: 'import', payload: { bytes: new ArrayBuffer(16) } },
+    } as MessageEvent)
+
+    expect(opfsCallOrder).toEqual(['close', 'write'])
+    expect(postMessageMock).toHaveBeenCalledWith({
+      id: 'test-10',
+      type: 'import',
+      status: 'success',
+      result: { status: expect.stringMatching(/existing|created/), version: expect.any(Number) },
     })
   })
 })
