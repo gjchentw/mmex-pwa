@@ -78,9 +78,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
+          # The sole Google credential (openspec: cloud-file-sync design.md D8).
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
-          VITE_GOOGLE_APP_ID: ${{ secrets.VITE_GOOGLE_APP_ID }}
 
       # `_headers` carries cross-origin isolation to Cloudflare. It is a plain
       # text file with no schema validation, so a rename or typo fails open --

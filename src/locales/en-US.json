@@ -51,6 +51,24 @@
     "authorizing": "Redirecting to Google...",
     "sessionExpired": "Session expired",
     "reauthenticate": "Re-authenticate",
-    "authError": "Sign-in failed: {error}"
+    "authError": "Sign-in failed: {error}",
+    "fileBrowserTitle": "Choose a database on Google Drive",
+    "noFiles": "No app-created database files found. Create a new one, or import a local file first.",
+    "createNew": "Create new",
+    "importLocal": "Import local file",
+    "unlink": "Unlink",
+    "conflictTitle": "Sync conflict",
+    "conflictDetail": "Both the local and the remote database changed at the same time. Choose which version to keep — nothing is overwritten until you decide.",
+    "conflictLocal": "This device",
+    "conflictRemote": "Google Drive",
+    "keepLocal": "Keep this device",
+    "keepRemote": "Keep Drive version",
+    "status": {
+      "unbound": "Not linked",
+      "idle": "Synced",
+      "syncing": "Syncing...",
+      "error": "Sync error",
+      "conflict": "Conflict — action needed"
+    }
   }
 }

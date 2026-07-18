@@ -92,19 +92,61 @@
 
           <q-separator />
 
-          <q-item clickable v-ripple :disable="!auth.isSignedIn">
+          <q-item v-if="sync.isBound">
+            <q-item-section avatar>
+              <q-spinner v-if="sync.status === 'syncing'" color="primary" size="24px" />
+              <q-icon v-else :name="syncStatusIcon" :color="syncStatusColor" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ sync.binding?.fileName }}</q-item-label>
+              <q-item-label caption>{{ $t(`sync.status.${sync.status}`) }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-btn
+                dense
+                flat
+                round
+                icon="mdi-link-off"
+                :title="$t('sync.unlink')"
+                @click="sync.unbind()"
+              />
+            </q-item-section>
+          </q-item>
+
+          <q-banner v-if="sync.needsReauth" dense class="bg-warning text-dark">
+            {{ $t('sync.sessionExpired') }}
+            <template #action>
+              <q-btn flat no-caps dense :label="$t('sync.reauthenticate')" @click="auth.signIn()" />
+            </template>
+          </q-banner>
+
+          <q-item clickable v-ripple :disable="!auth.isSignedIn" @click="driveDialogOpen = true">
             <q-item-section avatar>
               <q-icon name="mdi-google-drive" />
             </q-item-section>
             <q-item-section>{{ $t('database.pickFromDrive') }}</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple :disable="!auth.isSignedIn">
+          <q-item clickable v-ripple :disable="!sync.isBound" @click="sync.notifyLocalWrite()">
             <q-item-section avatar>
               <q-icon name="mdi-sync" />
             </q-item-section>
             <q-item-section>{{ $t('database.syncToDrive') }}</q-item-section>
           </q-item>
+
+          <q-item clickable v-ripple @click="importInput?.click()">
+            <q-item-section avatar>
+              <q-icon name="mdi-file-import" />
+            </q-item-section>
+            <q-item-section>{{ $t('sync.importLocal') }}</q-item-section>
+          </q-item>
+          <input
+            ref="importInput"
+            type="file"
+            accept=".mmb"
+            style="display: none"
+            @change="onImportFile"
+          />
 
           <q-item clickable v-ripple @click="showDestroyDialog = true">
             <q-item-section avatar>
@@ -125,6 +167,8 @@
     </q-page-container>
 
     <ConfirmDestroyDialog v-model="showDestroyDialog" @confirm="onDestroyConfirm" />
+    <DriveFileBrowserDialog v-model="driveDialogOpen" />
+    <SyncConflictDialog />
   </q-layout>
 </template>
 
@@ -133,12 +177,17 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDatabaseStore } from './stores/database-store'
 import { useGoogleAuthStore } from './stores/google-auth-store'
+import { useDriveSyncStore } from './stores/drive-sync-store'
 import { dbClient } from './workers/db-client'
 import ConfirmDestroyDialog from './components/database/ConfirmDestroyDialog.vue'
+import DriveFileBrowserDialog from './components/database/DriveFileBrowserDialog.vue'
+import SyncConflictDialog from './components/database/SyncConflictDialog.vue'
 
 export default {
   components: {
     ConfirmDestroyDialog,
+    DriveFileBrowserDialog,
+    SyncConflictDialog,
   },
   data() {
     return {
@@ -150,8 +199,41 @@ export default {
     const leftDrawerOpen = ref(false)
     const rightDrawerOpen = ref(false)
     const showDestroyDialog = ref(false)
+    const driveDialogOpen = ref(false)
+    const importInput = ref<HTMLInputElement | null>(null)
     const store = useDatabaseStore()
     const auth = useGoogleAuthStore()
+    const sync = useDriveSyncStore()
+
+    const syncStatusIcon = computed(
+      () =>
+        ({
+          unbound: 'mdi-cloud-off-outline',
+          idle: 'mdi-cloud-check-outline',
+          syncing: 'mdi-cloud-sync-outline',
+          error: 'mdi-cloud-alert-outline',
+          conflict: 'mdi-alert',
+        })[sync.status],
+    )
+    const syncStatusColor = computed(
+      () =>
+        ({
+          unbound: 'grey',
+          idle: 'positive',
+          syncing: 'primary',
+          error: 'negative',
+          conflict: 'warning',
+        })[sync.status],
+    )
+
+    const onImportFile = async (event: Event) => {
+      const file = (event.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      // Replace the local database through the existing initialization flow
+      // (openspec: cloud-file-sync, scenario "Import a pre-existing database file").
+      await store.importDatabase(await file.arrayBuffer())
+      ;(event.target as HTMLInputElement).value = ''
+    }
 
     const dbStatus = computed(() => {
       switch (store.state) {
@@ -197,6 +279,12 @@ export default {
       dbStatus,
       onDestroyConfirm,
       auth,
+      sync,
+      driveDialogOpen,
+      importInput,
+      syncStatusIcon,
+      syncStatusColor,
+      onImportFile,
     }
   },
   async mounted() {

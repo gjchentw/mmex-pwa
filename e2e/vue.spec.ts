@@ -30,3 +30,16 @@ test('boots cross-origin isolated and opens a database', async ({ page }) => {
 
   expect(htmlAnsweredAssets, 'asset requests answered by the SPA fallback').toEqual([])
 })
+
+// cloud-file-sync: what is verifiable without a real Google session -- the
+// local-first posture (spec: "Application works without signing in") and the
+// sync surface rendering its signed-out state. The consent flow itself is a
+// mocked-out boundary, recorded as a limitation in tasks 7.1.
+test('sync surface renders signed-out and never blocks local use', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByTestId('db-status')).toHaveText(/Ready|Needs Setup/, { timeout: 20_000 })
+
+  await page.locator('button:has(i.mdi-database)').click()
+  await expect(page.getByText('Not signed in')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible()
+})

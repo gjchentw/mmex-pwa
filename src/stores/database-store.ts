@@ -104,6 +104,24 @@ export const useDatabaseStore = defineStore('database', () => {
     migrationProgress.value = null
   }
 
+  /**
+   * Replace the database with imported bytes (local file import, or the
+   * keep-remote conflict resolution) and reload state before further use.
+   * Openspec: cloud-file-sync, scenario "Import a pre-existing database file".
+   */
+  async function importDatabase(bytes: ArrayBuffer) {
+    state.value = 'opening'
+    error.value = null
+    try {
+      const result = await dbClient.importDatabase(bytes)
+      version.value = result.version
+      state.value = 'ready'
+    } catch (err: unknown) {
+      state.value = 'error'
+      error.value = err instanceof Error ? err.message : String(err)
+    }
+  }
+
   return {
     state,
     version,
@@ -114,6 +132,7 @@ export const useDatabaseStore = defineStore('database', () => {
     probe,
     initNewDb,
     destroyAndRecreate,
+    importDatabase,
     reset,
   }
 })

@@ -51,6 +51,24 @@
     "authorizing": "正在前往 Google...",
     "sessionExpired": "登入已過期",
     "reauthenticate": "重新登入",
-    "authError": "登入失敗:{error}"
+    "authError": "登入失敗:{error}",
+    "fileBrowserTitle": "選擇 Google Drive 上的資料庫",
+    "noFiles": "找不到本應用建立的資料庫檔案。請建立新檔，或先匯入本地檔案。",
+    "createNew": "建立新檔",
+    "importLocal": "匯入本地檔案",
+    "unlink": "解除連結",
+    "conflictTitle": "同步衝突",
+    "conflictDetail": "本地與遠端資料庫同時被修改。請選擇要保留的版本 — 在你決定之前不會覆寫任何一方。",
+    "conflictLocal": "此裝置",
+    "conflictRemote": "Google Drive",
+    "keepLocal": "保留此裝置",
+    "keepRemote": "保留 Drive 版本",
+    "status": {
+      "unbound": "未連結",
+      "idle": "已同步",
+      "syncing": "同步中...",
+      "error": "同步錯誤",
+      "conflict": "衝突 — 需要處理"
+    }
   }
 }
