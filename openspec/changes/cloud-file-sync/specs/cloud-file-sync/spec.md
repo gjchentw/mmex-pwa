@@ -15,7 +15,7 @@ The application SHALL offer Google sign-in as an optional feature that enables c
 
 - Sign-in SHALL be initiated explicitly by the user from the sync surface; no application feature other than cloud sync SHALL require it.
 - Authorization SHALL use the minimal `drive.file` scope, granting access only to files this application created.
-- The access token SHALL be held in memory only — never persisted to storage — and expiry SHALL be handled by silently re-requesting a token, falling back to an explicit re-authentication prompt when silent renewal fails.
+- The access token SHALL be held in memory only — never persisted to storage — and expiry SHALL be handled by first attempting renewal without user interaction (which MAY involve a same-tab navigation round-trip), falling back to an explicit re-authentication prompt when non-interactive renewal fails.
 - Signing out SHALL revoke the in-memory session, stop synchronization, and leave the local database untouched.
 
 The sign-in, binding, and first-sync flow:
@@ -27,9 +27,10 @@ sequenceDiagram
     participant Google
     participant Drive
     User->>App: Open sync panel (drawer)
-    App->>Google: Request token (drive.file)
+    App->>Google: Full-page redirect (implicit grant, drive.file)
     Google-->>User: Consent (first time only)
-    Google-->>App: Access token (in memory)
+    Google-->>App: Redirect to /auth/callback, token in URL fragment
+    App->>App: Verify state, read + strip fragment, hold in memory
     User->>App: Select app-visible .mmb, create new, or import local
     App->>Drive: List files / create file (Bearer token only)
     Drive-->>App: fileId (persisted binding)

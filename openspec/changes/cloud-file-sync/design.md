@@ -27,10 +27,17 @@ Operator decisions locked during proposal and refined in exploration: **`drive.f
 
 ## Decisions
 
-### D1: Google Identity Services token client, in-memory only
+### D1: Direct OAuth 2.0 implicit redirect flow, in-memory only (revised after empirical validation)
 
-Auth uses the GIS token client (`google.accounts.oauth2.initTokenClient`) with scope `https://www.googleapis.com/auth/drive.file`. The token lives in a Pinia store field; nothing token-shaped touches `localStorage`, `sessionStorage`, or OPFS. Expiry (~1h) is handled by re-requesting with `prompt: ''` (silent when the Google session allows it) on a 401 or ahead of expiry; if silent renewal fails, sync pauses in the error state with a re-authenticate action. The GIS script loads lazily — injected only when the user first opens the sync surface — so the local-first path ships zero Google bytes.
-**Alternatives considered**: (a) authorization-code flow with refresh token — needs a backend; this app has none by design. (b) Firebase Auth — an entire SDK for one token. (c) persisting the access token — rejected: violates the spec's in-memory requirement for marginal UX gain.
+**The original GIS token-client popup design is structurally impossible on this application** and was replaced on 2026-07-19 after the task 1.2 probe: `crossOriginIsolated` requires COOP `same-origin` *exactly*, and that value severs a cross-origin popup's link to its opener — so the GIS popup completes consent but its token postMessage can never arrive. No COEP value changes this; `same-origin-allow-popups` would readmit the popup but forfeit isolation and kill the database. Empirically confirmed: the popup opened, login succeeded, the callback never fired.
+
+The replacement uses the same OAuth 2.0 implicit grant that GIS wraps, delivered by full-page navigation instead of a popup — and therefore loads **no Google script at all**:
+
+- Sign-in navigates the tab to `https://accounts.google.com/o/oauth2/v2/auth` with `response_type=token`, scope `drive.file`, a `state` nonce (held in `sessionStorage` — a CSRF nonce, not a credential), and `redirect_uri` pointing at the app's own `/auth/callback` route.
+- The callback route verifies `state`, reads `access_token`/`expires_in` from the URL fragment, immediately strips the fragment via `history.replaceState`, holds the token in a Pinia store field (memory only), and navigates on. A page reload therefore signs the user out — accepted and documented.
+- Renewal first retries non-interactively with `prompt=none` (a sub-second same-tab round-trip when the Google session is alive; OPFS data is untouched by navigation), falling back to the explicit re-authenticate action. Hidden-iframe renewal is not available: COEP blocks cross-origin iframes that lack CORP, under either COEP value.
+
+**Alternatives considered**: (a) GIS popup — rejected, empirically dead under COOP (above); (b) a COOP-exempt same-origin auth helper page handing the token across the isolation boundary — rejected: the handoff channels are either browser-inconsistent across isolation boundaries or violate the never-persisted token requirement; (c) authorization-code + PKCE — Google's token endpoint expects a client secret for web-application clients, which a pure client app cannot hold.
 
 ### D2: The binding persists in `localStorage`; the token never does
 
@@ -47,7 +54,7 @@ Auth uses the GIS token client (`google.accounts.oauth2.initTokenClient`) with s
 
 ### D5: COEP is validated first, and the fallback is decided in advance
 
-Task group 1 empirically tests the GIS token popup and Bearer-authenticated Drive REST calls under the current `require-corp` — before any feature work. With the Picker iframe eliminated by D8, the validation surface shrinks to those two: plain `fetch` calls are COEP-irrelevant, leaving the GIS popup as the only historically COEP-sensitive surface (likelihood of failure downgraded from high to medium). If it fails: switch `vite.config.ts` (server + preview) and `public/_headers` to `credentialless`, verify `crossOriginIsolated` remains `true` and the database still opens, and record the outcome here. No spec amendment is needed either way — the requirement binds the outcome, not the value.
+**Executed 2026-07-18/19 — `require-corp` SURVIVES and stays.** Probe results: the GIS script loaded, the OAuth popup opened and rendered Google's pages, and Bearer-only REST worked, all under `require-corp` with zero console errors — COEP was never the problem. The failure the probe surfaced was **COOP**: `same-origin` (mandatory for isolation) severed the popup's return channel, so the token never arrived — a structural conflict that no COEP value affects, resolved by D1's redirect flow. The `credentialless` fallback was not needed and the headers are unchanged in every environment.
 
 ### D6: Material Design mapping (Quasar)
 

@@ -56,14 +56,50 @@
     <q-drawer v-model="rightDrawerOpen" side="right" overlay elevated>
       <div class="q-pa-md">
         <q-list>
-          <q-item clickable v-ripple>
+          <q-item>
+            <q-item-section avatar>
+              <q-icon name="mdi-account-circle" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{
+                auth.isSignedIn ? $t('sync.signedIn') : $t('sync.signedOut')
+              }}</q-item-label>
+              <q-item-label v-if="auth.status === 'expired'" caption class="text-negative">{{
+                $t('sync.sessionExpired')
+              }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-btn
+                v-if="!auth.isSignedIn"
+                dense
+                no-caps
+                color="primary"
+                :label="auth.status === 'expired' ? $t('sync.reauthenticate') : $t('sync.signIn')"
+                :loading="auth.status === 'authorizing'"
+                @click="auth.signIn()"
+              />
+              <q-btn
+                v-else
+                dense
+                no-caps
+                flat
+                color="primary"
+                :label="$t('sync.signOut')"
+                @click="auth.signOut()"
+              />
+            </q-item-section>
+          </q-item>
+
+          <q-separator />
+
+          <q-item clickable v-ripple :disable="!auth.isSignedIn">
             <q-item-section avatar>
               <q-icon name="mdi-google-drive" />
             </q-item-section>
             <q-item-section>{{ $t('database.pickFromDrive') }}</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple>
+          <q-item clickable v-ripple :disable="!auth.isSignedIn">
             <q-item-section avatar>
               <q-icon name="mdi-sync" />
             </q-item-section>
@@ -96,6 +132,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDatabaseStore } from './stores/database-store'
+import { useGoogleAuthStore } from './stores/google-auth-store'
 import { dbClient } from './workers/db-client'
 import ConfirmDestroyDialog from './components/database/ConfirmDestroyDialog.vue'
 
@@ -114,6 +151,7 @@ export default {
     const rightDrawerOpen = ref(false)
     const showDestroyDialog = ref(false)
     const store = useDatabaseStore()
+    const auth = useGoogleAuthStore()
 
     const dbStatus = computed(() => {
       switch (store.state) {
@@ -158,6 +196,7 @@ export default {
       showDestroyDialog,
       dbStatus,
       onDestroyConfirm,
+      auth,
     }
   },
   async mounted() {

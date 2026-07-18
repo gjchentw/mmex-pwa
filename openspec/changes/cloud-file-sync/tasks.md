@@ -8,10 +8,10 @@ Reference: [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md) and 
 
 ## 1. COEP Validation (inherited baseline tasks 5.1/5.2 — do first)
 
-- [ ] 1.1 **Manual prerequisite** — provision the Google Cloud project: OAuth client id only (authorized origins: `http://localhost:5173`, `http://localhost:4173`, `https://mmex.beerops.dev`); no API key and no Picker API are needed (design.md D8). Fill local `.env`
-- [ ] 1.2 (probe page BUILT at `src/pages/CoepProbePage.vue`, dev-only route `/coep-probe`; execution awaits task 1.1 credentials) Build a minimal probe (scratch page or dev-only route) exercising the GIS token popup and a Bearer-only `drive.files.list` fetch under COEP `require-corp`; record pass/fail per surface
-- [ ] 1.3 If any surface fails: switch COEP to `credentialless` in `vite.config.ts` (server + preview) and `public/_headers`; re-verify `crossOriginIsolated === true` and a database open in dev, preview, and the deployed host; record the outcome and evidence in design.md D5
-- [ ] 1.4 Run the local e2e suite to confirm the isolation assertions still pass under whichever COEP value survives
+- [x] 1.1 **Manual prerequisite** — provision the Google Cloud project: OAuth client id only (authorized origins: `http://localhost:5173`, `http://localhost:4173`, `https://mmex.beerops.dev`); no API key and no Picker API are needed (design.md D8). Fill local `.env`
+- [x] 1.2 Probe built (`src/pages/CoepProbePage.vue`, dev-only `/coep-probe`) and executed 2026-07-18/19: GIS script load PASS, popup open PASS, REST PASS — all under `require-corp`; token return FAIL due to COOP `same-origin` severing the popup channel (structural; see design D1/D5)
+- [x] 1.3 Not needed: `require-corp` survived every surface; the failure was COOP-structural, which no COEP value affects. Headers unchanged in all environments (design.md D5)
+- [x] 1.4 Run the local e2e suite to confirm the isolation assertions still pass under whichever COEP value survives
 
 ## 2. Dependency Floor (governed-table-first)
 
@@ -20,9 +20,10 @@ Reference: [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md) and 
 ## 3. Google Sign-In (spec: Optional Google Sign-In)
 
 - [x] 3.1 Resolve design Open Question 1: **no token seam exists in 0.1.5** (static `accessToken` at construction only). Operator decision 2026-07-18: recreate the instance on token renewal/401 — no upstream release needed; lifecycle rules recorded in design.md Open Question 1. Task 5.1 implements the lifecycle
-- [ ] 3.2 Lazy-load the GIS script on first opening of the sync surface (no Google bytes on the local-first path); wire `initTokenClient` with `drive.file`
-- [ ] 3.3 Auth store (Pinia): in-memory token, expiry tracking, silent re-request with explicit re-auth fallback, sign-out revocation; unit tests for the state transitions
-- [ ] 3.4 Drawer UI: sign-in/sign-out rows with Material button semantics; remove the vestigial `splash.signInButton` keys; add all new strings to both `en-US` and `zh-TW` catalogs
+- [ ] 3.0 **Manual prerequisite** — add Authorized redirect URIs to the OAuth client: `http://localhost:5173/auth/callback`, `http://localhost:4173/auth/callback`, `https://mmex.beerops.dev/auth/callback` (required by the redirect flow, design.md D1 revision)
+- [x] 3.2 Implement the redirect implicit flow (design.md D1 revision): `src/stores/google-auth-store.ts` (auth URL + `state` nonce, `prompt=none` renewal, best-effort revoke), `/auth/callback` route (`AuthCallbackPage.vue` — verify state, read + strip fragment, in-memory hold, navigate back). No Google script loaded
+- [x] 3.3 Auth store (Pinia): in-memory token, expiry tracking, silent re-request with explicit re-auth fallback, sign-out revocation; unit tests for the state transitions
+- [x] 3.4 Drawer UI: account row with sign-in/sign-out/re-authenticate states, sync entries disabled until signed in; vestigial `splash.signInButton`/`signInPrompt` keys removed; 8 `sync.*` strings added to both catalogs
 
 ## 4. Drive File Binding (spec: Drive File Binding)
 
