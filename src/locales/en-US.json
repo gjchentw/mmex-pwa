@@ -6,9 +6,7 @@
   },
   "splash": {
     "welcome": "Welcome to MMEX PWA",
-    "securityNotice": "For your security, you need to sign in with Google each time you visit this app. Your access token is not stored and will be lost when you close or refresh the page.",
-    "signInButton": "Sign in with Google",
-    "signInPrompt": "Please sign in to continue"
+    "securityNotice": "For your security, you need to sign in with Google each time you visit this app. Your access token is not stored and will be lost when you close or refresh the page."
   },
   "language": {
     "select": "Language",
@@ -44,5 +42,15 @@
     "destroyWarning": "This will destroy the current database.",
     "destroyDetail": "All existing data will be lost. This action cannot be undone.",
     "dbStatus": "SQLite Status: {status}"
+  },
+  "sync": {
+    "signIn": "Sign in with Google",
+    "signOut": "Sign out",
+    "signedIn": "Signed in",
+    "signedOut": "Not signed in",
+    "authorizing": "Redirecting to Google...",
+    "sessionExpired": "Session expired",
+    "reauthenticate": "Re-authenticate",
+    "authError": "Sign-in failed: {error}"
   }
 }

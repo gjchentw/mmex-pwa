@@ -9,6 +9,14 @@ const router = createRouter({
       name: 'init',
       component: () => import('../pages/DatabaseInitPage.vue'),
     },
+    // OAuth redirect terminal (openspec: cloud-file-sync design.md D1). Must
+    // exist in production and stay exempt from the readiness guard: the page
+    // consumes the token fragment before the database is probed.
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: () => import('../pages/AuthCallbackPage.vue'),
+    },
     // Dev-only COEP probe (openspec: cloud-file-sync task 1.2). The spread
     // keeps the route out of production bundles' router table entirely.
     ...(import.meta.env.DEV
@@ -24,7 +32,11 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  if (to.path === '/init' || (import.meta.env.DEV && to.path === '/coep-probe')) {
+  if (
+    to.path === '/init' ||
+    to.path === '/auth/callback' ||
+    (import.meta.env.DEV && to.path === '/coep-probe')
+  ) {
     next()
     return
   }
