@@ -40,14 +40,14 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 - [x] 4.4 Delete `test.yml` so a single workflow owns the gate
 - [x] 4.5 Add a CI check asserting the runtime version file satisfies the `engines` range (Requirement: Runtime and Package Management Baseline) — satisfied by `.npmrc` `engine-strict` plus `node-version-file`, which makes `npm ci` fail with EBADENGINE on drift
 - [ ] 4.6 Add a CI check asserting the emitted manifest does not retain PWA plugin defaults (name/theme color). **Blocked on task 2.4** — the manifest IS the default today, so the assertion would fail every run (Requirement: Progressive Web App and Offline Baseline)
-- [ ] 4.7 Enable the `e2e` job (written and commented out in `ci.yml`). **Blocked on P1** — the production build renders raw i18n keys, so the existing e2e assertion on "Initializing" cannot pass (design.md Open Question 0)
+- [x] 4.7 Enable the `e2e` job (written and commented out in `ci.yml`). **Unblocked by the P1 fix** (task 7.1): enabled on the governed Chromium engine set, `npx playwright install --with-deps chromium`, and added to the deploy job's `needs:` (design.md D10)
 - [ ] 4.8 Verify the gate: a push containing a lint error, a type error, or a failing test SHALL fail the pipeline, and the deploy job SHALL be skipped
 
 ## 5. Cross-Origin Isolation Validation (do before Drive work)
 
 - [ ] 5.1 Empirically determine whether Google Sign-In / Drive endpoints function under COEP `require-corp`; if they do not, adopt `credentialless` (Requirement: Cross-Origin Isolation, design.md D5)
 - [ ] 5.2 Record the chosen COEP value and the evidence behind it, and align the dev server and `_headers` on the same value
-- [ ] 5.3 Add an e2e assertion that `window.crossOriginIsolated === true` and that a database opens successfully, so header regressions fail as a test
+- [ ] 5.3 Add an e2e assertion that `window.crossOriginIsolated === true` and that a database opens successfully, so header regressions fail as a test. **When this lands, re-add WebKit to the governed engine set FIRST** — iOS permits only WebKit, and OPFS + `SharedArrayBuffer` is where it diverges (design.md D10; spec: Automated Testing Toolchain)
 
 ## 6. Deployment and Hosting
 

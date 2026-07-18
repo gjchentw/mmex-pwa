@@ -101,10 +101,7 @@ jobs:
     # The gate is structural: this job is unreachable unless every gate job
     # passes. A red pipeline cannot publish -- that is the whole reason CI owns
     # the deploy rather than Cloudflare's git integration building on its own.
-    #
-    # `e2e` is intentionally absent from this list because that job is disabled
-    # (see the block below). Add it back to `needs:` when e2e is re-enabled.
-    needs: [quality, build]
+    needs: [quality, build, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -132,61 +129,53 @@ jobs:
       - name: Deployment URL
         run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}"
 
-# ---------------------------------------------------------------------------
-# e2e -- NOT YET ENABLED. Blocked on a real defect, not on missing pipeline work.
-#
-# The job below is written and was validated locally, but stays disabled: the
-# production build renders raw i18n keys, so the existing e2e assertion cannot
-# pass. Enabling it would mean a permanently red gate, which teaches everyone to
-# ignore CI -- worse than not having the gate at all.
-#
-# Known production defects (see openspec/changes/infrastructure-baseline/design.md):
-#
-#   P1  i18n renders raw keys ("database.probing") in the production build,
-#       though it is fine under `vite dev`. This is what fails the e2e test,
-#       which looks for the rendered "Initializing database...". BLOCKS e2e.
-#
-#   P2  The built worker requests the UNHASHED /assets/sqlite3.wasm while the
-#       emitted asset is hashed (sqlite3-<hash>.wasm). The unhashed path does
-#       not 404 -- the SPA fallback returns index.html, so WebAssembly.compile
-#       fails on 'text/html'. The database cannot open in a production build.
-#       WIP branches exist: copilot/fix-hashed-wasm-url-request,
-#       copilot/fix-sqlite-wasm-path-resolution.
-#
-#   P3  COEP `require-corp` blocks the cross-origin Quasar CDN logo in App.vue
-#       (NotSameOriginAfterDefaultedToSameOriginByCoep). Self-host the asset or
-#       switch to COEP `credentialless`.
-#
-# NOTE: deploy above is deliberately enabled ahead of P2, by operator decision.
-# The site therefore ships with a database that cannot open. This is an accepted
-# trade-off while the app has no users: it proves the pipeline and verifies that
-# _headers really delivers COOP/COEP on Cloudflare. Do not treat the deployed URL
-# as a working product until P2 lands.
-#
-# To enable e2e: fix P1, uncomment below, and add `e2e` back to deploy's `needs:`.
-# ---------------------------------------------------------------------------
-#
-#  e2e:
-#    name: e2e
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#        with:
-#          submodules: true
-#      - uses: actions/setup-node@v4
-#        with:
-#          node-version-file: .nvmrc
-#          cache: 'npm'
-#      - run: npm ci
-#      - run: npm run build
-#      - run: npx playwright install --with-deps
-#      # playwright.config.ts serves `npm run preview` on CI, which now carries
-#      # the same COOP/COEP headers as the dev server, so this exercises a
-#      # genuinely cross-origin isolated context.
-#      - run: npm run test:e2e
-#      - uses: actions/upload-artifact@v4
-#        if: ${{ !cancelled() }}
-#        with:
-#          name: playwright-report
-#          path: playwright-report/
-#          retention-days: 7
+  # Enabled since P1 (production i18n rendering) was fixed by replacing the
+  # lookalike i18n plugin. Runs on Chromium only -- the governed engine set;
+  # see openspec: Automated Testing Toolchain. When the suite starts asserting
+  # crossOriginIsolated / OPFS database opening (openspec task 5.3), re-add
+  # WebKit FIRST: iOS mandates WebKit for every browser.
+  #
+  # Remaining known production defects (design.md Open Question 0) -- neither
+  # blocks this suite's current assertions:
+  #   P2  built worker requests unhashed sqlite3.wasm; SPA fallback answers
+  #       with index.html, so the database cannot open in a production build
+  #   P3  COEP require-corp blocks the cross-origin Quasar CDN logo
+  # Deploy stays enabled ahead of P2 by operator decision: the deployed URL is
+  # a pipeline smoke test, not a working product, until P2 lands.
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # playwright.config.ts serves `npm run preview` on CI, which carries the
+      # same COOP/COEP headers as the dev server, so this exercises a genuinely
+      # cross-origin isolated context.
+      - name: E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
