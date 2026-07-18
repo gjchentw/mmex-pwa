@@ -53,7 +53,7 @@ Reference: [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseli
 
 **Note: deploy is enabled ahead of P2 by operator decision** (design.md Open Question 0). The deployed database will not open until P2 lands; the URL serves as a pipeline smoke test, not a product. Task 6.7 is therefore split into what is verifiable now (6.7) and what needs P2 (6.8).
 
-- [ ] 6.0 Fix P2/P3 under their own change — SQLite WASM path resolution (see the two existing `copilot/fix-*wasm*` branches) and the COEP-blocked Quasar CDN logo. **P1 is fixed** (task 7.1 root-caused it to a lookalike i18n plugin; see design.md)
+- [ ] 6.0 Fix P2/P3 under their own change — SQLite WASM path resolution and the COEP-blocked Quasar CDN logo. **P1 is fixed** (task 7.1 root-caused it to a lookalike i18n plugin; see design.md). Note: the `copilot/fix-*wasm*` reference branches were deleted in the 2026-07-18 branch cleanup (operator decision); P2 will be fixed from scratch
 - [x] 6.1 **Manual** — provision the Cloudflare Pages project named `mmex-pwa` with production branch `main`, via `wrangler pages project create` or the dashboard. It must exist first: `pages deploy` prompts for the production branch when creating one, and prompting in CI is an error (Requirement: Deployment and Hosting)
 - [x] 6.2 **Manual** — create an API token with the single permission Account → Cloudflare Pages → Edit, and set the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (Requirement: Deployment and Hosting)
 - [x] 6.3 Add `public/_headers` setting `Cross-Origin-Opener-Policy: same-origin` and the COEP value chosen in 5.2, so it is copied to the build output root (Requirement: Cross-Origin Isolation)
