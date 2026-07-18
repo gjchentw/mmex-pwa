@@ -39,6 +39,7 @@ The project SHALL build on the governed technology stack recorded in the table b
 | Formatter | Prettier | `3.6.2` |
 | Unit test runner | Vitest + jsdom | `^3.2.4` |
 | E2E test runner | @playwright/test | `^1.56.1` |
+| E2E browser engine set | Chromium (via Playwright) | n/a |
 | Type checker | vue-tsc | `^3.1.1` |
 | Hosting | Cloudflare Pages | n/a |
 
@@ -282,7 +283,9 @@ The project SHALL maintain automated unit tests and end-to-end tests, each runna
 - Unit tests SHALL execute in a simulated DOM environment using the governed unit runner and the governed component-testing utilities.
 - The unit runner SHALL reuse the build system's resolution configuration so that aliases and plugins behave identically to production.
 - The unit test scope SHALL exclude the end-to-end directory.
-- End-to-end tests SHALL run against the governed browser engines and SHALL run against a preview build in continuous integration.
+- End-to-end tests SHALL run against the governed browser engine set and SHALL run against a preview build in continuous integration.
+- The governed browser engine set SHALL be recorded in the governed stack table; changing it SHALL require an OpenSpec change. It currently comprises **Chromium only**, because the present suite asserts routing and rendered text, which do not diverge across engines.
+- WHEN the end-to-end suite begins asserting cross-origin isolation or database opening, WebKit SHALL be added back to the governed engine set **first**, because iOS permits only WebKit-based browsers and the origin-private file system with `SharedArrayBuffer` is where that engine diverges most.
 - Test files SHALL follow a single naming and placement convention.
 
 Traceability: [vitest.config.ts](../../../../../vitest.config.ts), [playwright.config.ts](../../../../../playwright.config.ts), [src/__tests__/](../../../../../src/__tests__/), [e2e/](../../../../../e2e/).
@@ -295,7 +298,7 @@ Traceability: [vitest.config.ts](../../../../../vitest.config.ts), [playwright.c
 #### Scenario: End-to-end tests run in continuous integration
 
 - **WHEN** the end-to-end suite runs in continuous integration
-- **THEN** it SHALL start a preview server, execute against the governed browser engines headlessly, and report results
+- **THEN** it SHALL start a preview server, execute against the governed browser engine set headlessly, and report results
 
 ### Requirement: Pre-Commit Quality Gate
 

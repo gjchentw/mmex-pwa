@@ -138,6 +138,16 @@ Quality-gate commands in the pipeline are non-mutating. The repository's existin
 
 This is why `Requirement: Cross-Origin Isolation` is written to bind *every* environment that serves the application rather than naming the dev server: the dev/preview split is exactly the kind of gap an environment-specific requirement would have permitted. The fix mirrors the headers into `preview`, which additionally makes the e2e suite a genuine check on isolation.
 
+### D10: The governed engine set is Chromium-only, until the suite earns more
+
+The e2e suite runs on Chromium alone; Firefox and WebKit are removed from the project matrix.
+
+**Rationale**: The current suite asserts routing and rendered text — assertions that never diverge across engines — so running them three times was cost without signal. The spec previously said "the governed browser engines" without defining the term (an undefined term, which the authoring rules prohibit); this decision defines it and records it in the governed stack table, making any future engine-set change an explicit OpenSpec amendment. The usual compromise — Chromium on pull requests, all engines on the default branch — buys nothing here because the workflow pushes directly to `main`.
+
+**The binding return condition**: when task 5.3 lands and the suite starts asserting `crossOriginIsolated`, `SharedArrayBuffer`, and a real OPFS database open, engine behavior *does* diverge — and **WebKit comes back first**. iOS mandates WebKit for every browser, so WebKit is not "one of three engines"; it is 100% of iOS. A finance PWA whose storage layer is untested on the only engine iOS allows would be discovered broken by an iOS user rather than by CI. This condition is written into the spec's Automated Testing Toolchain requirement, not just here.
+
+**Trade-off accepted**: until 5.3, engine-specific regressions (in practice: WebKit OPFS quirks) are invisible to CI. Mitigated by the fact that the persistence layer is not e2e-asserted on any engine yet — the exposure window is bounded by 5.3 itself.
+
 ## Risks / Trade-offs
 
 - **COEP breaks Google Sign-In / Drive sync** → Likelihood: medium. Impact: high (blocks the cloud-sync feature). Mitigation: D5 permits `credentialless`; `tasks.md` requires verifying the OAuth flow under isolation *before* the Drive integration is built, so the constraint is discovered early rather than during feature work.
@@ -183,7 +193,7 @@ Outstanding:
 
    These are application/build defects and therefore outside this capability's scope. They warrant their own change.
 
-   **Operator decision — deploy is enabled ahead of P2.** Deployment ships despite P2, by explicit decision, so the deployed site's database does not open. The reasoning: the app has no users, so the cost of publishing a broken build is zero, while the benefit is real — it proves the pipeline end to end and verifies that `_headers` actually delivers cross-origin isolation on Cloudflare, which `Requirement: Deployment and Hosting` demands be verified and which cannot be checked any other way. The deployed URL is a pipeline smoke test, not a product. P1 still blocks the e2e gate, which remains disabled: a permanently red gate would train contributors to ignore CI, which is worse than having no gate.
+   **Operator decision — deploy is enabled ahead of P2.** Deployment ships despite P2, by explicit decision, so the deployed site's database does not open. The reasoning: the app has no users, so the cost of publishing a broken build is zero, while the benefit is real — it proves the pipeline end to end and verifies that `_headers` actually delivers cross-origin isolation on Cloudflare, which `Requirement: Deployment and Hosting` demands be verified and which cannot be checked any other way. The deployed URL is a pipeline smoke test, not a product. (An earlier note here said P1 kept the e2e gate disabled; P1 is now fixed and the e2e job is enabled on the governed Chromium engine, wired into the deploy `needs:` chain.)
 
 1. **Cloudflare provisioning** — the Pages project must exist and two repository secrets must be set (`CLOUDFLARE_API_TOKEN`, scoped to Pages:Edit on that project, and `CLOUDFLARE_ACCOUNT_ID`) before the deploy job can succeed. The project name is assumed to be `mmex-pwa`, matching the repository and `package.json`; confirm or correct it in the workflow.
 2. **COEP value** — `require-corp` is used, mirroring the dev server. Whether it survives the Google Sign-In / Drive integration is unresolved and is deliberately scheduled for empirical validation before that feature is built (tasks 5.1–5.2). Switching to `credentialless` requires editing two files and no spec change.
