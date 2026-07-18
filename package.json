@@ -28,7 +28,7 @@
   "dependencies": {
     "@quasar/extras": "^1.17.0",
     "@sqlite.org/sqlite-wasm": "^3.51.1-build1",
-    "opfs-cloud-file": "^0.1.4",
+    "opfs-cloud-file": "^0.1.5",
     "pinia": "^3.0.3",
     "quasar": "^2.18.6",
     "vue": "^3.5.22",
