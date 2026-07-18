@@ -44,13 +44,13 @@ export default defineConfig({
   },
 
   /*
-   * Chromium is the governed engine set (openspec: infrastructure-baseline,
-   * Automated Testing Toolchain). The current suite only asserts routing and
-   * rendered text, which never diverges across engines -- so extra engines are
-   * cost without signal. When the suite starts asserting cross-origin
-   * isolation / OPFS database opening (openspec task 5.3), re-add WebKit
-   * FIRST: iOS mandates WebKit for every browser, and OPFS + SharedArrayBuffer
-   * is exactly where Safari diverges.
+   * The governed engine set (openspec: infrastructure-baseline, Automated
+   * Testing Toolchain) is Chromium + WebKit. WebKit rejoined when the suite
+   * started asserting cross-origin isolation and database opening, per the
+   * spec's binding condition: iOS mandates WebKit for every browser, and
+   * OPFS + SharedArrayBuffer is exactly where that engine diverges. A WebKit
+   * failure here is an iOS-viability signal -- report it, never mute it.
+   * Firefox stays out: no binding condition covers it.
    */
   projects: [
     {
@@ -59,16 +59,16 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
     },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+      },
+    },
     // {
     //   name: 'firefox',
     //   use: {
     //     ...devices['Desktop Firefox'],
-    //   },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: {
-    //     ...devices['Desktop Safari'],
     //   },
     // },
 

@@ -150,19 +150,11 @@ jobs:
       - name: Deployment URL
         run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}"
 
-  # Enabled since P1 (production i18n rendering) was fixed by replacing the
-  # lookalike i18n plugin. Runs on Chromium only -- the governed engine set;
-  # see openspec: Automated Testing Toolchain. When the suite starts asserting
-  # crossOriginIsolated / OPFS database opening (openspec task 5.3), re-add
-  # WebKit FIRST: iOS mandates WebKit for every browser.
-  #
-  # Remaining known production defects (design.md Open Question 0) -- neither
-  # blocks this suite's current assertions:
-  #   P2  built worker requests unhashed sqlite3.wasm; SPA fallback answers
-  #       with index.html, so the database cannot open in a production build
-  #   P3  COEP require-corp blocks the cross-origin Quasar CDN logo
-  # Deploy stays enabled ahead of P2 by operator decision: the deployed URL is
-  # a pipeline smoke test, not a working product, until P2 lands.
+  # Runs the governed engine set: Chromium + WebKit (openspec: Automated
+  # Testing Toolchain). The suite asserts cross-origin isolation and an actual
+  # database open against the preview build -- the regression coverage whose
+  # absence let P2 ship green. A WebKit-specific failure is an iOS-viability
+  # signal (iOS permits only WebKit), not test noise.
   e2e:
     name: e2e
     runs-on: ubuntu-latest
@@ -184,8 +176,10 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      # Chromium + WebKit: the governed engine set. WebKit rejoined when the
+      # suite began asserting database opening (iOS is WebKit-only).
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
 
       # playwright.config.ts serves `npm run preview` on CI, which carries the
       # same COOP/COEP headers as the dev server, so this exercises a genuinely

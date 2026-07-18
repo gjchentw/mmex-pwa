@@ -140,6 +140,8 @@ This is why `Requirement: Cross-Origin Isolation` is written to bind *every* env
 
 ### D10: The governed engine set is Chromium-only, until the suite earns more
 
+> **Status: the return condition fired.** The `fix-wasm-path-resolution` change (2026-07-18) added the database-opening assertion, and WebKit rejoined the engine set with it, exactly as bound below. This decision is retained for its rationale.
+
 The e2e suite runs on Chromium alone; Firefox and WebKit are removed from the project matrix.
 
 **Rationale**: The current suite asserts routing and rendered text — assertions that never diverge across engines — so running them three times was cost without signal. The spec previously said "the governed browser engines" without defining the term (an undefined term, which the authoring rules prohibit); this decision defines it and records it in the governed stack table, making any future engine-set change an explicit OpenSpec amendment. The usual compromise — Chromium on pull requests, all engines on the default branch — buys nothing here because the workflow pushes directly to `main`.

@@ -1,7 +1,7 @@
 # Infrastructure Baseline Specification
 
 **Capability**: `infrastructure-baseline`
-**Version**: 1.1.0
+**Version**: 1.2.0
 **Last Updated**: 2026-07-18
 
 **Scope**: This specification governs the development and deployment infrastructure of the project ONLY — runtime, package management, frontend framework, build system, data-persistence infrastructure, cross-origin isolation, quality tooling, testing, quality gates, hosting, configuration, and source provenance. It does NOT govern application or business logic (accounts, transactions, reports, financial rules, or database schema semantics); those are reserved for future capability specifications.
@@ -43,7 +43,7 @@ The `npm package` column is machine-readable: an automated drift check compares 
 | Unit test runner | Vitest | `vitest` | `^3.2.4` |
 | Unit test DOM environment | jsdom | `jsdom` | `^27.0.1` |
 | E2E test runner | Playwright | `@playwright/test` | `^1.56.1` |
-| E2E browser engine set | Chromium (via Playwright) | n/a | n/a |
+| E2E browser engine set | Chromium + WebKit (via Playwright) | n/a | n/a |
 | Type checker | vue-tsc | `vue-tsc` | `^3.1.1` |
 | Git hook manager | husky | `husky` | `^9.1.7` |
 | Staged-file runner | lint-staged | `lint-staged` | `^17.0.8` |
@@ -290,8 +290,8 @@ The project SHALL maintain automated unit tests and end-to-end tests, each runna
 - The unit runner SHALL reuse the build system's resolution configuration so that aliases and plugins behave identically to production.
 - The unit test scope SHALL exclude the end-to-end directory.
 - End-to-end tests SHALL run against the governed browser engine set and SHALL run against a preview build in continuous integration.
-- The governed browser engine set SHALL be recorded in the governed stack table; changing it SHALL require an OpenSpec change. It currently comprises **Chromium only**, because the present suite asserts routing and rendered text, which do not diverge across engines.
-- WHEN the end-to-end suite begins asserting cross-origin isolation or database opening, WebKit SHALL be added back to the governed engine set **first**, because iOS permits only WebKit-based browsers and the origin-private file system with `SharedArrayBuffer` is where that engine diverges most.
+- The governed browser engine set SHALL be recorded in the governed stack table; changing it SHALL require an OpenSpec change. It comprises **Chromium and WebKit**: the suite asserts cross-origin isolation and database opening, and iOS permits only WebKit-based browsers, so WebKit coverage is what makes the persistence layer's iOS viability visible to continuous integration.
+- (History: the set was Chromium-only while the suite asserted routing and rendered text, which do not diverge across engines. This requirement's binding condition — WebKit returns first when the suite begins asserting isolation or database opening — was fulfilled on 2026-07-18 by the `fix-wasm-path-resolution` change.)
 - Test files SHALL follow a single naming and placement convention.
 
 Traceability: [vitest.config.ts](../../../../../vitest.config.ts), [playwright.config.ts](../../../../../playwright.config.ts), [src/__tests__/](../../../../../src/__tests__/), [e2e/](../../../../../e2e/).
