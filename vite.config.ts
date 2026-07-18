@@ -6,7 +6,7 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
 import { VitePWA } from 'vite-plugin-pwa'
 import vueDevTools from 'vite-plugin-vue-devtools'
-import VueI18nPlugin from 'unplugin-vue-i18n/vite'
+import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 
 // https://vite.dev/config/
 export default defineConfig({

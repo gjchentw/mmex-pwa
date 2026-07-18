@@ -19,7 +19,16 @@ export default defineConfigWithVueTs(
   // `mmex/**` holds the upstream MoneyManagerEx submodules. They are vendored,
   // not ours to lint or fix -- and `npm run lint` passes `--fix`, so without this
   // ignore it would rewrite files inside the submodules.
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/mmex/**']),
+  // playwright-report/ and test-results/ are generated artifacts (the trace
+  // viewer ships minified sources that ESLint would otherwise walk).
+  globalIgnores([
+    '**/dist/**',
+    '**/dist-ssr/**',
+    '**/coverage/**',
+    '**/mmex/**',
+    '**/playwright-report/**',
+    '**/test-results/**',
+  ]),
 
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
