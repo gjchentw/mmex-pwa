@@ -19,7 +19,7 @@ Reference: [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md) and 
 
 ## 3. Google Sign-In (spec: Optional Google Sign-In)
 
-- [ ] 3.1 Resolve design Open Question 1: read the 0.1.5 Google Drive provider's token seam (callback vs. push); extend the package upstream if needed. **Investigation done (2026-07-18): no seam exists in 0.1.5** — static `accessToken` at construction only. Awaiting operator decision: recreate-instance workaround vs. upstream token-provider callback (design.md Open Question 1)
+- [x] 3.1 Resolve design Open Question 1: **no token seam exists in 0.1.5** (static `accessToken` at construction only). Operator decision 2026-07-18: recreate the instance on token renewal/401 — no upstream release needed; lifecycle rules recorded in design.md Open Question 1. Task 5.1 implements the lifecycle
 - [ ] 3.2 Lazy-load the GIS script on first opening of the sync surface (no Google bytes on the local-first path); wire `initTokenClient` with `drive.file`
 - [ ] 3.3 Auth store (Pinia): in-memory token, expiry tracking, silent re-request with explicit re-auth fallback, sign-out revocation; unit tests for the state transitions
 - [ ] 3.4 Drawer UI: sign-in/sign-out rows with Material button semantics; remove the vestigial `splash.signInButton` keys; add all new strings to both `en-US` and `zh-TW` catalogs
@@ -34,7 +34,7 @@ Reference: [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md) and 
 
 ## 5. Sync Wiring (spec: Bidirectional Database Synchronization)
 
-- [ ] 5.1 Instantiate `OpfsCloudFile` on the main thread against the bound fileId + live token (design.md D3/D1)
+- [ ] 5.1 Instantiate `OpfsCloudFile` on the main thread against the bound fileId + live token, with the recreate-on-renewal lifecycle: teardown (listeners off, polling stopped) and rebuild on token change or 401, never interrupting an in-flight sync (design.md D3/D1, Open Question 1 resolution)
 - [ ] 5.2 Wire `DbClient.exec` mutations → debounced (~2s) `local-file-changed` dispatch; decide and record the polling interval (design Open Question 2)
 - [ ] 5.3 Handle `cloud-file-changed`: download, then reload database state through `database-store.probe()` before accepting queries
 - [ ] 5.4 Test the download-vs-open-handles sequencing specifically (design risk: race against the SQLite worker's sync-access handles), including during wizard/migration states
