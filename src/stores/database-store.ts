@@ -64,16 +64,19 @@ export const useDatabaseStore = defineStore('database', () => {
   async function initNewDb(currencyId: number, userName: string) {
     state.value = 'creating'
     try {
+      // Key INFOTABLE writes by INFONAME (UNIQUE COLLATE NOCASE) — the vendored
+      // DDL seeds DATAVERSION at INFOID 1, so addressing rows by INFOID would
+      // overwrite it (openspec: file-metadata-and-settings, Well-Known File Facts).
       await dbClient.exec(
-        `INSERT OR REPLACE INTO CURRENCYFORMATS_V1 (CURRENCYID, CURRENCYNAME, PFX_SYMBOL, SFX_SYMBOL, DECIMAL_POINT, GROUP_SEPARATOR, UNIT_NAME, CENT_NAME, SCALE, BASECONVRATE, CURRENCY_SYMBOL, CURRENCY_TYPE)
-         SELECT CURRENCYID, CURRENCYNAME, PFX_SYMBOL, SFX_SYMBOL, DECIMAL_POINT, GROUP_SEPARATOR, UNIT_NAME, CENT_NAME, SCALE, BASECONVRATE, CURRENCY_SYMBOL, CURRENCY_TYPE
-         FROM json_each(?)`,
-        [JSON.stringify({ currencies: [] })],
+        `INSERT INTO INFOTABLE_V1 (INFONAME, INFOVALUE) VALUES ('BASECURRENCYID', ?)
+         ON CONFLICT(INFONAME) DO UPDATE SET INFOVALUE = excluded.INFOVALUE`,
+        [String(currencyId)],
       )
 
       if (userName) {
         await dbClient.exec(
-          `INSERT OR REPLACE INTO INFOTABLE_V1 (INFOID, INFONAME, INFOVALUE) VALUES (1, 'USERNAME', ?)`,
+          `INSERT INTO INFOTABLE_V1 (INFONAME, INFOVALUE) VALUES ('USERNAME', ?)
+           ON CONFLICT(INFONAME) DO UPDATE SET INFOVALUE = excluded.INFOVALUE`,
           [userName],
         )
       }

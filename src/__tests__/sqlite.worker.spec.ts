@@ -52,7 +52,10 @@ vi.mock('@sqlite.org/sqlite-wasm', () => ({
 }))
 
 vi.mock('../../mmex/database/tables.sql?raw', () => ({
-  default: 'CREATE TABLE INFOTABLE_V1 (INFOID INTEGER PRIMARY KEY, INFONAME TEXT, INFOVALUE TEXT);',
+  default:
+    'CREATE TABLE INFOTABLE_V1 (INFOID INTEGER PRIMARY KEY, INFONAME TEXT, INFOVALUE TEXT);\n' +
+    "INSERT INTO INFOTABLE_V1 VALUES(1, 'DATAVERSION', '3');\n" +
+    "INSERT INTO CATEGORY_V1 VALUES(1,'_tr_Bills',1,-1);",
 }))
 
 const postMessageMock = vi.fn()
@@ -207,5 +210,26 @@ describe('SQLite Worker', () => {
       status: 'success',
       result: { status: expect.stringMatching(/existing|created/), version: expect.any(Number) },
     })
+  })
+
+  // Spec: domain-data-conventions, Requirement "MMB Round-Trip Fidelity",
+  // Scenario "New database matches upstream seeding". Desktop strips the '_tr_'
+  // markers at build time (sqlite2cpp.py); the worker must match or PWA-created
+  // files diverge from desktop-created ones.
+  it('strips _tr_ translation markers from the DDL before executing it', async () => {
+    mockOpfsDb.mockImplementationOnce(() => {
+      throw new Error('File not found')
+    })
+
+    await self.onmessage!({
+      data: { id: 'test-11', type: 'open-or-create' },
+    } as MessageEvent)
+
+    const ddlCall = mockExec.mock.calls.find(
+      (call) => typeof call[0] === 'string' && call[0].includes('CREATE TABLE INFOTABLE_V1'),
+    )
+    expect(ddlCall).toBeDefined()
+    expect(ddlCall![0]).toContain("VALUES(1,'Bills',1,-1)")
+    expect(ddlCall![0]).not.toContain('_tr_')
   })
 })

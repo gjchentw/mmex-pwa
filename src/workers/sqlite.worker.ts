@@ -7,6 +7,12 @@ import sqlite3InitModule, { OpfsDatabase } from '@sqlite.org/sqlite-wasm'
 import wasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm?url'
 import tablesSql from '../../mmex/database/tables.sql?raw'
 
+// Desktop MMEX never executes the raw DDL: sqlite2cpp.py strips the '_tr_'
+// translation markers at build time, so seed rows in a desktop-created file
+// read 'Bills', not '_tr_Bills'. Mirror that here or PWA-created files diverge
+// (openspec: domain-data-conventions, MMB Round-Trip Fidelity).
+const seedSql = tablesSql.replace(/_tr_/g, '')
+
 const dbPath = '/.mmex/data.mmb'
 
 const upgradeFiles = import.meta.glob('../../mmex/database/incremental_upgrade/*.sql', {
@@ -79,7 +85,7 @@ const migrateDb = (db: OpfsDatabase): number => {
       db.exec(`PRAGMA user_version = ${version}`)
     } else {
       log('Initializing database with tables.sql...')
-      db.exec(tablesSql)
+      db.exec(seedSql)
       version = getLegacyVersion(db)
       log('Database initialized. Version:', version)
       db.exec(`PRAGMA user_version = ${version}`)
@@ -154,7 +160,7 @@ const openOrCreate = async (): Promise<{ status: string; version: number }> => {
   } catch {
     log('No existing database found. Creating new one...')
     db = new sqlite3.oo1.OpfsDb(dbPath, 'c')
-    db.exec(tablesSql)
+    db.exec(seedSql)
     db.exec(`PRAGMA user_version = ${latestVersion}`)
     log('New database created. Version:', latestVersion)
     return { status: 'created', version: latestVersion }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 const { MockWorker, handlers } = vi.hoisted(() => {
@@ -167,6 +167,55 @@ describe('database-store', () => {
       await probePromise
 
       expect(store.state).toBe('ready')
+    })
+  })
+
+  // Spec: file-metadata-and-settings, Requirement "Well-Known File Facts",
+  // Scenario "New database seeds the well-known facts". The vendored DDL seeds
+  // DATAVERSION at INFOID 1, so INFOTABLE writes must key on INFONAME -- the
+  // previous hardcoded INFOID overwrote the DATAVERSION row.
+  describe('initNewDb', () => {
+    let execSpy: MockInstance<(sql: string, bind?: unknown[]) => Promise<unknown>>
+
+    beforeEach(async () => {
+      const { dbClient } = await import('../workers/db-client')
+      execSpy = vi.spyOn(dbClient, 'exec').mockResolvedValue([])
+    })
+
+    afterEach(() => {
+      execSpy.mockRestore()
+    })
+
+    it('seeds BASECURRENCYID keyed by INFONAME without touching DATAVERSION', async () => {
+      await store.initNewDb(101, '')
+
+      expect(execSpy).toHaveBeenCalledTimes(1)
+      const [sql, bind] = execSpy.mock.calls[0] as [string, unknown[]]
+      expect(sql).toContain("'BASECURRENCYID'")
+      expect(sql).toContain('ON CONFLICT(INFONAME)')
+      expect(sql).not.toContain('INFOID')
+      expect(sql).not.toContain('DATAVERSION')
+      expect(bind).toEqual(['101'])
+      expect(store.state).toBe('ready')
+    })
+
+    it('seeds USERNAME the same way, only when provided', async () => {
+      await store.initNewDb(2, 'Alice')
+
+      expect(execSpy).toHaveBeenCalledTimes(2)
+      const [sql, bind] = execSpy.mock.calls[1] as [string, unknown[]]
+      expect(sql).toContain("'USERNAME'")
+      expect(sql).toContain('ON CONFLICT(INFONAME)')
+      expect(sql).not.toContain('INFOID')
+      expect(bind).toEqual(['Alice'])
+    })
+
+    it('does not seed currencies from the store (the DDL already seeds them)', async () => {
+      await store.initNewDb(2, 'Alice')
+
+      for (const call of execSpy.mock.calls) {
+        expect(call[0]).not.toContain('CURRENCYFORMATS_V1')
+      }
     })
   })
 })
