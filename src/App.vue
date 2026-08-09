@@ -24,13 +24,13 @@
           dropdown-icon="mdi-menu-down"
         >
           <q-list>
-            <q-item clickable v-close-popup @click="locale = 'en-US'">
+            <q-item clickable v-close-popup @click="chooseLocale('en-US')">
               <q-item-section>
                 <q-item-label>English</q-item-label>
               </q-item-section>
             </q-item>
 
-            <q-item clickable v-close-popup @click="locale = 'zh-TW'">
+            <q-item clickable v-close-popup @click="chooseLocale('zh-TW')">
               <q-item-section>
                 <q-item-label>繁體中文</q-item-label>
               </q-item-section>
@@ -192,10 +192,11 @@
 </template>
 
 <script lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigationEntries } from './router'
 import { useDatabaseStore } from './stores/database-store'
+import { useSettingsStore } from './stores/settings-store'
 import { useGoogleAuthStore } from './stores/google-auth-store'
 import { useDriveSyncStore } from './stores/drive-sync-store'
 import ConfirmDestroyDialog from './components/database/ConfirmDestroyDialog.vue'
@@ -218,6 +219,22 @@ export default {
     const store = useDatabaseStore()
     const auth = useGoogleAuthStore()
     const sync = useDriveSyncStore()
+    const settings = useSettingsStore()
+
+    // The language is a property of the data file, so the choice is written to
+    // the database -- and a choice made before one is open waits for it
+    // (openspec: file-metadata-and-settings, Active Locale Persistence).
+    const chooseLocale = (value: string) => {
+      void settings.setLocale(value, store.isReady)
+    }
+
+    watch(
+      () => store.isReady,
+      (ready) => {
+        if (ready) void settings.syncLocaleWithDatabase()
+      },
+      { immediate: true },
+    )
 
     const syncStatusIcon = computed(
       () =>
@@ -275,6 +292,7 @@ export default {
         rightDrawerOpen.value = !rightDrawerOpen.value
       },
       showDestroyDialog,
+      chooseLocale,
       navEntries,
       dbStatus,
       schemaVersion,

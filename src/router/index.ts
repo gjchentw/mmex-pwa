@@ -30,6 +30,15 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('../pages/SettingsPage.vue'),
+    meta: {
+      nav: { labelKey: 'menu.settings', icon: 'mdi-cog-outline', order: 90 },
+      capability: 'file-metadata-and-settings',
+    },
+  },
+  {
     path: '/init',
     name: 'init',
     component: () => import('../pages/DatabaseInitPage.vue'),

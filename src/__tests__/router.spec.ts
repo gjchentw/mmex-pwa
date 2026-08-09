@@ -31,6 +31,16 @@ describe('route table', () => {
     expect(resolved.matched).toHaveLength(1)
   })
 
+  // Spec: file-metadata-and-settings, requirement "Settings Surface", scenario
+  // "The settings surface is reachable and addressable".
+  it('serves the settings path and declares its owning capability', () => {
+    const resolved = router.resolve('/settings')
+    expect(resolved.name).toBe('settings')
+    expect(resolved.meta.capability).toBe('file-metadata-and-settings')
+    // Everything it shows comes from the database, so it must stay guarded.
+    expect(resolved.meta.public).toBeFalsy()
+  })
+
   // Requirement "Unmatched Route Handling", scenario "An unknown path is
   // explained".
   it('resolves an unknown path to the not-found route', () => {
@@ -70,6 +80,11 @@ describe('route table', () => {
 
     it('offers the home destination', () => {
       expect(navigationEntries().some((entry) => entry.path === '/')).toBe(true)
+    })
+
+    // Spec: file-metadata-and-settings, requirement "Settings Surface".
+    it('offers the settings destination', () => {
+      expect(navigationEntries().some((entry) => entry.path === '/settings')).toBe(true)
     })
 
     // The retired /about link pointed at a path nothing served.

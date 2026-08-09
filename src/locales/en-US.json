@@ -14,7 +14,8 @@
     "zh": "中文"
   },
   "menu": {
-    "home": "Home"
+    "home": "Home",
+    "settings": "Settings"
   },
   "common": {
     "cancel": "Cancel",
@@ -90,5 +91,28 @@
     "title": "Page not found",
     "body": "The address you opened does not match any page in this application.",
     "backHome": "Back to overview"
+  },
+  "settings": {
+    "title": "Settings",
+    "fileGroup": "This file",
+    "fileGroupHint": "Properties recorded inside the database, carried with it wherever it goes.",
+    "appGroup": "This application",
+    "appGroupHint": "How the application behaves.",
+    "infoGroup": "File information",
+    "dateFormat": "Date format",
+    "dateFormatHint": "How dates are written in this file, for example YYYY-MM-DD.",
+    "language": "Language",
+    "languageHint": "Stored in the file, so a synchronized device inherits it.",
+    "useCurrencyHistory": "Use exchange-rate history",
+    "useCurrencyHistoryHint": "When on, each amount is converted using the rate recorded for its own date. When off, one fixed rate per currency is used. Turning this on or off changes converted figures for past periods too.",
+    "retentionDays": "Keep deleted transactions for (days)",
+    "retentionHint": "How long a deleted transaction stays recoverable before it is destroyed.",
+    "retentionImmediate": "Zero means a deleted transaction is destroyed immediately.",
+    "schemaVersion": "Schema version",
+    "dataVersion": "Data version",
+    "baseCurrencyChangeTitle": "Change the base currency?",
+    "baseCurrencyChangeWarning": "Every converted figure in this file will change.",
+    "baseCurrencyChangeDetail": "The base currency is what all other currencies are measured against. Changing it changes converted totals throughout the database, including periods you have already recorded. Amounts you entered are not rewritten.",
+    "baseCurrencyChangeTarget": "New base currency: {currency}"
   }
 }

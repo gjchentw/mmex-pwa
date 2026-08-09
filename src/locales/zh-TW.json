@@ -14,7 +14,8 @@
     "zh": "中文"
   },
   "menu": {
-    "home": "首頁"
+    "home": "首頁",
+    "settings": "設定"
   },
   "common": {
     "cancel": "取消",
@@ -90,5 +91,28 @@
     "title": "找不到頁面",
     "body": "您開啟的網址不符合這個應用程式的任何頁面。",
     "backHome": "回到總覽"
+  },
+  "settings": {
+    "title": "設定",
+    "fileGroup": "這個檔案",
+    "fileGroupHint": "記錄在資料庫內的屬性，會隨檔案一起帶走。",
+    "appGroup": "這個應用程式",
+    "appGroupHint": "應用程式的行為方式。",
+    "infoGroup": "檔案資訊",
+    "dateFormat": "日期格式",
+    "dateFormatHint": "此檔案中日期的書寫方式，例如 YYYY-MM-DD。",
+    "language": "語言",
+    "languageHint": "儲存在檔案中，因此同步的裝置會沿用此設定。",
+    "useCurrencyHistory": "使用匯率歷史",
+    "useCurrencyHistoryHint": "開啟時，每筆金額會依其所屬日期記錄的匯率換算；關閉時，每種幣別使用單一固定匯率。開啟或關閉都會連帶改變過去期間的換算結果。",
+    "retentionDays": "刪除的交易保留天數",
+    "retentionHint": "已刪除的交易在被永久銷毀前，可以復原多久。",
+    "retentionImmediate": "設為 0 表示刪除的交易會立即銷毀。",
+    "schemaVersion": "結構版本",
+    "dataVersion": "資料版本",
+    "baseCurrencyChangeTitle": "要變更基準幣別嗎？",
+    "baseCurrencyChangeWarning": "這個檔案中所有換算後的數字都會改變。",
+    "baseCurrencyChangeDetail": "基準幣別是其他所有幣別的衡量基準。變更它會改變整個資料庫的換算結果，包含您已經記錄過的期間。您輸入的原始金額不會被改寫。",
+    "baseCurrencyChangeTarget": "新的基準幣別：{currency}"
   }
 }
