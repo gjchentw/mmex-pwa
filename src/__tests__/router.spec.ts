@@ -41,6 +41,14 @@ describe('route table', () => {
     expect(resolved.meta.public).toBeFalsy()
   })
 
+  // Spec: currency-management, requirement "Currency Management Surface".
+  it('serves the currencies path and declares its owning capability', () => {
+    const resolved = router.resolve('/currencies')
+    expect(resolved.name).toBe('currencies')
+    expect(resolved.meta.capability).toBe('currency-management')
+    expect(resolved.meta.public).toBeFalsy()
+  })
+
   // Requirement "Unmatched Route Handling", scenario "An unknown path is
   // explained".
   it('resolves an unknown path to the not-found route', () => {
@@ -85,6 +93,11 @@ describe('route table', () => {
     // Spec: file-metadata-and-settings, requirement "Settings Surface".
     it('offers the settings destination', () => {
       expect(navigationEntries().some((entry) => entry.path === '/settings')).toBe(true)
+    })
+
+    // Spec: currency-management, requirement "Currency Management Surface".
+    it('offers the currencies destination', () => {
+      expect(navigationEntries().some((entry) => entry.path === '/currencies')).toBe(true)
     })
 
     // The retired /about link pointed at a path nothing served.

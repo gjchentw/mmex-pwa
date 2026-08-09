@@ -15,13 +15,16 @@
   },
   "menu": {
     "home": "Home",
-    "settings": "Settings"
+    "settings": "Settings",
+    "currencies": "Currencies"
   },
   "common": {
     "cancel": "Cancel",
     "create": "Create",
     "continue": "Continue",
-    "retry": "Retry"
+    "retry": "Retry",
+    "save": "Save",
+    "delete": "Delete"
   },
   "database": {
     "pickFromDrive": "Pick database from Google Drive",
@@ -114,5 +117,36 @@
     "baseCurrencyChangeWarning": "Every converted figure in this file will change.",
     "baseCurrencyChangeDetail": "The base currency is what all other currencies are measured against. Changing it changes converted totals throughout the database, including periods you have already recorded. Amounts you entered are not rewritten.",
     "baseCurrencyChangeTarget": "New base currency: {currency}"
+  },
+  "currency": {
+    "title": "Currencies",
+    "add": "Add currency",
+    "search": "Search by name or symbol",
+    "showAll": "Show all currencies",
+    "noResults": "No currencies match",
+    "baseBadge": "Base",
+    "addTitle": "Add a currency",
+    "editTitle": "Edit currency",
+    "name": "Name",
+    "symbol": "Symbol",
+    "prefix": "Prefix symbol",
+    "suffix": "Suffix symbol",
+    "decimalPoint": "Decimal point",
+    "groupSeparator": "Group separator",
+    "unitName": "Unit name",
+    "centName": "Cent name",
+    "scale": "Scale",
+    "scaleHint": "100 gives two decimals, 1 gives none.",
+    "type": "Type",
+    "conversionRate": "Conversion rate",
+    "conversionRateHint": "How much one unit of this currency is worth in the base currency.",
+    "baseRateFixed": "The base currency is always 1 — every other rate is measured against it.",
+    "preview": "Preview",
+    "historyTitle": "Recorded exchange rates",
+    "historyInactive": "Not in use — rate history is off in settings",
+    "rateDate": "Date",
+    "rateValue": "Rate",
+    "noRates": "No rates recorded yet.",
+    "noneInUse": "No currency is in use yet — nothing references one. Show all to browse the full set."
   }
 }

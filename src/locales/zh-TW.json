@@ -15,13 +15,16 @@
   },
   "menu": {
     "home": "首頁",
-    "settings": "設定"
+    "settings": "設定",
+    "currencies": "幣別"
   },
   "common": {
     "cancel": "取消",
     "create": "建立",
     "continue": "繼續",
-    "retry": "重試"
+    "retry": "重試",
+    "save": "儲存",
+    "delete": "刪除"
   },
   "database": {
     "pickFromDrive": "從 Google 雲端硬碟選擇資料庫",
@@ -114,5 +117,36 @@
     "baseCurrencyChangeWarning": "這個檔案中所有換算後的數字都會改變。",
     "baseCurrencyChangeDetail": "基準幣別是其他所有幣別的衡量基準。變更它會改變整個資料庫的換算結果，包含您已經記錄過的期間。您輸入的原始金額不會被改寫。",
     "baseCurrencyChangeTarget": "新的基準幣別：{currency}"
+  },
+  "currency": {
+    "title": "幣別",
+    "add": "新增幣別",
+    "search": "以名稱或代號搜尋",
+    "showAll": "顯示全部幣別",
+    "noResults": "沒有符合的幣別",
+    "baseBadge": "基準",
+    "addTitle": "新增幣別",
+    "editTitle": "編輯幣別",
+    "name": "名稱",
+    "symbol": "代號",
+    "prefix": "前置符號",
+    "suffix": "後置符號",
+    "decimalPoint": "小數點符號",
+    "groupSeparator": "千分位符號",
+    "unitName": "單位名稱",
+    "centName": "輔幣名稱",
+    "scale": "刻度",
+    "scaleHint": "100 表示兩位小數，1 表示不含小數。",
+    "type": "類型",
+    "conversionRate": "換算匯率",
+    "conversionRateHint": "此幣別一單位相當於多少基準幣別。",
+    "baseRateFixed": "基準幣別恆為 1 —— 其他匯率都以它為衡量基準。",
+    "preview": "預覽",
+    "historyTitle": "已記錄的匯率",
+    "historyInactive": "未生效 —— 設定頁的匯率歷史為關閉",
+    "rateDate": "日期",
+    "rateValue": "匯率",
+    "noRates": "尚未記錄任何匯率。",
+    "noneInUse": "目前沒有使用中的幣別 —— 尚無任何項目引用。切換「顯示全部幣別」可瀏覽完整清單。"
   }
 }

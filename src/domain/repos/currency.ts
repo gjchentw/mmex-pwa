@@ -41,6 +41,46 @@ export const currencyRepo = {
     return updateStatement('CURRENCYFORMATS_V1', 'CURRENCYID', currencyId, values)
   },
 
+  /** Applies an edit after refusing a name or symbol another currency holds. */
+  async save(
+    currencyId: number,
+    values: Partial<Omit<CurrencyRecord, 'CURRENCYID'>>,
+  ): Promise<void> {
+    if (values.CURRENCYNAME !== undefined || values.CURRENCY_SYMBOL !== undefined) {
+      const conflict = await this.findConflict(
+        values.CURRENCYNAME ?? '',
+        values.CURRENCY_SYMBOL ?? '',
+        currencyId,
+      )
+      if (conflict) {
+        throw new Error(`A currency named "${conflict.CURRENCYNAME}" already exists`)
+      }
+    }
+    await db.mutate([this.updateStatement(currencyId, values)])
+  },
+
+  async add(values: Omit<CurrencyRecord, 'CURRENCYID'>): Promise<void> {
+    const conflict = await this.findConflict(values.CURRENCYNAME, values.CURRENCY_SYMBOL)
+    if (conflict) {
+      throw new Error(`A currency named "${conflict.CURRENCYNAME}" already exists`)
+    }
+    await db.mutate([this.addStatement(values)])
+  },
+
+  /**
+   * The currencies anything references, in one pass. Asking `isInUse` per
+   * currency would issue hundreds of queries against a seeded file, which
+   * carries 168 of them.
+   */
+  async usedCurrencyIds(): Promise<Set<number>> {
+    const rows = await db.query<{ CURRENCYID: number }>(
+      `SELECT DISTINCT CURRENCYID FROM ACCOUNTLIST_V1 WHERE CURRENCYID IS NOT NULL
+       UNION
+       SELECT DISTINCT CURRENCYID FROM ASSETS_V1 WHERE CURRENCYID IS NOT NULL`,
+    )
+    return new Set(rows.map((row) => row.CURRENCYID))
+  },
+
   /** True when an account, an asset, or the base-currency pointer references it. */
   async isInUse(currencyId: number): Promise<boolean> {
     const [accounts, assets, baseCurrencyId] = await Promise.all([
@@ -89,6 +129,18 @@ export const currencyHistoryRepo = {
               CURRVALUE = excluded.CURRVALUE, CURRUPDTYPE = excluded.CURRUPDTYPE`,
       bind: [row.CURRENCYID, row.CURRDATE, row.CURRVALUE, row.CURRUPDTYPE],
     }
+  },
+
+  removeStatement(histId: number): SqlStatement {
+    return { sql: 'DELETE FROM CURRENCYHISTORY_V1 WHERE CURRHISTID = ?', bind: [histId] }
+  },
+
+  async remove(histId: number): Promise<void> {
+    await db.mutate([this.removeStatement(histId)])
+  },
+
+  async record(row: Omit<CurrencyHistoryRecord, 'CURRHISTID'>): Promise<void> {
+    await db.mutate([this.upsertStatement(row)])
   },
 
   async clearAll(): Promise<void> {

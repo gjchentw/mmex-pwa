@@ -30,6 +30,15 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/currencies',
+    name: 'currencies',
+    component: () => import('../pages/CurrenciesPage.vue'),
+    meta: {
+      nav: { labelKey: 'menu.currencies', icon: 'mdi-currency-usd', order: 30 },
+      capability: 'currency-management',
+    },
+  },
+  {
     path: '/settings',
     name: 'settings',
     component: () => import('../pages/SettingsPage.vue'),
