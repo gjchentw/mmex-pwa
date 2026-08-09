@@ -62,5 +62,5 @@
 
 ## 9. Review Gate
 
-- [ ] 9.1 Operator reviews the change
-- [ ] 9.2 Archive once approved
+- [x] 9.1 Operator reviewed and approved the change (2026-08-09)
+- [x] 9.2 Archived — `currency-management` promoted to 13 requirements at 1.1.0
