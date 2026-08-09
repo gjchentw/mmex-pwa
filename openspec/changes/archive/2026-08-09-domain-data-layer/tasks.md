@@ -47,5 +47,5 @@
 
 ## 6. Review Gate
 
-- [ ] 6.1 Operator reviews the change
-- [ ] 6.2 Archive once approved
+- [x] 6.1 Operator reviewed and approved the change (2026-08-09)
+- [x] 6.2 Archived — `domain-data-access` promoted to `openspec/specs/`
