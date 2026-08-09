@@ -51,4 +51,4 @@
 ## 8. Review Gate
 
 - [x] 8.1 Operator reviewed and approved the change (2026-08-09)
-- [ ] 8.2 Archive once approved
+- [x] 8.2 Archived — `file-metadata-and-settings` promoted to 12 requirements at 1.1.0
