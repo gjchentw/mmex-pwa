@@ -4,6 +4,12 @@ export const helpers = {
   generateId: () => crypto.randomUUID(),
 }
 
+/** One SQL statement plus its bindings, as emitted by domain rule functions. */
+export interface SqlStatement {
+  sql: string
+  bind?: unknown[]
+}
+
 export class DbClient {
   private worker: Worker
   // Invoked after every successful mutating exec (openspec: cloud-file-sync
@@ -97,6 +103,35 @@ export class DbClient {
       this.mutationListener()
     }
     return result
+  }
+
+  /**
+   * Read rows as objects keyed by column name (openspec: domain-data-access —
+   * the typed domain layer's only read primitive).
+   */
+  async query<T>(sql: string, bind?: unknown[]): Promise<T[]> {
+    await this.ready()
+    const id = helpers.generateId()
+    const result = await new Promise((resolve, reject) => {
+      this.pendingRequests.set(id, { resolve, reject })
+      this.worker.postMessage({ id, type: 'exec', payload: { sql, bind, rowMode: 'object' } })
+    })
+    return (result ?? []) as T[]
+  }
+
+  /**
+   * Apply an ordered statement list in one transaction (openspec:
+   * domain-data-access, Atomic Multi-Table Operations).
+   */
+  async mutate(statements: SqlStatement[]): Promise<void> {
+    if (statements.length === 0) return
+    await this.ready()
+    const id = helpers.generateId()
+    await new Promise((resolve, reject) => {
+      this.pendingRequests.set(id, { resolve, reject })
+      this.worker.postMessage({ id, type: 'exec-tx', payload: { statements } })
+    })
+    this.mutationListener?.()
   }
 
   /** Raw database file bytes (openspec: cloud-file-sync — seeds new Drive files). */

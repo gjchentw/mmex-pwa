@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest'
+import type { SqlStatement } from '../workers/db-client'
 import { setActivePinia, createPinia } from 'pinia'
 
 const { MockWorker, handlers } = vi.hoisted(() => {
@@ -173,48 +174,53 @@ describe('database-store', () => {
   // Spec: file-metadata-and-settings, Requirement "Well-Known File Facts",
   // Scenario "New database seeds the well-known facts". The vendored DDL seeds
   // DATAVERSION at INFOID 1, so INFOTABLE writes must key on INFONAME -- the
-  // previous hardcoded INFOID overwrote the DATAVERSION row.
+  // previous hardcoded INFOID overwrote the DATAVERSION row. Seeding now runs
+  // through the domain layer (openspec: domain-data-access, Single Typed Access
+  // Path), so the statements arrive as one atomic batch.
   describe('initNewDb', () => {
-    let execSpy: MockInstance<(sql: string, bind?: unknown[]) => Promise<unknown>>
+    let mutateSpy: MockInstance<(statements: SqlStatement[]) => Promise<void>>
 
     beforeEach(async () => {
       const { dbClient } = await import('../workers/db-client')
-      execSpy = vi.spyOn(dbClient, 'exec').mockResolvedValue([])
+      mutateSpy = vi.spyOn(dbClient, 'mutate').mockResolvedValue(undefined)
     })
 
     afterEach(() => {
-      execSpy.mockRestore()
+      mutateSpy.mockRestore()
     })
+
+    const statementsOf = (call: number): SqlStatement[] =>
+      mutateSpy.mock.calls[call]![0] as SqlStatement[]
 
     it('seeds BASECURRENCYID keyed by INFONAME without touching DATAVERSION', async () => {
       await store.initNewDb(101, '')
 
-      expect(execSpy).toHaveBeenCalledTimes(1)
-      const [sql, bind] = execSpy.mock.calls[0] as [string, unknown[]]
-      expect(sql).toContain("'BASECURRENCYID'")
-      expect(sql).toContain('ON CONFLICT(INFONAME)')
-      expect(sql).not.toContain('INFOID')
-      expect(sql).not.toContain('DATAVERSION')
-      expect(bind).toEqual(['101'])
+      expect(mutateSpy).toHaveBeenCalledTimes(1)
+      const statements = statementsOf(0)
+      expect(statements).toHaveLength(1)
+      expect(statements[0]!.sql).toContain('ON CONFLICT(INFONAME)')
+      expect(statements[0]!.sql).not.toContain('INFOID')
+      expect(statements[0]!.bind).toEqual(['BASECURRENCYID', '101'])
       expect(store.state).toBe('ready')
     })
 
-    it('seeds USERNAME the same way, only when provided', async () => {
+    it('seeds USERNAME alongside it, only when provided, in one transaction', async () => {
       await store.initNewDb(2, 'Alice')
 
-      expect(execSpy).toHaveBeenCalledTimes(2)
-      const [sql, bind] = execSpy.mock.calls[1] as [string, unknown[]]
-      expect(sql).toContain("'USERNAME'")
-      expect(sql).toContain('ON CONFLICT(INFONAME)')
-      expect(sql).not.toContain('INFOID')
-      expect(bind).toEqual(['Alice'])
+      expect(mutateSpy).toHaveBeenCalledTimes(1)
+      const statements = statementsOf(0)
+      expect(statements).toHaveLength(2)
+      expect(statements[1]!.bind).toEqual(['USERNAME', 'Alice'])
+      for (const statement of statements) {
+        expect(statement.sql).not.toContain('DATAVERSION')
+      }
     })
 
     it('does not seed currencies from the store (the DDL already seeds them)', async () => {
       await store.initNewDb(2, 'Alice')
 
-      for (const call of execSpy.mock.calls) {
-        expect(call[0]).not.toContain('CURRENCYFORMATS_V1')
+      for (const statement of statementsOf(0)) {
+        expect(statement.sql).not.toContain('CURRENCYFORMATS_V1')
       }
     })
   })

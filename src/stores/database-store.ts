@@ -1,6 +1,8 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { dbClient } from '../workers/db-client'
+import { infoRepo } from '../domain/repos/metadata'
+import { INFO_KEY } from '../domain/rules/metadata'
 
 export type DbState =
   | 'uninitialized'
@@ -64,22 +66,14 @@ export const useDatabaseStore = defineStore('database', () => {
   async function initNewDb(currencyId: number, userName: string) {
     state.value = 'creating'
     try {
-      // Key INFOTABLE writes by INFONAME (UNIQUE COLLATE NOCASE) — the vendored
-      // DDL seeds DATAVERSION at INFOID 1, so addressing rows by INFOID would
-      // overwrite it (openspec: file-metadata-and-settings, Well-Known File Facts).
-      await dbClient.exec(
-        `INSERT INTO INFOTABLE_V1 (INFONAME, INFOVALUE) VALUES ('BASECURRENCYID', ?)
-         ON CONFLICT(INFONAME) DO UPDATE SET INFOVALUE = excluded.INFOVALUE`,
-        [String(currencyId)],
-      )
-
-      if (userName) {
-        await dbClient.exec(
-          `INSERT INTO INFOTABLE_V1 (INFONAME, INFOVALUE) VALUES ('USERNAME', ?)
-           ON CONFLICT(INFONAME) DO UPDATE SET INFOVALUE = excluded.INFOVALUE`,
-          [userName],
-        )
-      }
+      // Seeding goes through the domain layer, which keys these writes by
+      // INFONAME. The vendored DDL seeds DATAVERSION at INFOID 1, so addressing
+      // rows by id would overwrite it (openspec: file-metadata-and-settings,
+      // Well-Known File Facts; domain-data-access, Single Typed Access Path).
+      await infoRepo.setMany({
+        [INFO_KEY.baseCurrencyId]: String(currencyId),
+        ...(userName ? { [INFO_KEY.userName]: userName } : {}),
+      })
 
       state.value = 'ready'
     } catch (err: unknown) {

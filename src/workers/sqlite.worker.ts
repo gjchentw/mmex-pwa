@@ -264,8 +264,30 @@ self.onmessage = async (e) => {
           sql: payload.sql,
           bind: payload.bind,
           returnValue: 'resultRows',
+          // Callers that want named columns pass 'object'; omitting it keeps the
+          // engine default (positional arrays) for existing callers.
+          ...(payload.rowMode ? { rowMode: payload.rowMode } : {}),
         })
         self.postMessage({ id, type: 'exec', status: 'success', result })
+        break
+      }
+
+      // Apply an ordered statement list atomically, so a multi-table operation
+      // (cascade, merge, cache write-back) cannot leave partial state
+      // (openspec: domain-data-access, Atomic Multi-Table Operations).
+      case 'exec-tx': {
+        if (!db) {
+          self.postMessage({ id, type, status: 'error', error: 'Database not initialized' })
+          return
+        }
+        const statements = payload.statements ?? []
+        const handle = db
+        handle.transaction(() => {
+          for (const statement of statements) {
+            handle.exec({ sql: statement.sql, bind: statement.bind })
+          }
+        })
+        self.postMessage({ id, type: 'exec-tx', status: 'success' })
         break
       }
 
