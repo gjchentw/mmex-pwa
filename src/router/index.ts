@@ -30,6 +30,15 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/accounts',
+    name: 'accounts',
+    component: () => import('../pages/AccountsPage.vue'),
+    meta: {
+      nav: { labelKey: 'menu.accounts', icon: 'mdi-bank', order: 20 },
+      capability: 'account-management',
+    },
+  },
+  {
     path: '/currencies',
     name: 'currencies',
     component: () => import('../pages/CurrenciesPage.vue'),
