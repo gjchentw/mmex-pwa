@@ -23,5 +23,5 @@
 
 ## 4. Review Gate
 
-- [ ] 4.1 Operator reviews the change
-- [ ] 4.2 Archive once approved (bumps `domain-data-conventions` to 1.1.0 in `openspec/specs/`)
+- [x] 4.1 Operator reviewed and approved the change (2026-08-08)
+- [x] 4.2 Archived (bumps `domain-data-conventions` to 1.1.0 in `openspec/specs/`)
