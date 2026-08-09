@@ -14,8 +14,7 @@
     "zh": "中文"
   },
   "menu": {
-    "home": "Home",
-    "about": "About"
+    "home": "Home"
   },
   "common": {
     "cancel": "Cancel",
@@ -41,7 +40,18 @@
     "destroyTitle": "Create New Database",
     "destroyWarning": "This will destroy the current database.",
     "destroyDetail": "All existing data will be lost. This action cannot be undone.",
-    "dbStatus": "SQLite Status: {status}"
+    "dbStatus": "SQLite Status: {status}",
+    "status": {
+      "uninitialized": "Not started",
+      "probing": "Checking...",
+      "creating": "Creating...",
+      "opening": "Opening...",
+      "migrating": "Upgrading...",
+      "needs-wizard": "Setup needed",
+      "ready": "Ready",
+      "error": "Error"
+    },
+    "schemaVersion": "Schema version {version}"
   },
   "sync": {
     "signIn": "Sign in with Google",
@@ -70,5 +80,15 @@
       "error": "Sync error",
       "conflict": "Conflict — action needed"
     }
+  },
+  "home": {
+    "title": "Overview",
+    "emptyTitle": "Your database is ready",
+    "emptyBody": "Nothing to summarize yet. Set up your accounts and record transactions, and this page will fill with a summary of your finances."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The address you opened does not match any page in this application.",
+    "backHome": "Back to overview"
   }
 }

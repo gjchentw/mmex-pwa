@@ -12,7 +12,10 @@ test('boots cross-origin isolated and opens a database', async ({ page }) => {
   const htmlAnsweredAssets: string[] = []
   page.on('response', (res) => {
     const path = new URL(res.url()).pathname
-    if (path.startsWith('/assets/') && (res.headers()['content-type'] ?? '').includes('text/html')) {
+    if (
+      path.startsWith('/assets/') &&
+      (res.headers()['content-type'] ?? '').includes('text/html')
+    ) {
       htmlAnsweredAssets.push(path)
     }
   })
@@ -26,7 +29,12 @@ test('boots cross-origin isolated and opens a database', async ({ page }) => {
   // The database actually opened: the app leaves its loading state. "Ready"
   // (schema applied) or "Needs Setup" (fresh database awaiting the wizard) both
   // prove WASM compiled, the OPFS proxy worker started, and OPFS mounted.
-  await expect(page.getByTestId('db-status')).toHaveText(/Ready|Needs Setup/, { timeout: 20_000 })
+  await expect(page.getByTestId('db-status')).toHaveText(/Ready|Setup needed/, { timeout: 20_000 })
+
+  // The page region always resolves to a destination (openspec:
+  // app-shell-navigation). Before the home route existed, a ready database
+  // landed on an unmatched path and this region stayed empty.
+  await expect(page.locator('.q-page').first()).toBeVisible({ timeout: 20_000 })
 
   expect(htmlAnsweredAssets, 'asset requests answered by the SPA fallback').toEqual([])
 })
@@ -37,7 +45,7 @@ test('boots cross-origin isolated and opens a database', async ({ page }) => {
 // mocked-out boundary, recorded as a limitation in tasks 7.1.
 test('sync surface renders signed-out and never blocks local use', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByTestId('db-status')).toHaveText(/Ready|Needs Setup/, { timeout: 20_000 })
+  await expect(page.getByTestId('db-status')).toHaveText(/Ready|Setup needed/, { timeout: 20_000 })
 
   await page.locator('button:has(i.mdi-database)').click()
   await expect(page.getByText('Not signed in')).toBeVisible()

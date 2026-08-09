@@ -10,7 +10,7 @@
                  subresources, and this was the app shell's only one. -->
             <img src="/icon-192.png" />
           </q-avatar>
-          <span class="q-ml-sm">Title</span>
+          <span class="q-ml-sm">{{ $t('app.name') }}</span>
           <div class="text-subtitle2 q-mt-xs" data-testid="db-status">
             {{ $t('database.dbStatus', { status: dbStatus }) }}
           </div>
@@ -43,14 +43,26 @@
     </q-header>
 
     <q-drawer v-model="leftDrawerOpen" side="left" overlay elevated>
-      <div class="q-pa-md">
-        <nav>
-          <div class="column q-gutter-sm">
-            <RouterLink to="/">{{ $t('menu.home') }}</RouterLink>
-            <RouterLink to="/about">{{ $t('menu.about') }}</RouterLink>
-          </div>
-        </nav>
-      </div>
+      <!-- Entries come from route metadata, so one cannot point at a path the
+           route table does not serve (openspec: app-shell-navigation,
+           Navigation Reflects Location). -->
+      <q-list padding>
+        <q-item
+          v-for="entry in navEntries"
+          :key="entry.path"
+          v-ripple
+          clickable
+          :to="entry.path"
+          exact
+          active-class="text-primary bg-blue-grey-1"
+          @click="leftDrawerOpen = false"
+        >
+          <q-item-section avatar>
+            <q-icon :name="entry.icon" />
+          </q-item-section>
+          <q-item-section>{{ $t(entry.labelKey) }}</q-item-section>
+        </q-item>
+      </q-list>
     </q-drawer>
 
     <q-drawer v-model="rightDrawerOpen" side="right" overlay elevated>
@@ -154,11 +166,18 @@
             </q-item-section>
             <q-item-section>{{ $t('database.startNew') }}</q-item-section>
           </q-item>
+
+          <q-separator />
+
+          <q-item v-if="schemaVersion !== null">
+            <q-item-section avatar>
+              <q-icon name="mdi-information-outline" />
+            </q-item-section>
+            <q-item-section caption>
+              {{ $t('database.schemaVersion', { version: schemaVersion }) }}
+            </q-item-section>
+          </q-item>
         </q-list>
-
-        <q-separator class="q-my-md" />
-
-        <pre style="white-space: pre-wrap; word-break: break-all">{{ dbResult }}</pre>
       </div>
     </q-drawer>
 
@@ -175,10 +194,10 @@
 <script lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { navigationEntries } from './router'
 import { useDatabaseStore } from './stores/database-store'
 import { useGoogleAuthStore } from './stores/google-auth-store'
 import { useDriveSyncStore } from './stores/drive-sync-store'
-import { dbClient } from './workers/db-client'
 import ConfirmDestroyDialog from './components/database/ConfirmDestroyDialog.vue'
 import DriveFileBrowserDialog from './components/database/DriveFileBrowserDialog.vue'
 import SyncConflictDialog from './components/database/SyncConflictDialog.vue'
@@ -189,13 +208,8 @@ export default {
     DriveFileBrowserDialog,
     SyncConflictDialog,
   },
-  data() {
-    return {
-      dbResult: '',
-    }
-  },
   setup() {
-    const { locale } = useI18n()
+    const { locale, t } = useI18n()
     const leftDrawerOpen = ref(false)
     const rightDrawerOpen = ref(false)
     const showDestroyDialog = ref(false)
@@ -235,28 +249,13 @@ export default {
       ;(event.target as HTMLInputElement).value = ''
     }
 
-    const dbStatus = computed(() => {
-      switch (store.state) {
-        case 'uninitialized':
-          return 'Uninitialized'
-        case 'probing':
-          return 'Probing...'
-        case 'creating':
-          return 'Creating...'
-        case 'opening':
-          return 'Opening...'
-        case 'migrating':
-          return 'Migrating...'
-        case 'needs-wizard':
-          return 'Needs Setup'
-        case 'ready':
-          return 'Ready'
-        case 'error':
-          return `Error: ${store.error}`
-        default:
-          return store.state
-      }
-    })
+    const navEntries = computed(() => navigationEntries())
+
+    // Lifecycle states reach the user as translated text, never as the internal
+    // identifier (openspec: app-shell-navigation, Localized Shell Text).
+    const dbStatus = computed(() => t(`database.status.${store.state}`))
+
+    const schemaVersion = computed(() => store.version)
 
     const onDestroyConfirm = async () => {
       await store.destroyAndRecreate()
@@ -276,7 +275,9 @@ export default {
         rightDrawerOpen.value = !rightDrawerOpen.value
       },
       showDestroyDialog,
+      navEntries,
       dbStatus,
+      schemaVersion,
       onDestroyConfirm,
       auth,
       sync,
@@ -286,33 +287,6 @@ export default {
       syncStatusColor,
       onImportFile,
     }
-  },
-  async mounted() {
-    const store = useDatabaseStore()
-    // Wait for DB to be ready before querying version
-    const unwatch = this.$watch(
-      () => store.state,
-      async (val) => {
-        if (val === 'ready') {
-          unwatch()
-          try {
-            const versionResult = await dbClient.exec('PRAGMA user_version')
-            let version = 'Unknown'
-            if (
-              Array.isArray(versionResult) &&
-              versionResult.length > 0 &&
-              Array.isArray(versionResult[0])
-            ) {
-              version = String(versionResult[0][0])
-            }
-            this.dbResult = `DB Version: ${version}`
-          } catch (err: unknown) {
-            console.error(err)
-          }
-        }
-      },
-      { immediate: true },
-    )
   },
 }
 </script>

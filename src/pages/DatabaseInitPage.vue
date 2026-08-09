@@ -30,8 +30,9 @@
 </template>
 
 <script lang="ts">
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { safeRedirectTarget } from '../router'
 import { useDatabaseStore } from '../stores/database-store'
 import NewDatabaseWizard from '../components/database/NewDatabaseWizard.vue'
 import DatabaseMigration from '../components/database/DatabaseMigration.vue'
@@ -44,6 +45,7 @@ export default {
   setup() {
     const store = useDatabaseStore()
     const router = useRouter()
+    const route = useRoute()
 
     onMounted(() => {
       if (store.state === 'uninitialized') {
@@ -51,11 +53,22 @@ export default {
       }
     })
 
+    // This surface exists to reach readiness, so it steps aside the moment it
+    // does -- whether readiness came from the wizard or from probing an
+    // existing database -- resuming whatever destination was requested
+    // (openspec: app-shell-navigation, Home Summary Surface).
+    watch(
+      () => store.state,
+      (state) => {
+        if (state === 'ready') {
+          router.replace(safeRedirectTarget(route.query.redirect))
+        }
+      },
+      { immediate: true },
+    )
+
     const onWizardCreate = async (currencyId: number, userName: string) => {
       await store.initNewDb(currencyId, userName)
-      if (store.state === 'ready') {
-        router.push('/')
-      }
     }
 
     const onWizardCancel = () => {
