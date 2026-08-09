@@ -3,6 +3,8 @@
   "description": "MMEX PWA",
   "version": "0.0.0",
   "private": true,
+  "license": "GPL-2.0-or-later",
+  "author": "gjchentw",
   "type": "module",
   "engines": {
     "node": ">=24.0.0"
