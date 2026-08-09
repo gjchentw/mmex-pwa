@@ -45,5 +45,5 @@
 
 ## 7. Review Gate
 
-- [ ] 7.1 Operator reviews the change
-- [ ] 7.2 Archive once approved
+- [x] 7.1 Operator reviewed and approved the change (2026-08-09)
+- [x] 7.2 Archived — `app-shell-navigation` promoted to `openspec/specs/`
