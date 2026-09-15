@@ -8,7 +8,7 @@
 
 This specification governs the development and deployment infrastructure of the project ONLY — runtime, package management, frontend framework, build system, data-persistence infrastructure, cross-origin isolation, quality tooling, testing, quality gates, hosting, configuration, and source provenance. It does NOT govern application or business logic (accounts, transactions, reports, financial rules, or database schema semantics); those are reserved for future capability specifications.
 
-Governing rules: all content complies with [AGENTS.md](../../AGENTS.md). Change history: established by the `infrastructure-baseline` change (archived 2026-07-18; see `openspec/changes/archive/2026-07-18-infrastructure-baseline/` for the full proposal, design decisions D1–D12, and task record).
+Governing rules: all content complies with [AGENTS.md](../../../AGENTS.md). Change history: established by the `infrastructure-baseline` change (archived 2026-07-18; see `openspec/changes/archive/2026-07-18-infrastructure-baseline/` for the full proposal, design decisions D1–D12, and task record).
 
 **Terminology**:
 - **Governed component**: a technology listed in the governed stack table of `Requirement: Governed Technology Stack Baseline`.

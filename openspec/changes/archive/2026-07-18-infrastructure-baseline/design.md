@@ -4,7 +4,7 @@
 **Version**: 1.1.0
 **Last Updated**: 2026-07-18
 
-Related artifacts: [proposal.md](./proposal.md) (motivation), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md) (requirements), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../AGENTS.md).
+Related artifacts: [proposal.md](./proposal.md) (motivation), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md) (requirements), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Context
 
@@ -68,7 +68,7 @@ flowchart TD
 
 Requirement bodies state the *capability* ("an embedded SQL engine compiled to WebAssembly, executed off the main thread"); a single `Requirement: Governed Technology Stack Baseline` carries a table naming the concrete components and versions.
 
-**Rationale**: [AGENTS.md](../../AGENTS.md) mandates implementation-agnostic specs (WHAT, not HOW), while the operator explicitly requires the spec to name the tech stack. This structure satisfies both without a documented deviation: the requirements remain portable, and the table gives verifiable traceability and a change-control point. Crucially, it makes stack changes *reviewable* — swapping a bundler now requires amending a normative table, not just editing a config file.
+**Rationale**: [AGENTS.md](../../../../AGENTS.md) mandates implementation-agnostic specs (WHAT, not HOW), while the operator explicitly requires the spec to name the tech stack. This structure satisfies both without a documented deviation: the requirements remain portable, and the table gives verifiable traceability and a change-control point. Crucially, it makes stack changes *reviewable* — swapping a bundler now requires amending a normative table, not just editing a config file.
 **Alternatives considered**: (a) Naming tools directly inside each requirement — most verifiable but conflicts with AGENTS.md and would have required operator-approved deviation. (b) Relegating tools to a non-normative appendix — most agnostic, but the stack would not be governed at all, defeating the purpose. The operator selected this middle path.
 
 ### D3: Cloudflare Pages as the deployment target

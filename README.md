@@ -73,7 +73,9 @@ npm run build && CI=true npm run test:e2e -- --project=chromium
 
 ## Specifications
 
-This project follows spec-driven development. The governing infrastructure specification lives in [`openspec/`](openspec/); see [`openspec/AGENTS.md`](openspec/AGENTS.md) for the authoring rules.
+This project follows spec-driven development. Accepted capability specifications live in [`openspec/specs/`](openspec/specs/), work in flight in [`openspec/changes/`](openspec/changes/), and the phase roadmap in [`openspec/designs/domain-capability-map.md`](openspec/designs/domain-capability-map.md).
+
+[`AGENTS.md`](AGENTS.md) is the charter binding every AI agent that works in this repository, whatever tool it runs under — it carries the commit rules, the language rule, the standing duties, and the quality gates, and it overrides tool defaults. The OpenSpec authoring rules it delegates (declarative language, scenario format, diagram requirements) live in [`openspec/config.yaml`](openspec/config.yaml), which the OpenSpec CLI feeds to agents automatically.
 
 ## License and attribution
 

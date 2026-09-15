@@ -4,7 +4,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-08-08
 
-Related artifacts: [design.md](./design.md) (how), [specs/domain-data-conventions/spec.md](./specs/domain-data-conventions/spec.md) (baseline delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/domain-data-conventions/spec.md](./specs/domain-data-conventions/spec.md) (baseline delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 

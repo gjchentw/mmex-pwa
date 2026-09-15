@@ -4,7 +4,7 @@
 **Version**: 1.1.0
 **Last Updated**: 2026-07-18
 
-Related artifacts: [design.md](./design.md) (how), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md) (requirements), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md) (requirements), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 
@@ -39,4 +39,4 @@ The project's development infrastructure (framework, build system, client-side d
 - **Configuration/tooling affected when the prescribed gaps are implemented** (implementation is out of scope for this change; tracked in `tasks.md`): `.nvmrc`/`.node-version`, git-hook tooling, `.github/workflows/*`, a Cloudflare Pages project + `_headers`, `.env.example`, PWA manifest/icons, and `index.html` metadata.
 - **External dependencies**: a Cloudflare Pages account/project (new); continued reliance on the `mmex/database` and `mmex/moneymanagerex` git submodules; a Google OAuth client id for Drive sync.
 - **No application source-code behavior changes** are mandated by this specification.
-- **Governing rules**: all artifacts comply with [openspec/AGENTS.md](../../AGENTS.md).
+- **Governing rules**: all artifacts comply with [AGENTS.md](../../../../AGENTS.md).

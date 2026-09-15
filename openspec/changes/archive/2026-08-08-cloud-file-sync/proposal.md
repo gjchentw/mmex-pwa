@@ -4,7 +4,7 @@
 **Version**: 1.1.0
 **Last Updated**: 2026-07-18
 
-Related artifacts: [design.md](./design.md) (how), [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md) (new capability), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md) (baseline delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md) (new capability), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md) (baseline delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 

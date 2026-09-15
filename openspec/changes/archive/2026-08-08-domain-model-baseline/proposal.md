@@ -4,7 +4,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-08-08
 
-Related artifacts: [design.md](./design.md) (how), [specs/](./specs/) (eleven new capabilities), [tasks.md](./tasks.md) (authoring and verification steps). Governed by [AGENTS.md](../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/](./specs/) (eleven new capabilities), [tasks.md](./tasks.md) (authoring and verification steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 

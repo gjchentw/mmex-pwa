@@ -8,7 +8,7 @@
 
 Optional Google sign-in, Drive file binding, bidirectional synchronization of the client-side database file, conflict resolution, and sync-status presentation. This capability builds on the infrastructure governed by `infrastructure-baseline` (OPFS persistence, cross-origin isolation, the `opfs-cloud-file` governed component) and does not alter database schema or financial logic.
 
-Governing rules: all content complies with [AGENTS.md](../../AGENTS.md). Change history: established by the `cloud-file-sync` change (archived 2026-08-08; see `openspec/changes/archive/2026-08-08-cloud-file-sync/` for the proposal, design decisions D1–D8 including the no-Picker and redirect-auth evidence chains, and the task record).
+Governing rules: all content complies with [AGENTS.md](../../../AGENTS.md). Change history: established by the `cloud-file-sync` change (archived 2026-08-08; see `openspec/changes/archive/2026-08-08-cloud-file-sync/` for the proposal, design decisions D1–D8 including the no-Picker and redirect-auth evidence chains, and the task record).
 
 ## Requirements
 ### Requirement: Optional Google Sign-In

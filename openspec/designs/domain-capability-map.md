@@ -3,7 +3,7 @@
 **Version**: 1.4.0
 **Last Updated**: 2026-08-09
 
-The living roadmap for the MoneyManagerEx PWA remake's domain capabilities. Established by change `domain-model-baseline`; future implementation changes cite this map and update the status column as they land. Governed by [AGENTS.md](../AGENTS.md).
+The living roadmap for the MoneyManagerEx PWA remake's domain capabilities. Established by change `domain-model-baseline`; future implementation changes cite this map and update the status column as they land. Governed by [AGENTS.md](../../AGENTS.md).
 
 ## Capability Roster
 

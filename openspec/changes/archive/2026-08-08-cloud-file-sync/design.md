@@ -4,7 +4,7 @@
 **Version**: 1.1.0
 **Last Updated**: 2026-07-18
 
-Related artifacts: [proposal.md](./proposal.md), [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../AGENTS.md).
+Related artifacts: [proposal.md](./proposal.md), [specs/cloud-file-sync/spec.md](./specs/cloud-file-sync/spec.md), [specs/infrastructure-baseline/spec.md](./specs/infrastructure-baseline/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Context
 

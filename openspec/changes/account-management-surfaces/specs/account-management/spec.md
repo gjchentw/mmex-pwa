@@ -6,7 +6,7 @@
 **Change**: `account-management-surfaces`
 **Delta Type**: MODIFIED
 
-Governed by [AGENTS.md](../../../AGENTS.md). Related change artifacts: [proposal.md](../../proposal.md), [design.md](../../design.md), [tasks.md](../../tasks.md).
+Governed by [AGENTS.md](../../../../../AGENTS.md). Related change artifacts: [proposal.md](../../proposal.md), [design.md](../../design.md), [tasks.md](../../tasks.md).
 
 This delta ADDS user-facing requirements to the `account-management` capability. The baseline established data semantics and behavioral rules; this delta specifies the surfaces through which users interact with those rules.
 

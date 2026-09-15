@@ -6,7 +6,7 @@
 
 **Scope**: This specification governs the development and deployment infrastructure of the project ONLY — runtime, package management, frontend framework, build system, data-persistence infrastructure, cross-origin isolation, quality tooling, testing, quality gates, hosting, configuration, and source provenance. It does NOT govern application or business logic (accounts, transactions, reports, financial rules, or database schema semantics); those are reserved for future capability specifications.
 
-**Governing rules**: All content complies with [AGENTS.md](../../../../AGENTS.md). Traceability paths are relative to the repository root.
+**Governing rules**: All content complies with [AGENTS.md](../../../../../../AGENTS.md). Traceability paths are relative to the repository root.
 
 **Terminology**:
 - **Governed component**: a technology listed in the governed stack table of `Requirement: Governed Technology Stack Baseline`.

@@ -1,20 +1,70 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context. Shown to AI agents when they create artifacts.
+context: |
+  MMEX PWA — a browser-native port of desktop MoneyManagerEx, licensed GPL-2.0-or-later.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  GOVERNING CHARTER: /AGENTS.md is binding on every AI agent in this repository and
+  overrides tool and platform defaults. Read it before writing anything. It carries the
+  final-authority rule, the git commit rules (no AI co-author or attribution lines), the
+  English-only rule, the standing duties (verification, proactive inquiry, risk
+  assessment), and the quality gates. This file carries only the OpenSpec authoring rules.
+
+  TECH STACK: Vue 3 with script setup and TypeScript, Quasar, Pinia, Vue Router, vue-i18n,
+  Vite, Vitest, Playwright, ESLint and Prettier, Node 24 or newer.
+
+  PERSISTENCE: SQLite compiled to WebAssembly over an OPFS VFS, owned exclusively by
+  src/workers/sqlite.worker.ts and reached through src/workers/db-client.ts. There is no
+  backend. Cross-origin isolation (COOP plus COEP) is required for SharedArrayBuffer.
+  Optional sync is Google Drive REST with an OAuth redirect flow.
+
+  DOMAIN: personal finance. The schema is vendored verbatim from the upstream
+  moneymanagerex/database git submodule at mmex/ and is never modified. Full bidirectional
+  .mmb compatibility with desktop MoneyManagerEx is a standing constraint. Upstream
+  business rules are ported into src/domain/rules/, each citing the Model_*.cpp function it
+  mirrors.
+
+  ARCHITECTURE: capability specs under openspec/specs/ own tables and rules. The living
+  roadmap and phase order is openspec/designs/domain-capability-map.md. Data reach is a
+  single typed path: src/domain/repos/ over src/domain/db.ts, with pure functions in
+  src/domain/rules/. Cross-cutting encodings live in src/domain/conventions.ts.
+
+  CONVENTIONS: English for every artifact; kebab-case for all file and directory names;
+  markdown for all documents; relative paths for cross-references; a version and a
+  last-updated date in every document header; Conventional Commits.
+
+  UX DIVERGENCE PROTOCOL: desktop MoneyManagerEx UX is never specified silently. Escalate
+  any UX-entangled rule to the human operator before finalizing the requirement.
+
+# Per-artifact authoring rules.
+rules:
+  proposal:
+    - "Write in English. Use kebab-case for the change name."
+    - "Open with a Related artifacts line linking design.md, the delta specs, and tasks.md by relative path, and citing /AGENTS.md as the governing charter."
+    - "State Why before What. Give the problem, what prompted it, and the intended outcome."
+    - "List affected capabilities under New Capabilities and Modified Capabilities, using their kebab-case names from openspec/specs/."
+    - "Declare what is explicitly out of scope, and name the phase or change that will carry it."
+    - "Include a version and a last-updated date in the header."
+  specs:
+    - "Write in English. One capability per file, at specs/<capability>/spec.md."
+    - "Use declarative language: SHALL and MUST. Never should, may, or can."
+    - "Make every requirement verifiable and implementation-agnostic. Describe WHAT, not HOW."
+    - "Give every requirement at least one scenario under a four-hashtag Scenario header. Three hashtags fail validation."
+    - "Write scenarios in WHEN and THEN form."
+    - "Mark delta requirements as ADDED, MODIFIED, or REMOVED against the main spec."
+    - "Do not assert that a feature exists unless this change delivers it. Phrase future behavior conditionally so it binds from its first commit."
+    - "Maintain traceability to implementation files using repository-root-relative paths."
+  design:
+    - "Write in English. Number decisions D1, D2, D3 and give each a rationale plus the alternatives rejected."
+    - "Include Mermaid diagrams for processes and workflows, component interactions, data structures and entity relationships, and state transitions."
+    - "Place each diagram immediately after the text it illustrates, fence it as a mermaid code block, and follow it with a one-line italic caption."
+    - "Keep diagrams simple and readable. A diagram supplements the text and never replaces it."
+    - "Record the risk assessment as R1, R2 and so on, each with likelihood, impact, and mitigation."
+    - "Record every operator decision with its date, so later changes can cite it."
+  tasks:
+    - "Write in English. Group tasks into numbered sections and number every task as section.n."
+    - "Make each task independently verifiable, and link the files it touches by relative path."
+    - "Include a Tests section that covers every risk named in design.md."
+    - "Include a Verification section covering openspec validate, npm run test:unit, npm run type-check, npm run lint:check, npm run format:check, and npm run build."
+    - "End with a Review Gate section: operator review and approval, then archive and spec promotion."
+    - "Check a box only when the work is done and verified. Never check a box for unverified work."

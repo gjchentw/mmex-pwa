@@ -1,7 +1,11 @@
+# Generated agent scaffolding - the OpenSpec CLI emits one copy per harness target.
+# The repository's own agent rules live in /AGENTS.md and openspec/config.yaml.
 .opencode
 .claude
 .github/prompts
 .github/skills
+.agents/
+.vibe/
 
 # Logs
 logs
