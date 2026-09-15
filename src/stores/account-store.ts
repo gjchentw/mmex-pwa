@@ -168,14 +168,15 @@ export const useAccountStore = defineStore('account', () => {
     if (account.ACCOUNTID) {
       // Update existing account
       const { ACCOUNTID, ...values } = account
-      await accountRepo.updateStatement(ACCOUNTID, values)
-      await load()
+      await accountRepo.save(ACCOUNTID, values)
     } else {
       // Add new account
       const values = account as Omit<AccountRecord, 'ACCOUNTID'>
-      await accountRepo.addStatement(values)
-      await load()
+      await accountRepo.add(values)
     }
+    await load()
+    // The initial balance may have moved, and a new account has no cached entry.
+    await loadBalances()
   }
 
   /**
@@ -185,6 +186,7 @@ export const useAccountStore = defineStore('account', () => {
   async function remove(accountId: number) {
     await accountRepo.remove(accountId)
     await load()
+    await loadBalances()
   }
 
   /**
@@ -208,7 +210,7 @@ export const useAccountStore = defineStore('account', () => {
     const updates: Partial<AccountRecord> = {
       FAVORITEACCT: encodeFavorite(!current),
     }
-    await accountRepo.updateStatement(accountId, updates)
+    await accountRepo.save(accountId, updates)
     await load()
   }
 
@@ -220,7 +222,7 @@ export const useAccountStore = defineStore('account', () => {
       STATEMENTLOCKED: locked ? 1 : null,
       STATEMENTDATE: date ?? null,
     }
-    await accountRepo.updateStatement(accountId, updates)
+    await accountRepo.save(accountId, updates)
     await load()
   }
 

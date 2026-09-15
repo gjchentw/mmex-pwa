@@ -37,6 +37,25 @@ export const accountRepo = {
     return updateStatement('ACCOUNTLIST_V1', 'ACCOUNTID', accountId, values)
   },
 
+  /** Applies an edit after refusing a name another account holds, in any letter case. */
+  async save(accountId: number, values: Partial<Omit<AccountRecord, 'ACCOUNTID'>>): Promise<void> {
+    if (values.ACCOUNTNAME !== undefined) {
+      const conflict = await this.findByName(values.ACCOUNTNAME, accountId)
+      if (conflict) {
+        throw new Error(`An account named "${conflict.ACCOUNTNAME}" already exists`)
+      }
+    }
+    await db.mutate([this.updateStatement(accountId, values)])
+  },
+
+  async add(values: Omit<AccountRecord, 'ACCOUNTID'>): Promise<void> {
+    const conflict = await this.findByName(values.ACCOUNTNAME)
+    if (conflict) {
+      throw new Error(`An account named "${conflict.ACCOUNTNAME}" already exists`)
+    }
+    await db.mutate([this.addStatement(values)])
+  },
+
   /** Balance is the initial balance plus every transaction's flow for this account. */
   async balance(accountId: number): Promise<number> {
     const account = await this.get(accountId)

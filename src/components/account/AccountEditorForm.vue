@@ -39,6 +39,8 @@
         :options="currencyOptions"
         option-value="CURRENCYID"
         option-label="CURRENCY_SYMBOL"
+        emit-value
+        map-options
         :label="$t('account.currency')"
         data-testid="account-currency"
         :error="!!currencyError"

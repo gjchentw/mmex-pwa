@@ -49,6 +49,15 @@ describe('route table', () => {
     expect(resolved.meta.public).toBeFalsy()
   })
 
+  // Spec: account-management, requirement "Accounts Surface Route".
+  it('serves the accounts path and declares its owning capability', () => {
+    const resolved = router.resolve('/accounts')
+    expect(resolved.name).toBe('accounts')
+    expect(resolved.meta.capability).toBe('account-management')
+    // The list reads the file, so the route must stay behind the readiness guard.
+    expect(resolved.meta.public).toBeFalsy()
+  })
+
   // Requirement "Unmatched Route Handling", scenario "An unknown path is
   // explained".
   it('resolves an unknown path to the not-found route', () => {
@@ -98,6 +107,14 @@ describe('route table', () => {
     // Spec: currency-management, requirement "Currency Management Surface".
     it('offers the currencies destination', () => {
       expect(navigationEntries().some((entry) => entry.path === '/currencies')).toBe(true)
+    })
+
+    // Spec: account-management, requirement "Accounts Surface Route", scenario
+    // "The accounts surface is reachable from the navigation drawer".
+    it('offers the accounts destination', () => {
+      const entry = navigationEntries().find((item) => item.path === '/accounts')
+      expect(entry).toBeDefined()
+      expect(entry?.labelKey).toBe('menu.accounts')
     })
 
     // The retired /about link pointed at a path nothing served.
