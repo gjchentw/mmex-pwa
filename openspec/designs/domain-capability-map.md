@@ -1,6 +1,6 @@
 # Domain Capability Map
 
-**Version**: 1.5.0
+**Version**: 1.6.0
 **Last Updated**: 2026-10-02
 
 The living roadmap for the MoneyManagerEx PWA remake's domain capabilities. Established by change `domain-model-baseline`; future implementation changes cite this map and update the status column as they land. Governed by [AGENTS.md](../../AGENTS.md).
@@ -66,7 +66,7 @@ flowchart TD
 | Phase | Delivers | Capability |
 |---|---|---|
 | 0 | Application shell, home route, navigation governance — **delivered 2026-08-09** | `app-shell-navigation` |
-| 1 | File metadata and settings surfaces — **delivered 2026-08-09** | `file-metadata-and-settings` |
+| 1 | File metadata and settings surfaces — **delivered 2026-08-09**; brought to desktop fidelity by `file-metadata-and-settings-fidelity`, archived 2026-10-02 | `file-metadata-and-settings` |
 | 2 | Currency management — **delivered 2026-08-09** | `currency-management` |
 | 3 | Accounts — **delivered 2026-10-02** | `account-management` |
 | 4 | Categories, payees, tags | `transaction-taxonomy` |
@@ -84,4 +84,4 @@ Deferred until proposed by their own changes: reports engine and `REPORT_V1` exe
 ## Standing Constraints
 
 - Full bidirectional `.mmb` compatibility (operator decision 2026-08-08) — normative home: `domain-data-conventions`, Requirement: MMB Round-Trip Fidelity.
-- UX divergence protocol (operator instruction 2026-08-08) — desktop UX is never specified silently; UX-entangled rules are escalated to the operator. The seven baseline UX questions are all resolved (2026-08-08) in `domain-model-baseline` design.md Open Questions: daily post-sync purge/auto-execute cadence, banner-and-badge scheduling prompts, URL-routed register scopes, no UDFC columns, read-only attachment stance, responsive-hybrid edit forms, summary-card home. Newly discovered UX entanglements in future changes are still escalated before their requirements are finalized.
+- UX divergence protocol (operator instruction 2026-08-08) — desktop UX is never specified silently; UX-entangled rules are escalated to the operator. The seven baseline UX questions are all resolved (2026-08-08) in `domain-model-baseline` design.md Open Questions: daily post-sync purge/auto-execute cadence, banner-and-badge scheduling prompts, URL-routed register scopes, no UDFC columns, read-only attachment stance, responsive-hybrid edit forms, summary-card home. Newly discovered UX entanglements in future changes are still escalated before their requirements are finalized. The 2026-10-02 reviews of Phases 1 to 3 found divergences that had not been escalated; each was put to the operator and is recorded, dated, in the design of the change that resolved it (`account-management-surfaces`, `file-metadata-and-settings-fidelity`).

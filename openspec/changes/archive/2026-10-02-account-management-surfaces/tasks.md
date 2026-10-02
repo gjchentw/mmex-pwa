@@ -4,27 +4,27 @@
 **Version**: 1.1.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [specs/account-management/spec.md](./specs/account-management/spec.md). Governed by [AGENTS.md](../../../AGENTS.md). A task marked "reworded 2026-10-02" was restated to match the operator's decisions of that date; the Findings section records why.
+Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [specs/account-management/spec.md](./specs/account-management/spec.md). Governed by [AGENTS.md](../../../../AGENTS.md). A task marked "reworded 2026-10-02" was restated to match the operator's decisions of that date; the Findings section records why.
 
 ## 1. Routing and navigation
 
-- [x] 1.1 `/accounts` declared in [src/router/index.ts](../../../src/router/index.ts) with `capability: 'account-management'`, guarded by readiness, carrying navigation metadata `nav: { labelKey: 'menu.accounts', icon: 'mdi-bank', order: 20 }`
+- [x] 1.1 `/accounts` declared in [src/router/index.ts](../../../../src/router/index.ts) with `capability: 'account-management'`, guarded by readiness, carrying navigation metadata `nav: { labelKey: 'menu.accounts', icon: 'mdi-bank', order: 20 }`
 - [x] 1.2 The entry appears in the drawer through the existing route-derived navigation and shows as active on that route
 
 ## 2. Account store
 
-- [x] 2.1 [src/stores/account-store.ts](../../../src/stores/account-store.ts) provides reactive access to accounts, loading state and errors
+- [x] 2.1 [src/stores/account-store.ts](../../../../src/stores/account-store.ts) provides reactive access to accounts, loading state and errors
 - [x] 2.2 `load()` reads accounts, currencies and the base currency through the repositories on entry (design D3; reworded 2026-10-02)
 - [x] 2.3 `getBalance(accountId)` caches `accountRepo.balance()`, and every save and removal refreshes the cache (design D6; reworded 2026-10-02, F27)
-- [x] 2.4 `save(account)` calls [src/domain/repos/account.ts](../../../src/domain/repos/account.ts) `add()` for a new account, leaving the key to SQLite, and `save()` for an existing one (F1; reworded 2026-10-02)
+- [x] 2.4 `save(account)` calls [src/domain/repos/account.ts](../../../../src/domain/repos/account.ts) `add()` for a new account, leaving the key to SQLite, and `save()` for an existing one (F1; reworded 2026-10-02)
 - [x] 2.5 `remove(accountId)` uses `accountRepo.remove()`, which implements the full cascade (design D8)
 - [x] 2.6 `validateName(name, excludeId?)` uses `accountRepo.findByName()` to enforce case-insensitive uniqueness (risk R1)
 - [x] 2.7 `openingDateConflict()` reports the first transaction, stock purchase or scheduled transaction dated before a proposed opening date (design D12)
-- [x] 2.8 `groupedAccounts` groups by type with `groupByType()` from [src/domain/rules/account.ts](../../../src/domain/rules/account.ts), keeping the repository's name order (design D1)
+- [x] 2.8 `groupedAccounts` groups by type with `groupByType()` from [src/domain/rules/account.ts](../../../../src/domain/rules/account.ts), keeping the repository's name order (design D1)
 
 ## 3. Accounts page
 
-- [x] 3.1 [src/pages/AccountsPage.vue](../../../src/pages/AccountsPage.vue) with the account list, add button, and navigation to the detail
+- [x] 3.1 [src/pages/AccountsPage.vue](../../../../src/pages/AccountsPage.vue) with the account list, add button, and navigation to the detail
 - [x] 3.2 The list is grouped by type in desktop's tree order, by name within each group; no user reordering is offered (design D1; reworded 2026-10-02, F13, F28)
 - [x] 3.3 Each entry shows the account name, the currency code, a Closed indicator where it applies, and the formatted balance (reworded 2026-10-02, F18)
 - [x] 3.4 Favorite accounts carry a star with an accessible name (design D9; F19)
@@ -35,7 +35,7 @@ Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [spec
 
 ## 4. Account detail
 
-- [x] 4.1 [src/components/account/AccountDetailDialog.vue](../../../src/components/account/AccountDetailDialog.vue) displays every editable field, the planning fields and the six free-text fields included, for every type (reworded 2026-10-02, F28)
+- [x] 4.1 [src/components/account/AccountDetailDialog.vue](../../../../src/components/account/AccountDetailDialog.vue) displays every editable field, the planning fields and the six free-text fields included, for every type (reworded 2026-10-02, F28)
 - [x] 4.2 The balance is displayed live and read-only from the store's cache, formatted with `formatAmount` from the currency rules
 - [x] 4.3 Statement lock state and date are displayed when active, with the read-only hint (design D7)
 - [x] 4.4 The edit button opens the account editor in edit mode
@@ -45,8 +45,8 @@ Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [spec
 
 ## 5. Account editor
 
-- [x] 5.1 [src/components/account/AccountEditorDialog.vue](../../../src/components/account/AccountEditorDialog.vue) as a dialog that renders full-page on mobile, consistent with the currency editor
-- [x] 5.2 [src/components/account/AccountEditorForm.vue](../../../src/components/account/AccountEditorForm.vue) holds the fields and validation logic
+- [x] 5.1 [src/components/account/AccountEditorDialog.vue](../../../../src/components/account/AccountEditorDialog.vue) as a dialog that renders full-page on mobile, consistent with the currency editor
+- [x] 5.2 [src/components/account/AccountEditorForm.vue](../../../../src/components/account/AccountEditorForm.vue) holds the fields and validation logic
 - [x] 5.3 Name, type, currency, initial balance and initial date are required, checked at save time with a message naming the missing field (design D4; reworded 2026-10-02, F17)
 - [x] 5.4 A new account is offered all eight upstream types; an existing account the types `typeChangeOptions()` allows (design D11; reworded 2026-10-02)
 - [x] 5.5 The currency selector is populated from `currencyRepo.all()`, and the reference is checked against it at save time with no fallback ID (risk R7; reworded 2026-10-02, F20)
@@ -108,10 +108,10 @@ Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [spec
 
 Each item names the risk from design.md it covers.
 
-- [x] 12.1 Route: `/accounts` resolves, declares its capability, stays guarded, and appears in navigation entries ([src/__tests__/router.spec.ts](../../../src/__tests__/router.spec.ts))
-- [x] 12.2 Store: load with base currency, balance cache and refresh, add and save delegation, opening-date conflicts ([src/__tests__/account-store.spec.ts](../../../src/__tests__/account-store.spec.ts))
-- [x] 12.3 List: grouping in desktop order, currency code, Closed indicator, labelled favorite star (risks R6, R8) ([src/__tests__/AccountsPage.spec.ts](../../../src/__tests__/AccountsPage.spec.ts))
-- [x] 12.4 Creation: desktop defaults, required-field messages, trimmed and unique name, zero balance (risks R1, R8) ([src/__tests__/AccountEditorForm.spec.ts](../../../src/__tests__/AccountEditorForm.spec.ts))
+- [x] 12.1 Route: `/accounts` resolves, declares its capability, stays guarded, and appears in navigation entries ([src/__tests__/router.spec.ts](../../../../src/__tests__/router.spec.ts))
+- [x] 12.2 Store: load with base currency, balance cache and refresh, add and save delegation, opening-date conflicts ([src/__tests__/account-store.spec.ts](../../../../src/__tests__/account-store.spec.ts))
+- [x] 12.3 List: grouping in desktop order, currency code, Closed indicator, labelled favorite star (risks R6, R8) ([src/__tests__/AccountsPage.spec.ts](../../../../src/__tests__/AccountsPage.spec.ts))
+- [x] 12.4 Creation: desktop defaults, required-field messages, trimmed and unique name, zero balance (risks R1, R8) ([src/__tests__/AccountEditorForm.spec.ts](../../../../src/__tests__/AccountEditorForm.spec.ts))
 - [x] 12.5 Editing: the detail shows saved values, type options, opening-date rule (risks R3, R8)
 - [x] 12.6 Planning fields shown for every type (risk R3)
 - [x] 12.7 Statement lock through the editor: refused without a date, set with one, cleared to `0` with the date kept (risk R8)
@@ -120,7 +120,7 @@ Each item names the risk from design.md it covers.
 - [x] 12.10 Favorite toggle: stored as `TRUE` or `FALSE` and shown at once in the detail (risk R6)
 - [x] 12.11 Currency binding: options from the file, the chosen ID stored, an unknown reference refused (risk R7)
 - [x] 12.12 The list renders before balances finish computing (risk R2, accepted)
-- [x] 12.13 Lock enforcement belongs to `transaction-ledger` and is covered by its test "refuses to edit a row frozen by its account statement" in [src/__tests__/domain/repos.spec.ts](../../../src/__tests__/domain/repos.spec.ts) (risk R5)
+- [x] 12.13 Lock enforcement belongs to `transaction-ledger` and is covered by its test "refuses to edit a row frozen by its account statement" in [src/__tests__/domain/repos.spec.ts](../../../../src/__tests__/domain/repos.spec.ts) (risk R5)
 
 ## 13. Verification
 
@@ -130,12 +130,12 @@ Each item names the risk from design.md it covers.
 - [x] 13.4 `npm run lint:check` passes (reworded 2026-10-02: the script is plain `eslint .`)
 - [x] 13.5 `npm run format:check` passes
 - [x] 13.6 `npm run build` succeeds
-- [x] 13.7 End-to-end smoke test on Chromium, [e2e/accounts.spec.ts](../../../e2e/accounts.spec.ts): create with desktop defaults, edit and see the change in the open detail, toggle favorite and see it at once, set the statement lock and see it, delete and land on the list; each persisted across a reload. Dependants cannot be created from the surface before Phase 5, so the cascade over them is covered by 12.9 (reworded 2026-10-02, F4, F15, F16)
+- [x] 13.7 End-to-end smoke test on Chromium, [e2e/accounts.spec.ts](../../../../e2e/accounts.spec.ts): create with desktop defaults, edit and see the change in the open detail, toggle favorite and see it at once, set the statement lock and see it, delete and land on the list; each persisted across a reload. Dependants cannot be created from the surface before Phase 5, so the cascade over them is covered by 12.9 (reworded 2026-10-02, F4, F15, F16)
 - [ ] 13.8 The same smoke test on WebKit, the second engine the infrastructure baseline governs. Blocked: Playwright's WebKit 26.0 on the verifying machine has no working OPFS (`navigator.storage.getDirectory()` throws), so every WebKit test fails to open the database, including the two that predate this change (F31)
 
 ## 14. Capability map update
 
-- [x] 14.1 At archive, mark `account-management` as Phase 3 delivered in [domain-capability-map.md](../../designs/domain-capability-map.md), with the archive date (reworded 2026-10-02, F29)
+- [x] 14.1 At archive, mark `account-management` as Phase 3 delivered in [domain-capability-map.md](../../../designs/domain-capability-map.md), with the archive date (reworded 2026-10-02, F29)
 - [x] 14.2 At archive, mark Phase 3 delivered in the phase table, with the same date (reworded 2026-10-02, F29)
 
 ## Findings

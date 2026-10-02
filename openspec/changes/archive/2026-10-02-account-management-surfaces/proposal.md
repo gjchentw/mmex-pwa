@@ -4,11 +4,11 @@
 **Version**: 1.1.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [design.md](./design.md) (how), [specs/account-management/spec.md](./specs/account-management/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/account-management/spec.md](./specs/account-management/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 
-Phase 2 delivered the currency surfaces, but the accounts that use those currencies are still unreachable. The `account-management` capability specifies schema fidelity, account types, status, currency binding, the balance definition, the statement-lock declaration, the credit and loan fields and the deletion cascade, and the domain layer reads, computes and deletes accordingly. Yet no surface can create an account, edit one, or show the list. Phase 3 of the [capability map](../../designs/domain-capability-map.md) makes account records inspectable and editable before the phases that depend on them arrive: Phase 5 (transaction ledger) posts to accounts, and Phase 6 (scheduled transactions) guards execution with each account's minimum balance and credit limit.
+Phase 2 delivered the currency surfaces, but the accounts that use those currencies are still unreachable. The `account-management` capability specifies schema fidelity, account types, status, currency binding, the balance definition, the statement-lock declaration, the credit and loan fields and the deletion cascade, and the domain layer reads, computes and deletes accordingly. Yet no surface can create an account, edit one, or show the list. Phase 3 of the [capability map](../../../designs/domain-capability-map.md) makes account records inspectable and editable before the phases that depend on them arrive: Phase 5 (transaction ledger) posts to accounts, and Phase 6 (scheduled transactions) guards execution with each account's minimum balance and credit limit.
 
 Without this change, every later phase that touches accounts would be blocked, and the application would have no way to manage the entity the ledger is built on.
 

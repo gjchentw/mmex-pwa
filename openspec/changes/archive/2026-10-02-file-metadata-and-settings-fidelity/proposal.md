@@ -4,7 +4,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [design.md](./design.md) (how), [specs/file-metadata-and-settings/spec.md](./specs/file-metadata-and-settings/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/file-metadata-and-settings/spec.md](./specs/file-metadata-and-settings/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 
@@ -43,7 +43,7 @@ The capability's standing constraint is full bidirectional `.mmb` compatibility.
 
 ## Impact
 
-- **Code**: [src/stores/settings-store.ts](../../../src/stores/settings-store.ts), [src/pages/SettingsPage.vue](../../../src/pages/SettingsPage.vue), [src/components/settings/BaseCurrencyChangeDialog.vue](../../../src/components/settings/BaseCurrencyChangeDialog.vue), [src/domain/repos/metadata.ts](../../../src/domain/repos/metadata.ts), [src/domain/rules/metadata.ts](../../../src/domain/rules/metadata.ts), [src/domain/repos/currency.ts](../../../src/domain/repos/currency.ts) (the base-change batch), [src/stores/database-store.ts](../../../src/stores/database-store.ts) (wizard seeding), [src/i18n.ts](../../../src/i18n.ts) and [src/App.vue](../../../src/App.vue) (language key), both catalogs, the settings tests, and a new end-to-end test for the surface.
+- **Code**: [src/stores/settings-store.ts](../../../../src/stores/settings-store.ts), [src/pages/SettingsPage.vue](../../../../src/pages/SettingsPage.vue), [src/components/settings/BaseCurrencyChangeDialog.vue](../../../../src/components/settings/BaseCurrencyChangeDialog.vue), [src/domain/repos/metadata.ts](../../../../src/domain/repos/metadata.ts), [src/domain/rules/metadata.ts](../../../../src/domain/rules/metadata.ts), [src/domain/repos/currency.ts](../../../../src/domain/repos/currency.ts) (the base-change batch), [src/stores/database-store.ts](../../../../src/stores/database-store.ts) (wizard seeding), [src/i18n.ts](../../../../src/i18n.ts) and [src/App.vue](../../../../src/App.vue) (language key), both catalogs, the settings tests, and a new end-to-end test for the surface.
 - **Configuration**: none. **Dependencies**: `currency-management` provides the currency list and owns the rate tables the base change resets; its Requirement "Base Currency" gains the reset rule in this change, and the settings surface performs it through that capability's repository.
 - **Verification**: unit tests for each rule, a mutation check that the confirmation tests fail when the handlers are removed, and an end-to-end run that reads `INFOTABLE_V1` and `SETTING_V1` back to prove what was written.
 - **Out of scope**: the currency surface's own defects, which the next change `currency-management-fidelity` carries; desktop's batched OK/Cancel options dialog: the surface keeps its per-field save, the web convention for a settings page, with the base-currency change already behind a confirmation (operator decision 2026-10-02, recorded in design D8); any other file fact desktop's Options expose but the surface does not yet present.

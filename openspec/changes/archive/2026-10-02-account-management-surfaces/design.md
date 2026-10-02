@@ -4,11 +4,11 @@
 **Version**: 1.1.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [proposal.md](./proposal.md), [specs/account-management/spec.md](./specs/account-management/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../../AGENTS.md).
+Related artifacts: [proposal.md](./proposal.md), [specs/account-management/spec.md](./specs/account-management/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Context
 
-The domain layer for `account-management` reads and writes `ACCOUNTLIST_V1` through `accountRepo` in [src/domain/repos/account.ts](../../../src/domain/repos/account.ts). Its methods are `all()`, `get()`, `findByName()`, the statement builders `addStatement()` and `updateStatement()`, the executing `add()` and `save()` (added by this change, finding F1), `openingDateConflict()` (added by this change), `balance()`, and `remove()` with the full cascade. [src/domain/rules/account.ts](../../../src/domain/rules/account.ts) defines the eight account types, the two status values, the balance computation, the favorite encoding and the securities-holding helper; this change adds desktop's tree order, grouping by type, and the type-change restrictions. Phase 0 established how routes are declared and how the navigation surface derives from them. Phases 1 and 2 provided the base currency and the currency list the binding field needs. This change follows `file-metadata-and-settings-surfaces` and `currency-management-surfaces`: a store over the repositories, a routed page, and dialogs for detail and editing.
+The domain layer for `account-management` reads and writes `ACCOUNTLIST_V1` through `accountRepo` in [src/domain/repos/account.ts](../../../../src/domain/repos/account.ts). Its methods are `all()`, `get()`, `findByName()`, the statement builders `addStatement()` and `updateStatement()`, the executing `add()` and `save()` (added by this change, finding F1), `openingDateConflict()` (added by this change), `balance()`, and `remove()` with the full cascade. [src/domain/rules/account.ts](../../../../src/domain/rules/account.ts) defines the eight account types, the two status values, the balance computation, the favorite encoding and the securities-holding helper; this change adds desktop's tree order, grouping by type, and the type-change restrictions. Phase 0 established how routes are declared and how the navigation surface derives from them. Phases 1 and 2 provided the base currency and the currency list the binding field needs. This change follows `file-metadata-and-settings-surfaces` and `currency-management-surfaces`: a store over the repositories, a routed page, and dialogs for detail and editing.
 
 ## Goals / Non-Goals
 
@@ -207,7 +207,7 @@ sequenceDiagram
 
 ## Route Registration
 
-The route `/accounts` is registered in [src/router/index.ts](../../../src/router/index.ts) with:
+The route `/accounts` is registered in [src/router/index.ts](../../../../src/router/index.ts) with:
 - `name: 'accounts'`
 - `component: () => import('../pages/AccountsPage.vue')`
 - `meta.nav: { labelKey: 'menu.accounts', icon: 'mdi-bank', order: 20 }`, placing it between home and currencies

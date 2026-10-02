@@ -4,25 +4,25 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [specs/file-metadata-and-settings/spec.md](./specs/file-metadata-and-settings/spec.md), [specs/currency-management/spec.md](./specs/currency-management/spec.md). Governed by [AGENTS.md](../../../AGENTS.md). Each task names how it is verified; a box is checked only once that verification has passed.
+Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [specs/file-metadata-and-settings/spec.md](./specs/file-metadata-and-settings/spec.md), [specs/currency-management/spec.md](./specs/currency-management/spec.md). Governed by [AGENTS.md](../../../../AGENTS.md). Each task names how it is verified; a box is checked only once that verification has passed.
 
 ## 1. Rules layer: keys, masks, language mapping
 
-- [x] 1.1 Add `LANGUAGE` to `SETTING_KEY` in [src/domain/rules/metadata.ts](../../../src/domain/rules/metadata.ts), and add `LOCALE` to `INFO_KEY` so `storeForKey` places both correctly; verify with a unit test that `storeForKey('LANGUAGE')` is `setting` and `storeForKey('LOCALE')` is `infotable`
+- [x] 1.1 Add `LANGUAGE` to `SETTING_KEY` in [src/domain/rules/metadata.ts](../../../../src/domain/rules/metadata.ts), and add `LOCALE` to `INFO_KEY` so `storeForKey` places both correctly; verify with a unit test that `storeForKey('LANGUAGE')` is `setting` and `storeForKey('LOCALE')` is `infotable`
 - [x] 1.2 Add the language mapping (`en-US` ↔ `en_US`, `zh-TW` ↔ `zh_TW`) as pure functions in the rules layer, returning null for anything else; verify with unit tests for both directions, an unknown name, and desktop's numeric wxLanguage form being treated as unsupported (design D1)
 - [x] 1.3 Add `DATE_FORMAT_MASKS`, copied verbatim from desktop's `g_date_formats_map` with a comment naming `util.cpp`, and `isDateFormatMask()`; verify with a unit test that the list has 36 entries, contains `%d/%m/%Y` and `%Y-%m-%d`, and rejects `YYYY-MM-DD` (design D3, risk R3)
 - [x] 1.4 Add `renderDateMask(mask, date)` covering desktop's tokens `%d %m %y %Y %Mon %w`; verify with one unit test per token and one for `%d %Mon'%y` (risk R5)
-- [x] 1.5 Change the `USECURRENCYHISTORY` default to `true` in `DEFAULTS` and in `fileFacts.useCurrencyHistory()` in [src/domain/repos/metadata.ts](../../../src/domain/repos/metadata.ts); verify with a unit test that an absent key reads as on and a stored `0` reads as off (design D5)
+- [x] 1.5 Change the `USECURRENCYHISTORY` default to `true` in `DEFAULTS` and in `fileFacts.useCurrencyHistory()` in [src/domain/repos/metadata.ts](../../../../src/domain/repos/metadata.ts); verify with a unit test that an absent key reads as on and a stored `0` reads as off (design D5)
 - [x] 1.6 Add `RETENTION_DAYS_MAX = 999` and a `parseRetentionDays(input)` that returns null for empty, non-numeric or out-of-range input; verify with unit tests for `''`, `abc`, `-1`, `1000`, `0`, `999` (design D9)
 
 ## 2. Repository: the base-currency change
 
-- [x] 2.1 Add `currencyRepo.changeBase(currencyId)` in [src/domain/repos/currency.ts](../../../src/domain/repos/currency.ts) that emits, in one `db.mutate` batch, the `BASECURRENCYID` upsert, `UPDATE CURRENCYFORMATS_V1 SET BASECONVRATE = 1`, and `DELETE FROM CURRENCYHISTORY_V1`; verify with a repo test that asserts exactly one batch holding all three statements (design D4, risk R2)
+- [x] 2.1 Add `currencyRepo.changeBase(currencyId)` in [src/domain/repos/currency.ts](../../../../src/domain/repos/currency.ts) that emits, in one `db.mutate` batch, the `BASECURRENCYID` upsert, `UPDATE CURRENCYFORMATS_V1 SET BASECONVRATE = 1`, and `DELETE FROM CURRENCYHISTORY_V1`; verify with a repo test that asserts exactly one batch holding all three statements (design D4, risk R2)
 - [x] 2.2 Make `settingsStore.setBaseCurrency()` call `changeBase()` and reload; verify with a store test on a fake file holding a currency at rate `0.9` and two history rows that, after the call, the pointer moved, every rate is `1` and history is empty
 
 ## 3. Store: language, repair, and bounded preferences
 
-- [x] 3.1 Replace the `LOCALE` reads and writes in [src/stores/settings-store.ts](../../../src/stores/settings-store.ts) with `SETTING_V1.LANGUAGE` in canonical form, through the mapping from 1.2; verify with store tests that switching to `zh-TW` writes `zh_TW` under `LANGUAGE` and writes nothing to `INFOTABLE_V1`
+- [x] 3.1 Replace the `LOCALE` reads and writes in [src/stores/settings-store.ts](../../../../src/stores/settings-store.ts) with `SETTING_V1.LANGUAGE` in canonical form, through the mapping from 1.2; verify with store tests that switching to `zh-TW` writes `zh_TW` under `LANGUAGE` and writes nothing to `INFOTABLE_V1`
 - [x] 3.2 Implement the one-time repair in the readiness sync: when `LANGUAGE` is absent and `LOCALE` is exactly `en-US` or `zh-TW`, apply it, write `LANGUAGE`, set `LOCALE` to `''`; verify with store tests for `zh-TW` (repaired), `de_DE.UTF-8` (untouched), `''` (untouched) and an absent row (untouched) (design D2, risk R1)
 - [x] 3.3 Order the repair before the pending-choice flush in the readiness sync; verify with a store test where a pending choice and a legacy `LOCALE` coexist and the pending choice wins while `LOCALE` is still cleared (risk R6)
 - [x] 3.4 Keep the unsupported-`LANGUAGE` tolerance: a stored `fr_FR` leaves the fallback in effect and the row untouched; verify with a store test
@@ -33,11 +33,11 @@ Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [spec
 
 ## 4. New-file wizard
 
-- [x] 4.1 Write `USECURRENCYHISTORY = 1` alongside `BASECURRENCYID` in [src/stores/database-store.ts](../../../src/stores/database-store.ts); verify with the database-store test asserting the seeded keys (design D5)
+- [x] 4.1 Write `USECURRENCYHISTORY = 1` alongside `BASECURRENCYID` in [src/stores/database-store.ts](../../../../src/stores/database-store.ts); verify with the database-store test asserting the seeded keys (design D5)
 
 ## 5. Settings page
 
-- [x] 5.1 Build the base-currency picker from the store's currency list, labelled `CURRENCY_SYMBOL — CURRENCYNAME`, in [src/pages/SettingsPage.vue](../../../src/pages/SettingsPage.vue); verify with a page test that a non-seed currency is offered and chosen through the select
+- [x] 5.1 Build the base-currency picker from the store's currency list, labelled `CURRENCY_SYMBOL — CURRENCYNAME`, in [src/pages/SettingsPage.vue](../../../../src/pages/SettingsPage.vue); verify with a page test that a non-seed currency is offered and chosen through the select
 - [x] 5.2 Replace the date-format input with a select over the masks, each labelled with today's date rendered in it, showing a stored out-of-list value as stored; verify with page tests that choosing the `%d/%m/%Y` option writes that mask, and that a stored `YYYY-MM-DD` is shown and not rewritten (design D3)
 - [x] 5.3 Add the page-level error banner and restore each draft from the store after a failed write; verify with page tests that a failing user-name write shows the banner and the field returns to the stored value (design D7)
 - [x] 5.4 Refuse an empty, non-numeric or out-of-range retention entry with a message on the field and restore the draft; verify with page tests for `''` and `1000` that nothing is written and the field shows the stored value (design D9)
@@ -48,8 +48,8 @@ Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [spec
 
 ## 6. Shell and i18n
 
-- [x] 6.1 Read the language on readiness through the store's new sync in [src/App.vue](../../../src/App.vue) and keep the toolbar switcher calling `setLocale`; verified by the shell localization test and the store tests of `syncLocaleWithDatabase`, which the unchanged readiness watcher calls. The watcher itself has no test: `App.spec.ts` is skipped, as before this change
-- [x] 6.2 Replace the hardcoded `'English' : '繁體中文'` label map with one map beside `SUPPORTED_LOCALES` in [src/i18n.ts](../../../src/i18n.ts) used by both the shell and the page; verify with `npm run lint:check` and a page test asserting both labels
+- [x] 6.1 Read the language on readiness through the store's new sync in [src/App.vue](../../../../src/App.vue) and keep the toolbar switcher calling `setLocale`; verified by the shell localization test and the store tests of `syncLocaleWithDatabase`, which the unchanged readiness watcher calls. The watcher itself has no test: `App.spec.ts` is skipped, as before this change
+- [x] 6.2 Replace the hardcoded `'English' : '繁體中文'` label map with one map beside `SUPPORTED_LOCALES` in [src/i18n.ts](../../../../src/i18n.ts) used by both the shell and the page; verify with `npm run lint:check` and a page test asserting both labels
 
 ## 7. Localization
 
@@ -58,7 +58,7 @@ Related artifacts: [proposal.md](./proposal.md), [design.md](./design.md), [spec
 
 ## 8. End-to-end
 
-- [x] 8.1 Add [e2e/settings.spec.ts](../../../e2e/settings.spec.ts) on Chromium: switch to `zh-TW`, pick a date format, change the base currency and confirm, reload, and assert each is shown; verify by running `CI=true npx playwright test e2e/settings.spec.ts --project=chromium`
+- [x] 8.1 Add [e2e/settings.spec.ts](../../../../e2e/settings.spec.ts) on Chromium: switch to `zh-TW`, pick a date format, change the base currency and confirm, reload, and assert each is shown; verify by running `CI=true npx playwright test e2e/settings.spec.ts --project=chromium`
 - [x] 8.2 In the same test, prove each fact reached the file through what the surface shows after a reload (the language in the page title and the shell switcher, the chosen mask in the date-format field, EUR in the base-currency field) and through the accounts surface, where a new account starts in the new base currency. Reworded 2026-10-02: the page exposes no database client, so reading the tables back would have needed a hook no specification asks for; the exact values written (`LANGUAGE = zh_TW`, `LOCALE` untouched, every `BASECONVRATE = 1`) are asserted by the store and repository tests instead
 - [ ] 8.3 Run the same test on WebKit and record the result in this file; if the WebKit environment issue recorded as F31 of the account change still blocks it, say so here rather than checking this box. Result 2026-10-02: not run to completion. The WebKit test fails before any settings code runs, on the database never reaching Ready (`SQLITE_CANTOPEN`), the same OPFS failure F31 recorded for every surface on this machine
 
@@ -94,6 +94,14 @@ Recorded 2026-10-02 during implementation.
   already did. Whether such a file should be allowed to reach Ready is a question for
   the database-lifecycle owner, not this capability, and is left as a note here.
 
+- **F4 — fixed at archive.** The proposal, design and tasks were written with links
+  relative to the active change directory (`../../../` to the repository root). The
+  archive directory sits one level deeper, so those links were rewritten to
+  `../../../../` when the change was archived, here and in the account change archived
+  earlier the same day. The spec deltas are written relative to their promoted location
+  by convention and are left as they are. Archives from 2026-08-09 carry links that were
+  already broken while active; they are history and were not touched.
+
 ## Verification Record
 
 **2026-10-02**, over the implementation:
@@ -126,7 +134,9 @@ Spec against implementation, requirement by requirement:
 Every requirement and scenario in both deltas is traced above. The one open item is
 8.3, WebKit, blocked by the machine, not by this change.
 
+**2026-10-02, operator review**: approved, with 8.3 accepted as blocked by F31.
+
 ## 10. Review Gate
 
-- [ ] 10.1 Operator review and approval
-- [ ] 10.2 Archive: promote both deltas, raise `file-metadata-and-settings` to 1.2.0 and `currency-management` to 1.2.0, update each Purpose, and confirm every link resolves from the promoted locations; only then record the change in the capability map
+- [x] 10.1 Operator review and approval (2026-10-02, "commit and /opsx:archive" after the implementation report; 8.3 WebKit remains blocked by F31 and was accepted as such)
+- [x] 10.2 Archive: promote both deltas, raise `file-metadata-and-settings` to 1.2.0 and `currency-management` to 1.2.0, update each Purpose, and confirm every link resolves from the promoted locations; only then record the change in the capability map
