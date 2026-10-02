@@ -1,7 +1,7 @@
 # AI Agent Charter
 
-**Document Version**: 3.0.0
-**Last Updated**: 2026-09-15
+**Document Version**: 3.1.0
+**Last Updated**: 2026-10-02
 **Status**: MANDATORY — binding on every AI agent operating in this repository
 
 ## Scope
@@ -18,6 +18,14 @@ It supersedes `openspec/AGENTS.md` (v2.1.0, retired 2026-09-15), which governed 
 - MUST defer to human judgment when requirements conflict.
 - MUST request clarification when in doubt about any requirement.
 - MUST NOT declare work complete that the operator has not accepted.
+
+### Delivery Claims
+
+- MUST NOT mark a phase as delivered in [`openspec/designs/domain-capability-map.md`](openspec/designs/domain-capability-map.md), and MUST NOT check a Review Gate approval box in a change's `tasks.md`, until the operator has explicitly approved that change in the conversation.
+- MUST make those edits in the archive commit, separate from the implementation commit, so the history shows acceptance as its own step.
+- MUST record the approval with its date in `tasks.md`.
+
+Rationale: Phases 1 and 2 were marked delivered inside their implementation commits and archived 80 seconds later, with no review; the defects found on 2026-10-02 had been declared complete before anyone looked.
 
 ## Git Commit Rules
 
