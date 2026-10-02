@@ -4,7 +4,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [design.md](./design.md) (how), [specs/currency-management/spec.md](./specs/currency-management/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/currency-management/spec.md](./specs/currency-management/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 
@@ -43,7 +43,7 @@ The operator decided on 2026-10-02 to match desktop on each point, with one deli
 
 ## Impact
 
-- **Code**: [src/components/currency/CurrencyEditorForm.vue](../../../src/components/currency/CurrencyEditorForm.vue) (largely rewritten), [src/pages/CurrenciesPage.vue](../../../src/pages/CurrenciesPage.vue), [src/stores/currency-store.ts](../../../src/stores/currency-store.ts), [src/domain/repos/currency.ts](../../../src/domain/repos/currency.ts), [src/domain/rules/currency.ts](../../../src/domain/rules/currency.ts), [src/domain/rules/metadata.ts](../../../src/domain/rules/metadata.ts) (the `SHOW_HIDDEN_CURRENCIES` key), both catalogs, the currency tests, and a new end-to-end test for the surface.
+- **Code**: [src/components/currency/CurrencyEditorForm.vue](../../../../src/components/currency/CurrencyEditorForm.vue) (largely rewritten), [src/pages/CurrenciesPage.vue](../../../../src/pages/CurrenciesPage.vue), [src/stores/currency-store.ts](../../../../src/stores/currency-store.ts), [src/domain/repos/currency.ts](../../../../src/domain/repos/currency.ts), [src/domain/rules/currency.ts](../../../../src/domain/rules/currency.ts), [src/domain/rules/metadata.ts](../../../../src/domain/rules/metadata.ts) (the `SHOW_HIDDEN_CURRENCIES` key), both catalogs, the currency tests, and a new end-to-end test for the surface.
 - **Configuration**: none. **Dependencies**: `file-metadata-and-settings` owns `INFOTABLE_V1`, where `SHOW_HIDDEN_CURRENCIES` lives; it is a file fact desktop already writes, so no spec change is needed there. `account-management` displays balances through `formatAmount` and inherits the sign placement; its tests assert only that a minus sign is present and need no change.
 - **Verification**: unit tests that drive the real inputs and assert what each write contains; a mutation check on the deletion confirmation; an end-to-end run on Chromium that edits a definition, records and removes a rate, and deletes a currency.
 - **Out of scope**: desktop's offer to purge orphaned history rows when history is turned off; the history grid's source column (`*`/`M`) and six-decimal display; fetching rates online, which the capability map holds as long-lived non-scope; changing the base currency, which `file-metadata-and-settings` owns.

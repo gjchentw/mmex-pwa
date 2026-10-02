@@ -4,11 +4,11 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [proposal.md](./proposal.md), [specs/currency-management/spec.md](./specs/currency-management/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../../AGENTS.md).
+Related artifacts: [proposal.md](./proposal.md), [specs/currency-management/spec.md](./specs/currency-management/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Context
 
-See proposal.md, Why. The currency surface exists: [src/pages/CurrenciesPage.vue](../../../src/pages/CurrenciesPage.vue) lists and opens, [src/components/currency/CurrencyEditorForm.vue](../../../src/components/currency/CurrencyEditorForm.vue) edits a definition and its rate history, [src/stores/currency-store.ts](../../../src/stores/currency-store.ts) holds the list, the used set and the history, and [src/domain/repos/currency.ts](../../../src/domain/repos/currency.ts) writes through `db.mutate`. Its writes reach the database; what it lacks is any validation, desktop's field shape, desktop's list and deletion behavior, and translated refusals. The archived design recorded one false upstream claim, that the used-only default "matches upstream's own filter"; desktop's `SHOW_HIDDEN_CURRENCIES` defaults to showing all. The account and settings surfaces, reviewed and corrected earlier on 2026-10-02, carry the patterns reused here: save-time validation with a message per field, `''` normalized before a write, typed refusals the surface translates, a confirmation dialog before a destructive action, and an error banner on the page.
+See proposal.md, Why. The currency surface exists: [src/pages/CurrenciesPage.vue](../../../../src/pages/CurrenciesPage.vue) lists and opens, [src/components/currency/CurrencyEditorForm.vue](../../../../src/components/currency/CurrencyEditorForm.vue) edits a definition and its rate history, [src/stores/currency-store.ts](../../../../src/stores/currency-store.ts) holds the list, the used set and the history, and [src/domain/repos/currency.ts](../../../../src/domain/repos/currency.ts) writes through `db.mutate`. Its writes reach the database; what it lacks is any validation, desktop's field shape, desktop's list and deletion behavior, and translated refusals. The archived design recorded one false upstream claim, that the used-only default "matches upstream's own filter"; desktop's `SHOW_HIDDEN_CURRENCIES` defaults to showing all. The account and settings surfaces, reviewed and corrected earlier on 2026-10-02, carry the patterns reused here: save-time validation with a message per field, `''` normalized before a write, typed refusals the surface translates, a confirmation dialog before a destructive action, and an error banner on the page.
 
 ## Goals / Non-Goals
 
@@ -76,7 +76,7 @@ Desktop's `toString` formats the signed number and `toCurrency` then prepends th
 
 ### D10: Validation lives in the rules layer and runs at save time
 
-A pure `validateCurrencyDefinition(draft)` in [src/domain/rules/currency.ts](../../../src/domain/rules/currency.ts) returns the per-field refusals desktop's `OnOk` applies: empty name or code, code over 12 characters, grouping equal to decimal with decimals, non-positive rate. The editor normalizes the draft (trim, `''` to null for optionals, `SCALE` from decimal places, one symbol slot) before validating, and emits only a valid, normalized definition. The Save button stays enabled so a refusal is always explained, as the account editor does since its review.
+A pure `validateCurrencyDefinition(draft)` in [src/domain/rules/currency.ts](../../../../src/domain/rules/currency.ts) returns the per-field refusals desktop's `OnOk` applies: empty name or code, code over 12 characters, grouping equal to decimal with decimals, non-positive rate. The editor normalizes the draft (trim, `''` to null for optionals, `SCALE` from decimal places, one symbol slot) before validating, and emits only a valid, normalized definition. The Save button stays enabled so a refusal is always explained, as the account editor does since its review.
 
 ```mermaid
 flowchart TD
