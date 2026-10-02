@@ -1,6 +1,6 @@
 # Domain Capability Map
 
-**Version**: 1.7.0
+**Version**: 1.8.0
 **Last Updated**: 2026-10-02
 
 The living roadmap for the MoneyManagerEx PWA remake's domain capabilities. Established by change `domain-model-baseline`; future implementation changes cite this map and update the status column as they land. Governed by [AGENTS.md](../../AGENTS.md).
@@ -17,9 +17,9 @@ The living roadmap for the MoneyManagerEx PWA remake's domain capabilities. Esta
 | `account-management` | `ACCOUNTLIST_V1` | Phase 3 delivered |
 | `transaction-taxonomy` | `CATEGORY_V1`, `PAYEE_V1`, `TAG_V1`, `TAGLINK_V1` | Baseline established |
 | `transaction-ledger` | `CHECKINGACCOUNT_V1`, `SPLITTRANSACTIONS_V1` | Baseline established |
-| `scheduled-transactions` | `BILLSDEPOSITS_V1`, `BUDGETSPLITTRANSACTIONS_V1` | Baseline established |
+| `scheduled-transactions` | `BILLSDEPOSITS_V1`, `BUDGETSPLITTRANSACTIONS_V1` | Baseline established; split linkage on execute fixed by `domain-write-fixes`, archived 2026-10-02 |
 | `budget-management` | `BUDGETYEAR_V1`, `BUDGETTABLE_V1` | Baseline established |
-| `investment-tracking` | `STOCK_V1`, `STOCKHISTORY_V1`, `SHAREINFO_V1`, `TRANSLINK_V1` (stock side) | Baseline established |
+| `investment-tracking` | `STOCK_V1`, `STOCKHISTORY_V1`, `SHAREINFO_V1`, `TRANSLINK_V1` (stock side) | Baseline established; payee sentinel on trades fixed by `domain-write-fixes`, archived 2026-10-02 |
 | `asset-tracking` | `ASSETS_V1`, `TRANSLINK_V1` (asset side) | Baseline established |
 | `record-extensions` | `ATTACHMENT_V1`, `CUSTOMFIELD_V1`, `CUSTOMFIELDDATA_V1` | Baseline established |
 
@@ -85,3 +85,4 @@ Deferred until proposed by their own changes: reports engine and `REPORT_V1` exe
 
 - Full bidirectional `.mmb` compatibility (operator decision 2026-08-08) — normative home: `domain-data-conventions`, Requirement: MMB Round-Trip Fidelity.
 - UX divergence protocol (operator instruction 2026-08-08) — desktop UX is never specified silently; UX-entangled rules are escalated to the operator. The seven baseline UX questions are all resolved (2026-08-08) in `domain-model-baseline` design.md Open Questions: daily post-sync purge/auto-execute cadence, banner-and-badge scheduling prompts, URL-routed register scopes, no UDFC columns, read-only attachment stance, responsive-hybrid edit forms, summary-card home. Newly discovered UX entanglements in future changes are still escalated before their requirements are finalized. The 2026-10-02 reviews of Phases 1 to 3 found divergences that had not been escalated; each was put to the operator and is recorded, dated, in the design of the change that resolved it (`account-management-surfaces`, `file-metadata-and-settings-fidelity`, `currency-management-fidelity`).
+- Row-level observation of the scheduled split linkage (`domain-write-fixes`, design D3, archived 2026-10-02) — the unit tests assert the statement batch because the SQLite WebAssembly build cannot load under Node; the Phase 6 surface that materializes a series SHALL add a Chromium end-to-end check that both split rows of a two-split series carry the new transaction's `TRANSID`.

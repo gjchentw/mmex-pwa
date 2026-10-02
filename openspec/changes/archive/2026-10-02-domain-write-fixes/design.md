@@ -4,7 +4,7 @@
 **Version**: 1.1.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [proposal.md](./proposal.md), [specs/scheduled-transactions/spec.md](./specs/scheduled-transactions/spec.md), [specs/investment-tracking/spec.md](./specs/investment-tracking/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../../AGENTS.md).
+Related artifacts: [proposal.md](./proposal.md), [specs/scheduled-transactions/spec.md](./specs/scheduled-transactions/spec.md), [specs/investment-tracking/spec.md](./specs/investment-tracking/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Context
 

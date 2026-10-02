@@ -4,7 +4,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [design.md](./design.md) (how), [specs/scheduled-transactions/spec.md](./specs/scheduled-transactions/spec.md) and [specs/investment-tracking/spec.md](./specs/investment-tracking/spec.md) (capability deltas), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/scheduled-transactions/spec.md](./specs/scheduled-transactions/spec.md) and [specs/investment-tracking/spec.md](./specs/investment-tracking/spec.md) (capability deltas), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 
@@ -34,7 +34,7 @@ The operator directed on 2026-10-02 that both be fixed now rather than with thei
 
 ## Impact
 
-- **Code**: [src/domain/repos/scheduled.ts](../../../src/domain/repos/scheduled.ts) (`materializeStatements`), [src/domain/repos/investment.ts](../../../src/domain/repos/investment.ts) (`recordTrade`), and two new repository tests.
+- **Code**: [src/domain/repos/scheduled.ts](../../../../src/domain/repos/scheduled.ts) (`materializeStatements`), [src/domain/repos/investment.ts](../../../../src/domain/repos/investment.ts) (`recordTrade`), and two new repository tests.
 - **Configuration**: none. **Dependencies**: none; the tests use the SQLite WebAssembly build already in the project.
 - **Verification**: a failing test for each defect before its fix; the repository gate.
 - **Out of scope**: the Phase 4 taxonomy remediation (`transaction-taxonomy-fidelity`, next); any surface for scheduled transactions or trades.
