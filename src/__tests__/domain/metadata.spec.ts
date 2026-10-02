@@ -36,6 +36,12 @@ describe('key placement', () => {
     expect(storeForKey('LANGUAGE')).toBe('setting')
     expect(storeForKey('LOCALE')).toBe('infotable')
   })
+
+  // currency-management, Currency Management Surface: desktop keeps the Currency
+  // Manager's "Show all" box in the file.
+  it('places SHOW_HIDDEN_CURRENCIES in the info table', () => {
+    expect(storeForKey('SHOW_HIDDEN_CURRENCIES')).toBe('infotable')
+  })
 })
 
 describe('language mapping', () => {

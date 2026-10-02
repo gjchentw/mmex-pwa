@@ -89,6 +89,14 @@ export const fileFacts = {
     )
   },
 
+  /** An absent key reads as "show all", as desktop reads it. */
+  async showHiddenCurrencies(): Promise<boolean> {
+    return parseBooleanValue(
+      await infoRepo.get(INFO_KEY.showHiddenCurrencies),
+      DEFAULTS.showHiddenCurrencies,
+    )
+  },
+
   async sharePrecision(): Promise<number> {
     return parseIntegerValue(await infoRepo.get(INFO_KEY.sharePrecision), DEFAULTS.sharePrecision)
   },

@@ -6,6 +6,8 @@
       :history="history"
       :history-active="historyActive"
       :error-message="errorMessage"
+      :deletion-blocker="deletionBlocker"
+      :latest-rate="latestRate"
       @save="(values) => emit('save', values)"
       @delete="emit('delete')"
       @add-rate="(entry) => emit('add-rate', entry)"
@@ -19,9 +21,10 @@
 import { ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import CurrencyEditorForm from './CurrencyEditorForm.vue'
+import type { CurrencyUsage } from '../../domain/repos/currency'
 import type { CurrencyHistoryRecord, CurrencyRecord } from '../../domain/records'
 
-/** Presentation only: dialog at desktop width, full-page on mobile (design D3). */
+/** Presentation only: dialog at desktop width, full-page on mobile. */
 const props = defineProps<{
   modelValue: boolean
   currency: CurrencyRecord | null
@@ -29,6 +32,8 @@ const props = defineProps<{
   history: CurrencyHistoryRecord[]
   historyActive: boolean
   errorMessage: string
+  deletionBlocker: CurrencyUsage | null
+  latestRate: number | null
 }>()
 
 const emit = defineEmits<{

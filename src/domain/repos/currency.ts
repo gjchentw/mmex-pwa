@@ -6,6 +6,27 @@ import { INFO_KEY } from '../rules/metadata'
 
 /** Currencies and exchange-rate history (openspec: currency-management). */
 
+/** Why an addition or edit was refused: the name or the code collides with another currency. */
+export class CurrencyConflictError extends Error {
+  constructor(
+    readonly field: 'name' | 'symbol',
+    readonly other: Pick<CurrencyRecord, 'CURRENCYID' | 'CURRENCYNAME' | 'CURRENCY_SYMBOL'>,
+  ) {
+    super(`currency ${field} conflicts with "${other.CURRENCYNAME}" (${other.CURRENCY_SYMBOL})`)
+    this.name = 'CurrencyConflictError'
+  }
+}
+
+/** What keeps a currency in use: the base pointer, accounts, or assets. */
+export type CurrencyUsage = 'base' | 'accounts' | 'assets'
+
+export class CurrencyInUseError extends Error {
+  constructor(readonly reason: CurrencyUsage) {
+    super(`currency is in use: ${reason}`)
+    this.name = 'CurrencyInUseError'
+  }
+}
+
 export const currencyRepo = {
   async all(): Promise<CurrencyRecord[]> {
     return db.query<CurrencyRecord>('SELECT * FROM CURRENCYFORMATS_V1 ORDER BY CURRENCYNAME')
@@ -56,48 +77,65 @@ export const currencyRepo = {
     ])
   },
 
+  /** Throws the typed conflict, naming the field that collides, or returns quietly. */
+  async refuseConflict(name: string, symbol: string, excludeCurrencyId?: number): Promise<void> {
+    const conflict = await this.findConflict(name, symbol, excludeCurrencyId)
+    if (!conflict) return
+    const field =
+      name !== '' && conflict.CURRENCYNAME.toLocaleLowerCase() === name.toLocaleLowerCase()
+        ? 'name'
+        : 'symbol'
+    throw new CurrencyConflictError(field, conflict)
+  },
+
   /** Applies an edit after refusing a name or symbol another currency holds. */
   async save(
     currencyId: number,
     values: Partial<Omit<CurrencyRecord, 'CURRENCYID'>>,
   ): Promise<void> {
     if (values.CURRENCYNAME !== undefined || values.CURRENCY_SYMBOL !== undefined) {
-      const conflict = await this.findConflict(
-        values.CURRENCYNAME ?? '',
-        values.CURRENCY_SYMBOL ?? '',
-        currencyId,
-      )
-      if (conflict) {
-        throw new Error(`A currency named "${conflict.CURRENCYNAME}" already exists`)
-      }
+      await this.refuseConflict(values.CURRENCYNAME ?? '', values.CURRENCY_SYMBOL ?? '', currencyId)
     }
     await db.mutate([this.updateStatement(currencyId, values)])
   },
 
   async add(values: Omit<CurrencyRecord, 'CURRENCYID'>): Promise<void> {
-    const conflict = await this.findConflict(values.CURRENCYNAME, values.CURRENCY_SYMBOL)
-    if (conflict) {
-      throw new Error(`A currency named "${conflict.CURRENCYNAME}" already exists`)
-    }
+    await this.refuseConflict(values.CURRENCYNAME, values.CURRENCY_SYMBOL ?? '')
     await db.mutate([this.addStatement(values)])
   },
 
   /**
-   * The currencies anything references, in one pass. Asking `isInUse` per
-   * currency would issue hundreds of queries against a seeded file, which
-   * carries 168 of them.
+   * Which currencies accounts reference and which assets reference, in one
+   * pass, so the surface can say why a currency cannot be deleted.
    */
-  async usedCurrencyIds(): Promise<Set<number>> {
-    const rows = await db.query<{ CURRENCYID: number }>(
-      `SELECT DISTINCT CURRENCYID FROM ACCOUNTLIST_V1 WHERE CURRENCYID IS NOT NULL
+  async currencyUsage(): Promise<{ accounts: Set<number>; assets: Set<number> }> {
+    const rows = await db.query<{ CURRENCYID: number; SOURCE: string }>(
+      `SELECT DISTINCT CURRENCYID, 'accounts' AS SOURCE FROM ACCOUNTLIST_V1 WHERE CURRENCYID IS NOT NULL
        UNION
-       SELECT DISTINCT CURRENCYID FROM ASSETS_V1 WHERE CURRENCYID IS NOT NULL`,
+       SELECT DISTINCT CURRENCYID, 'assets' AS SOURCE FROM ASSETS_V1 WHERE CURRENCYID IS NOT NULL`,
     )
-    return new Set(rows.map((row) => row.CURRENCYID))
+    return {
+      accounts: new Set(rows.filter((r) => r.SOURCE === 'accounts').map((r) => r.CURRENCYID)),
+      assets: new Set(rows.filter((r) => r.SOURCE === 'assets').map((r) => r.CURRENCYID)),
+    }
   },
 
-  /** True when an account, an asset, or the base-currency pointer references it. */
-  async isInUse(currencyId: number): Promise<boolean> {
+  /** Each currency's most recent recorded rate, in one query (design D5). */
+  async latestRatesByCurrency(): Promise<Map<number, number>> {
+    const rows = await db.query<{ CURRENCYID: number; CURRVALUE: number }>(
+      `SELECT h.CURRENCYID, h.CURRVALUE FROM CURRENCYHISTORY_V1 h
+       JOIN (SELECT CURRENCYID, MAX(CURRDATE) AS CURRDATE FROM CURRENCYHISTORY_V1 GROUP BY CURRENCYID) m
+         ON m.CURRENCYID = h.CURRENCYID AND m.CURRDATE = h.CURRDATE`,
+    )
+    return new Map(rows.map((row) => [row.CURRENCYID, row.CURRVALUE]))
+  },
+
+  /**
+   * What keeps a currency in use, in the order desktop's own checks run: the
+   * base pointer, then accounts (any status, deliberately stricter than
+   * desktop's open-only rule, design D2), then assets. Null when unused.
+   */
+  async usageOf(currencyId: number): Promise<CurrencyUsage | null> {
     const [accounts, assets, baseCurrencyId] = await Promise.all([
       db.query<{ count: number }>(
         'SELECT COUNT(*) AS count FROM ACCOUNTLIST_V1 WHERE CURRENCYID = ?',
@@ -108,8 +146,15 @@ export const currencyRepo = {
       ]),
       fileFacts.baseCurrencyId(),
     ])
-    if (baseCurrencyId === currencyId) return true
-    return (accounts[0]?.count ?? 0) > 0 || (assets[0]?.count ?? 0) > 0
+    if (baseCurrencyId === currencyId) return 'base'
+    if ((accounts[0]?.count ?? 0) > 0) return 'accounts'
+    if ((assets[0]?.count ?? 0) > 0) return 'assets'
+    return null
+  },
+
+  /** True when an account, an asset, or the base-currency pointer references it. */
+  async isInUse(currencyId: number): Promise<boolean> {
+    return (await this.usageOf(currencyId)) !== null
   },
 
   /**
@@ -117,9 +162,8 @@ export const currencyRepo = {
    * operation; a currency in use cannot be deleted at all.
    */
   async remove(currencyId: number): Promise<void> {
-    if (await this.isInUse(currencyId)) {
-      throw new Error('Currency is in use and cannot be deleted')
-    }
+    const usage = await this.usageOf(currencyId)
+    if (usage) throw new CurrencyInUseError(usage)
     await db.mutate([
       { sql: 'DELETE FROM CURRENCYHISTORY_V1 WHERE CURRENCYID = ?', bind: [currencyId] },
       { sql: 'DELETE FROM CURRENCYFORMATS_V1 WHERE CURRENCYID = ?', bind: [currencyId] },
@@ -156,10 +200,6 @@ export const currencyHistoryRepo = {
 
   async record(row: Omit<CurrencyHistoryRecord, 'CURRHISTID'>): Promise<void> {
     await db.mutate([this.upsertStatement(row)])
-  },
-
-  async clearAll(): Promise<void> {
-    await db.mutate([{ sql: 'DELETE FROM CURRENCYHISTORY_V1' }])
   },
 }
 

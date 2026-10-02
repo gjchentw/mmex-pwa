@@ -19,6 +19,8 @@ export const INFO_KEY = {
   budgetDaysOffset: 'BUDGET_DAYS_OFFSET',
   /** Desktop's std::locale name for amount formatting -- never the UI language. */
   locale: 'LOCALE',
+  /** The Currency Manager's "Show all" box, which desktop persists in the file. */
+  showHiddenCurrencies: 'SHOW_HIDDEN_CURRENCIES',
 } as const
 
 /** Well-known SETTING_V1 keys this build understands. Unknown keys are preserved. */
@@ -35,6 +37,8 @@ export const DEFAULTS = {
   dataVersion: '3',
   /** Desktop reads an absent key as on (option.cpp getBool("USECURRENCYHISTORY", true)). */
   useCurrencyHistory: true,
+  /** Desktop shows every currency unless the box was unticked (maincurrencydialog.cpp). */
+  showHiddenCurrencies: true,
   deletedTransactionRetainDays: 30,
   sharePrecision: 4,
   assetCompounding: 'Day',
