@@ -8,11 +8,6 @@
     "welcome": "歡迎使用 MMEX PWA",
     "securityNotice": "基於安全考量，您每次造訪此應用程式時都需要使用 Google 帳號登入。您的存取權杖不會被儲存，當您關閉或重新整理頁面時將會遺失。"
   },
-  "language": {
-    "select": "語言",
-    "en": "English",
-    "zh": "中文"
-  },
   "menu": {
     "home": "首頁",
     "accounts": "帳戶",
@@ -107,7 +102,7 @@
     "appGroupHint": "應用程式的行為方式。",
     "infoGroup": "檔案資訊",
     "dateFormat": "日期格式",
-    "dateFormatHint": "此檔案中日期的書寫方式，例如 YYYY-MM-DD。",
+    "dateFormatHint": "此檔案中日期的書寫方式，以今天的日期示範 MoneyManagerEx 接受的每種格式。",
     "language": "語言",
     "languageHint": "儲存在檔案中，因此同步的裝置會沿用此設定。",
     "useCurrencyHistory": "使用匯率歷史",
@@ -118,9 +113,12 @@
     "schemaVersion": "結構版本",
     "dataVersion": "資料版本",
     "baseCurrencyChangeTitle": "要變更基準幣別嗎？",
-    "baseCurrencyChangeWarning": "這個檔案中所有換算後的數字都會改變。",
-    "baseCurrencyChangeDetail": "基準幣別是其他所有幣別的衡量基準。變更它會改變整個資料庫的換算結果，包含您已經記錄過的期間。您輸入的原始金額不會被改寫。",
-    "baseCurrencyChangeTarget": "新的基準幣別：{currency}"
+    "baseCurrencyChangeWarning": "所有幣別的換算匯率會重設為 1，所有歷史匯率會被刪除。",
+    "baseCurrencyChangeDetail": "基準幣別是其他所有幣別的衡量基準。變更它會重設所有已儲存的匯率並移除匯率歷史，因此整個資料庫的換算結果都會改變，包含您已經記錄過的期間。您輸入的原始金額不會被改寫。",
+    "baseCurrencyChangeTarget": "新的基準幣別：{currency}",
+    "dateFormatUnknown": "不是 MoneyManagerEx 接受的格式，請選一種取代",
+    "retentionInvalid": "請輸入 0 到 999 之間的整數天數",
+    "writeFailed": "變更沒有儲存"
   },
   "currency": {
     "title": "幣別",

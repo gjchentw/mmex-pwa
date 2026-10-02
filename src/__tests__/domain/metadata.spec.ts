@@ -1,0 +1,180 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+
+const { MockWorker } = vi.hoisted(() => {
+  class MockWorker {
+    postMessage = vi.fn()
+    addEventListener = vi.fn()
+    removeEventListener = vi.fn()
+    terminate = vi.fn()
+  }
+  return { MockWorker }
+})
+
+vi.mock('../../workers/sqlite.worker?worker', () => ({ default: MockWorker }))
+
+import { setDomainDb, type DomainDb, type SqlStatement } from '../../domain/db'
+import { currencyRepo } from '../../domain/repos/currency'
+import { fileFacts } from '../../domain/repos/metadata'
+import {
+  DATE_FORMAT_MASKS,
+  RETENTION_DAYS_MAX,
+  isDateFormatMask,
+  isLocaleWrittenByThisApplication,
+  languageToLocale,
+  localeToLanguage,
+  parseRetentionDays,
+  renderDateMask,
+  storeForKey,
+} from '../../domain/rules/metadata'
+
+/** Spec: file-metadata-and-settings (delta: desktop fidelity) and currency-management, Base Currency. */
+
+describe('key placement', () => {
+  // Requirement "Store Separation": the UI language is a preference, the
+  // formatting locale a file fact.
+  it('places LANGUAGE in the settings store and LOCALE in the info table', () => {
+    expect(storeForKey('LANGUAGE')).toBe('setting')
+    expect(storeForKey('LOCALE')).toBe('infotable')
+  })
+})
+
+describe('language mapping', () => {
+  // Requirement "Active Locale Persistence": desktop's canonical names.
+  it('maps each supported locale to desktop canonical form and back', () => {
+    expect(localeToLanguage('en-US')).toBe('en_US')
+    expect(localeToLanguage('zh-TW')).toBe('zh_TW')
+    expect(languageToLocale('en_US')).toBe('en-US')
+    expect(languageToLocale('zh_TW')).toBe('zh-TW')
+  })
+
+  it('treats an unknown name, and desktop numeric language ids, as unsupported', () => {
+    expect(localeToLanguage('fr-FR')).toBeNull()
+    expect(languageToLocale('fr_FR')).toBeNull()
+    // Desktop may store the wxLanguage number instead of the canonical name.
+    expect(languageToLocale('175')).toBeNull()
+    expect(languageToLocale(null)).toBeNull()
+    expect(languageToLocale('')).toBeNull()
+  })
+
+  // Only the earlier surface wrote these tags into LOCALE; desktop writes
+  // std::locale names or leaves it blank.
+  it('recognises only this application own locale tags in LOCALE', () => {
+    expect(isLocaleWrittenByThisApplication('zh-TW')).toBe(true)
+    expect(isLocaleWrittenByThisApplication('en-US')).toBe(true)
+    expect(isLocaleWrittenByThisApplication('de_DE.UTF-8')).toBe(false)
+    expect(isLocaleWrittenByThisApplication('')).toBe(false)
+    expect(isLocaleWrittenByThisApplication(null)).toBe(false)
+  })
+})
+
+describe('date-format masks', () => {
+  // Requirement "Editing File Facts": the list desktop defines, exactly.
+  it('carries the 36 masks desktop accepts', () => {
+    expect(DATE_FORMAT_MASKS).toHaveLength(36)
+    expect(DATE_FORMAT_MASKS).toContain('%d/%m/%Y')
+    expect(DATE_FORMAT_MASKS).toContain('%Y-%m-%d')
+    expect(DATE_FORMAT_MASKS).toContain("%w %d %Mon'%y")
+  })
+
+  it('rejects anything outside the list', () => {
+    expect(isDateFormatMask('%Y-%m-%d')).toBe(true)
+    expect(isDateFormatMask('YYYY-MM-DD')).toBe(false)
+    expect(isDateFormatMask('')).toBe(false)
+    expect(isDateFormatMask(null)).toBe(false)
+  })
+
+  // Risk R5: every token desktop uses renders.
+  const date = new Date(2026, 2, 7) // Saturday, 7 March 2026
+  it.each([
+    ['%d', '07'],
+    ['%m', '03'],
+    ['%y', '26'],
+    ['%Y', '2026'],
+    ['%Mon', 'Mar'],
+    ['%w', 'Sat'],
+  ])('renders %s', (mask, expected) => {
+    expect(renderDateMask(mask, date)).toBe(expected)
+  })
+
+  it('renders a mask mixing tokens and literal text', () => {
+    expect(renderDateMask("%d %Mon'%y", date)).toBe("07 Mar'26")
+    expect(renderDateMask('%Y%m%d', date)).toBe('20260307')
+  })
+})
+
+describe('retention entry', () => {
+  // Requirement "Editing Application Preferences": 0 through 999, whole days.
+  it('accepts whole numbers within desktop range', () => {
+    expect(parseRetentionDays('0')).toBe(0)
+    expect(parseRetentionDays(30)).toBe(30)
+    expect(parseRetentionDays(' 999 ')).toBe(999)
+    expect(RETENTION_DAYS_MAX).toBe(999)
+  })
+
+  it('refuses empty, non-numeric, negative, fractional and out-of-range entries', () => {
+    expect(parseRetentionDays('')).toBeNull()
+    expect(parseRetentionDays('abc')).toBeNull()
+    expect(parseRetentionDays('-1')).toBeNull()
+    expect(parseRetentionDays('1.5')).toBeNull()
+    expect(parseRetentionDays('1000')).toBeNull()
+    expect(parseRetentionDays(null)).toBeNull()
+    expect(parseRetentionDays(undefined)).toBeNull()
+  })
+})
+
+/** A fake file for the repository-level rules below. */
+const makeFakeDb = () => {
+  const info = new Map<string, string>()
+  const batches: SqlStatement[][] = []
+  const db: DomainDb = {
+    async query<T>(sql: string, bind?: unknown[]): Promise<T[]> {
+      if (sql.includes('FROM INFOTABLE_V1') && sql.includes('WHERE INFONAME')) {
+        const value = info.get(String(bind?.[0]))
+        return (value === undefined ? [] : [{ INFOVALUE: value }]) as T[]
+      }
+      return [] as T[]
+    },
+    async mutate(statements: SqlStatement[]): Promise<void> {
+      batches.push(statements)
+    },
+  }
+  return { db, info, batches }
+}
+
+let fake: ReturnType<typeof makeFakeDb>
+
+beforeEach(() => {
+  fake = makeFakeDb()
+  setDomainDb(fake.db)
+})
+
+afterEach(() => setDomainDb())
+
+describe('rate history default', () => {
+  // Requirement "Well-Known File Facts", scenario "An absent history key reads
+  // as on" (option.cpp getBool("USECURRENCYHISTORY", true)).
+  it('reads an absent key as on', async () => {
+    expect(await fileFacts.useCurrencyHistory()).toBe(true)
+  })
+
+  it('reads a stored 0 as off', async () => {
+    fake.info.set('USECURRENCYHISTORY', '0')
+    expect(await fileFacts.useCurrencyHistory()).toBe(false)
+  })
+})
+
+describe('changing the base currency', () => {
+  // currency-management Requirement "Base Currency", scenario "Changing the
+  // base resets every rate". Risk R2: one batch, so no partial state.
+  it('moves the pointer, resets every rate and empties the history in one batch', async () => {
+    await currencyRepo.changeBase(7)
+
+    expect(fake.batches).toHaveLength(1)
+    const batch = fake.batches[0]!
+    expect(batch).toHaveLength(3)
+    expect(batch[0]!.sql).toContain('INTO INFOTABLE_V1')
+    expect(batch[0]!.bind).toEqual(['BASECURRENCYID', '7'])
+    expect(batch[1]!.sql).toBe('UPDATE CURRENCYFORMATS_V1 SET BASECONVRATE = 1')
+    expect(batch[2]!.sql).toBe('DELETE FROM CURRENCYHISTORY_V1')
+  })
+})

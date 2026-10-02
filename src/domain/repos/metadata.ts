@@ -81,8 +81,12 @@ export const fileFacts = {
     return parseIntegerValue(await infoRepo.get(INFO_KEY.baseCurrencyId), -1)
   },
 
+  /** An absent key reads as on, as desktop reads it. */
   async useCurrencyHistory(): Promise<boolean> {
-    return parseBooleanValue(await infoRepo.get(INFO_KEY.useCurrencyHistory), false)
+    return parseBooleanValue(
+      await infoRepo.get(INFO_KEY.useCurrencyHistory),
+      DEFAULTS.useCurrencyHistory,
+    )
   },
 
   async sharePrecision(): Promise<number> {

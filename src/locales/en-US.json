@@ -8,11 +8,6 @@
     "welcome": "Welcome to MMEX PWA",
     "securityNotice": "For your security, you need to sign in with Google each time you visit this app. Your access token is not stored and will be lost when you close or refresh the page."
   },
-  "language": {
-    "select": "Language",
-    "en": "English",
-    "zh": "中文"
-  },
   "menu": {
     "home": "Home",
     "accounts": "Accounts",
@@ -107,7 +102,7 @@
     "appGroupHint": "How the application behaves.",
     "infoGroup": "File information",
     "dateFormat": "Date format",
-    "dateFormatHint": "How dates are written in this file, for example YYYY-MM-DD.",
+    "dateFormatHint": "How dates are written in this file, shown as today's date in each format MoneyManagerEx accepts.",
     "language": "Language",
     "languageHint": "Stored in the file, so a synchronized device inherits it.",
     "useCurrencyHistory": "Use exchange-rate history",
@@ -118,9 +113,12 @@
     "schemaVersion": "Schema version",
     "dataVersion": "Data version",
     "baseCurrencyChangeTitle": "Change the base currency?",
-    "baseCurrencyChangeWarning": "Every converted figure in this file will change.",
-    "baseCurrencyChangeDetail": "The base currency is what all other currencies are measured against. Changing it changes converted totals throughout the database, including periods you have already recorded. Amounts you entered are not rewritten.",
-    "baseCurrencyChangeTarget": "New base currency: {currency}"
+    "baseCurrencyChangeWarning": "Every conversion rate will be reset to 1 and all historical rates deleted.",
+    "baseCurrencyChangeDetail": "The base currency is what all other currencies are measured against. Changing it resets every stored rate and removes the rate history, so converted figures throughout the database change, including for periods you have already recorded. Amounts you entered are not rewritten.",
+    "baseCurrencyChangeTarget": "New base currency: {currency}",
+    "dateFormatUnknown": "Not a format MoneyManagerEx accepts; choose one to replace it",
+    "retentionInvalid": "Enter a whole number of days from 0 to 999",
+    "writeFailed": "The change was not saved"
   },
   "currency": {
     "title": "Currencies",

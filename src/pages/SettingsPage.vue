@@ -11,6 +11,21 @@
     </div>
 
     <div v-else class="column q-gutter-md" style="max-width: 640px">
+      <!-- A write the database refused: shown here, with the field already
+           restored to what the file holds (design D7). -->
+      <q-banner
+        v-if="actionError"
+        dense
+        class="bg-negative text-white"
+        data-testid="settings-action-error"
+      >
+        <div class="text-subtitle2">{{ $t('settings.writeFailed') }}</div>
+        {{ actionError }}
+        <template #action>
+          <q-btn flat dense :label="$t('common.close')" @click="actionError = ''" />
+        </template>
+      </q-banner>
+
       <!-- Facts describing the data file itself. -->
       <q-card flat bordered data-testid="settings-file-facts">
         <q-card-section>
@@ -19,6 +34,7 @@
         </q-card-section>
         <q-separator />
         <q-card-section class="column q-gutter-md">
+          <!-- The choices are the file's own currencies (design D6). -->
           <q-select
             v-model="selectedCurrency"
             :options="currencyOptions"
@@ -40,16 +56,24 @@
             @blur="saveUserName"
           />
 
-          <q-input
+          <!-- Only the masks desktop accepts, each shown as today's date (design D3). -->
+          <q-select
             v-model="dateFormatDraft"
+            :options="dateFormatOptions"
+            option-value="value"
+            option-label="label"
+            emit-value
+            map-options
             :label="$t('settings.dateFormat')"
             :hint="$t('settings.dateFormatHint')"
             data-testid="settings-date-format"
-            @blur="saveDateFormat"
+            @update:model-value="saveDateFormat"
           />
 
+          <!-- Derived from the active locale, so the shell's switcher and this
+               field always agree. -->
           <q-select
-            v-model="localeDraft"
+            :model-value="locale"
             :options="localeOptions"
             option-value="value"
             option-label="label"
@@ -80,15 +104,18 @@
         <q-separator />
         <q-card-section>
           <q-input
-            v-model.number="retentionDraft"
+            v-model="retentionDraft"
             type="number"
             min="0"
+            :max="RETENTION_DAYS_MAX"
             :label="$t('settings.retentionDays')"
             :hint="
-              retentionDraft === 0
+              String(retentionDraft) === '0'
                 ? $t('settings.retentionImmediate')
                 : $t('settings.retentionHint')
             "
+            :error="!!retentionError"
+            :error-message="retentionError"
             data-testid="settings-retention"
             @blur="saveRetention"
           />
@@ -108,7 +135,9 @@
           </q-item>
           <q-item>
             <q-item-section>{{ $t('settings.dataVersion') }}</q-item-section>
-            <q-item-section side>{{ store.dataVersion ?? '—' }}</q-item-section>
+            <q-item-section side data-testid="settings-data-version">
+              {{ store.dataVersion ?? $t('common.notSet') }}
+            </q-item-section>
           </q-item>
         </q-list>
       </q-card>
@@ -125,10 +154,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useSettingsStore } from '../stores/settings-store'
+import { useI18n } from 'vue-i18n'
+import { SettingRefusedError, useSettingsStore } from '../stores/settings-store'
 import { useDatabaseStore } from '../stores/database-store'
-import { SUPPORTED_LOCALES, activeLocale } from '../i18n'
-import currencies from '../data/currencies.json'
+import { LOCALE_LABELS, SUPPORTED_LOCALES } from '../i18n'
+import {
+  DATE_FORMAT_MASKS,
+  RETENTION_DAYS_MAX,
+  isDateFormatMask,
+  renderDateMask,
+} from '../domain/rules/metadata'
 import BaseCurrencyChangeDialog from '../components/settings/BaseCurrencyChangeDialog.vue'
 
 interface CurrencyOption {
@@ -138,38 +173,62 @@ interface CurrencyOption {
 
 const store = useSettingsStore()
 const databaseStore = useDatabaseStore()
+const { locale, t } = useI18n()
 
-const allCurrencies: CurrencyOption[] = (
-  currencies as { id: number; name: string; code: string }[]
-).map((currency) => ({ id: currency.id, label: `${currency.code} — ${currency.name}` }))
-
-const currencyOptions = ref<CurrencyOption[]>(allCurrencies)
+const allCurrencies = computed<CurrencyOption[]>(() =>
+  store.currencies.map((c) => ({
+    id: c.CURRENCYID,
+    label: `${c.CURRENCY_SYMBOL} — ${c.CURRENCYNAME}`,
+  })),
+)
+const currencyFilter = ref('')
+const currencyOptions = computed(() => {
+  const term = currencyFilter.value.toLocaleLowerCase()
+  return term
+    ? allCurrencies.value.filter((c) => c.label.toLocaleLowerCase().includes(term))
+    : allCurrencies.value
+})
 const selectedCurrency = ref<CurrencyOption | null>(null)
 const userNameDraft = ref('')
 const dateFormatDraft = ref('')
-const useCurrencyHistoryDraft = ref(false)
-const retentionDraft = ref(0)
-const localeDraft = ref(activeLocale())
+const useCurrencyHistoryDraft = ref(true)
+const retentionDraft = ref<string | number>('')
+const retentionError = ref('')
+const actionError = ref('')
 
 const confirmingBaseCurrency = ref(false)
 const pendingCurrency = ref<CurrencyOption | null>(null)
-let committedCurrency: CurrencyOption | null = null
+const committedCurrency = computed(
+  () => allCurrencies.value.find((c) => c.id === store.baseCurrencyId) ?? null,
+)
 
 const schemaVersion = computed(() => databaseStore.version ?? '—')
 
-const localeOptions = SUPPORTED_LOCALES.map((value) => ({
-  value,
-  label: value === 'en-US' ? 'English' : '繁體中文',
-}))
+const localeOptions = SUPPORTED_LOCALES.map((value) => ({ value, label: LOCALE_LABELS[value] }))
 
+// A stored value outside desktop's list is shown as stored, and offered only so
+// the field can display it; choosing a real mask replaces it.
+const dateFormatOptions = computed(() => {
+  const today = new Date()
+  const options = DATE_FORMAT_MASKS.map((mask) => ({
+    value: mask as string,
+    label: `${renderDateMask(mask, today)}  (${mask})`,
+  }))
+  const stored = store.dateFormat
+  if (stored && !isDateFormatMask(stored)) {
+    options.unshift({ value: stored, label: `${stored} — ${t('settings.dateFormatUnknown')}` })
+  }
+  return options
+})
+
+/** Every draft takes the stored value, so a refused or failed write leaves no trace. */
 const syncDrafts = () => {
-  committedCurrency = allCurrencies.find((c) => c.id === store.baseCurrencyId) ?? null
-  selectedCurrency.value = committedCurrency
+  selectedCurrency.value = committedCurrency.value
   userNameDraft.value = store.userName
   dateFormatDraft.value = store.dateFormat
   useCurrencyHistoryDraft.value = store.useCurrencyHistory
   retentionDraft.value = store.retentionDays
-  localeDraft.value = activeLocale()
+  retentionError.value = ''
 }
 
 onMounted(async () => {
@@ -179,52 +238,66 @@ onMounted(async () => {
 
 const filterCurrencies = (needle: string, update: (fn: () => void) => void) => {
   update(() => {
-    const term = needle.toLocaleLowerCase()
-    currencyOptions.value = term
-      ? allCurrencies.filter((c) => c.label.toLocaleLowerCase().includes(term))
-      : allCurrencies
+    currencyFilter.value = needle
   })
 }
 
-const saveUserName = async () => {
-  if (userNameDraft.value !== store.userName) await store.setUserName(userNameDraft.value)
+/** Runs a write; a failure is shown on the page and the drafts restored (design D7). */
+const attempt = async (write: () => Promise<void>) => {
+  actionError.value = ''
+  try {
+    await write()
+  } catch (err: unknown) {
+    if (err instanceof SettingRefusedError && err.field === 'retentionDays') {
+      retentionError.value = t('settings.retentionInvalid')
+      retentionDraft.value = store.retentionDays
+      return
+    }
+    actionError.value = err instanceof Error ? err.message : String(err)
+    syncDrafts()
+  }
 }
 
-const saveDateFormat = async () => {
-  if (dateFormatDraft.value !== store.dateFormat) await store.setDateFormat(dateFormatDraft.value)
-}
+const saveUserName = () =>
+  attempt(async () => {
+    if (userNameDraft.value !== store.userName) await store.setUserName(userNameDraft.value)
+  })
 
-const saveUseCurrencyHistory = async (value: boolean) => {
-  await store.setUseCurrencyHistory(value)
-}
+const saveDateFormat = (value: string) =>
+  attempt(async () => {
+    if (value !== store.dateFormat) await store.setDateFormat(value)
+  })
 
-const saveRetention = async () => {
-  if (retentionDraft.value !== store.retentionDays)
-    await store.setRetentionDays(retentionDraft.value)
-}
+const saveUseCurrencyHistory = (value: boolean) => attempt(() => store.setUseCurrencyHistory(value))
 
-const saveLocale = async (value: string) => {
-  await store.setLocale(value, databaseStore.isReady)
-}
+const saveRetention = () =>
+  attempt(async () => {
+    retentionError.value = ''
+    if (String(retentionDraft.value) !== String(store.retentionDays)) {
+      await store.setRetentionDays(retentionDraft.value)
+    }
+  })
+
+const saveLocale = (value: string) => attempt(() => store.setLocale(value, databaseStore.isReady))
 
 // Picking a currency stages the change; nothing is written until confirmed.
 const onBaseCurrencyPicked = (value: CurrencyOption | null) => {
-  if (!value || value.id === committedCurrency?.id) return
+  if (!value || value.id === committedCurrency.value?.id) return
   pendingCurrency.value = value
   confirmingBaseCurrency.value = true
 }
 
-const commitBaseCurrency = async () => {
-  const target = pendingCurrency.value
-  pendingCurrency.value = null
-  if (!target) return
-  await store.setBaseCurrency(target.id)
-  committedCurrency = target
-  selectedCurrency.value = target
-}
+const commitBaseCurrency = () =>
+  attempt(async () => {
+    const target = pendingCurrency.value
+    pendingCurrency.value = null
+    if (!target) return
+    await store.setBaseCurrency(target.id)
+    syncDrafts()
+  })
 
 const revertBaseCurrency = () => {
   pendingCurrency.value = null
-  selectedCurrency.value = committedCurrency
+  selectedCurrency.value = committedCurrency.value
 }
 </script>

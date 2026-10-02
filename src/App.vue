@@ -19,20 +19,21 @@
         <q-btn-dropdown
           flat
           dense
-          :label="locale"
+          :label="localeLabel"
           icon="mdi-translate"
           dropdown-icon="mdi-menu-down"
+          data-testid="shell-language"
         >
           <q-list>
-            <q-item clickable v-close-popup @click="chooseLocale('en-US')">
+            <q-item
+              v-for="option in localeOptions"
+              :key="option.value"
+              clickable
+              v-close-popup
+              @click="chooseLocale(option.value)"
+            >
               <q-item-section>
-                <q-item-label>English</q-item-label>
-              </q-item-section>
-            </q-item>
-
-            <q-item clickable v-close-popup @click="chooseLocale('zh-TW')">
-              <q-item-section>
-                <q-item-label>繁體中文</q-item-label>
+                <q-item-label>{{ option.label }}</q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -197,6 +198,7 @@ import { useI18n } from 'vue-i18n'
 import { navigationEntries } from './router'
 import { useDatabaseStore } from './stores/database-store'
 import { useSettingsStore } from './stores/settings-store'
+import { LOCALE_LABELS, SUPPORTED_LOCALES, isSupportedLocale } from './i18n'
 import { useGoogleAuthStore } from './stores/google-auth-store'
 import { useDriveSyncStore } from './stores/drive-sync-store'
 import ConfirmDestroyDialog from './components/database/ConfirmDestroyDialog.vue'
@@ -221,9 +223,13 @@ export default {
     const sync = useDriveSyncStore()
     const settings = useSettingsStore()
 
-    // The language is a property of the data file, so the choice is written to
-    // the database -- and a choice made before one is open waits for it
-    // (openspec: file-metadata-and-settings, Active Locale Persistence).
+    // The language is stored in the file as desktop stores it, so the choice is
+    // written to the database -- and a choice made before one is open waits for
+    // it (openspec: file-metadata-and-settings, Active Locale Persistence).
+    const localeOptions = SUPPORTED_LOCALES.map((value) => ({ value, label: LOCALE_LABELS[value] }))
+    const localeLabel = computed(() =>
+      isSupportedLocale(locale.value) ? LOCALE_LABELS[locale.value] : locale.value,
+    )
     const chooseLocale = (value: string) => {
       void settings.setLocale(value, store.isReady)
     }
@@ -283,6 +289,8 @@ export default {
 
     return {
       locale,
+      localeLabel,
+      localeOptions,
       leftDrawerOpen,
       toggleLeftDrawer() {
         leftDrawerOpen.value = !leftDrawerOpen.value

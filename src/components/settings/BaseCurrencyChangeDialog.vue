@@ -19,7 +19,12 @@
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn flat :label="$t('common.cancel')" @click="onCancel" />
+        <q-btn
+          flat
+          :label="$t('common.cancel')"
+          data-testid="base-currency-confirm-cancel"
+          @click="onCancel"
+        />
         <q-btn
           color="primary"
           :label="$t('common.continue')"

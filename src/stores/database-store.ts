@@ -70,8 +70,11 @@ export const useDatabaseStore = defineStore('database', () => {
       // INFONAME. The vendored DDL seeds DATAVERSION at INFOID 1, so addressing
       // rows by id would overwrite it (openspec: file-metadata-and-settings,
       // Well-Known File Facts; domain-data-access, Single Typed Access Path).
+      // USECURRENCYHISTORY is written explicitly so the file never depends on
+      // a default; desktop reads an absent key as on (Well-Known File Facts).
       await infoRepo.setMany({
         [INFO_KEY.baseCurrencyId]: String(currencyId),
+        [INFO_KEY.useCurrencyHistory]: '1',
         ...(userName ? { [INFO_KEY.userName]: userName } : {}),
       })
 

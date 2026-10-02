@@ -192,15 +192,18 @@ describe('database-store', () => {
     const statementsOf = (call: number): SqlStatement[] =>
       mutateSpy.mock.calls[call]![0] as SqlStatement[]
 
-    it('seeds BASECURRENCYID keyed by INFONAME without touching DATAVERSION', async () => {
+    // Well-Known File Facts, scenario "New database seeds the well-known facts":
+    // the history flag is written explicitly, as desktop reads an absent key as on.
+    it('seeds BASECURRENCYID and USECURRENCYHISTORY keyed by INFONAME without touching DATAVERSION', async () => {
       await store.initNewDb(101, '')
 
       expect(mutateSpy).toHaveBeenCalledTimes(1)
       const statements = statementsOf(0)
-      expect(statements).toHaveLength(1)
+      expect(statements).toHaveLength(2)
       expect(statements[0]!.sql).toContain('ON CONFLICT(INFONAME)')
       expect(statements[0]!.sql).not.toContain('INFOID')
       expect(statements[0]!.bind).toEqual(['BASECURRENCYID', '101'])
+      expect(statements[1]!.bind).toEqual(['USECURRENCYHISTORY', '1'])
       expect(store.state).toBe('ready')
     })
 
@@ -209,8 +212,8 @@ describe('database-store', () => {
 
       expect(mutateSpy).toHaveBeenCalledTimes(1)
       const statements = statementsOf(0)
-      expect(statements).toHaveLength(2)
-      expect(statements[1]!.bind).toEqual(['USERNAME', 'Alice'])
+      expect(statements).toHaveLength(3)
+      expect(statements[2]!.bind).toEqual(['USERNAME', 'Alice'])
       for (const statement of statements) {
         expect(statement.sql).not.toContain('DATAVERSION')
       }

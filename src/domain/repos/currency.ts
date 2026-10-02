@@ -1,7 +1,8 @@
 import { db, insertStatement, updateStatement, type SqlStatement } from '../db'
 import type { CurrencyHistoryRecord, CurrencyRecord } from '../records'
 import { resolveDayRate, type RateContext } from '../rules/currency'
-import { fileFacts } from './metadata'
+import { fileFacts, infoRepo } from './metadata'
+import { INFO_KEY } from '../rules/metadata'
 
 /** Currencies and exchange-rate history (openspec: currency-management). */
 
@@ -39,6 +40,20 @@ export const currencyRepo = {
 
   updateStatement(currencyId: number, values: Partial<Omit<CurrencyRecord, 'CURRENCYID'>>) {
     return updateStatement('CURRENCYFORMATS_V1', 'CURRENCYID', currencyId, values)
+  },
+
+  /**
+   * Changes the base currency as desktop's SetBaseCurrency does: every stored
+   * rate is denominated in the old base, so the pointer moves, every
+   * BASECONVRATE becomes 1 and the rate history is emptied, in one transaction
+   * (openspec: currency-management, Base Currency).
+   */
+  async changeBase(currencyId: number): Promise<void> {
+    await db.mutate([
+      infoRepo.setStatement(INFO_KEY.baseCurrencyId, String(currencyId)),
+      { sql: 'UPDATE CURRENCYFORMATS_V1 SET BASECONVRATE = 1', bind: [] },
+      { sql: 'DELETE FROM CURRENCYHISTORY_V1', bind: [] },
+    ])
   },
 
   /** Applies an edit after refusing a name or symbol another currency holds. */
