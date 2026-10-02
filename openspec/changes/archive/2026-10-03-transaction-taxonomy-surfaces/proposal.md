@@ -4,7 +4,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-10-02
 
-Related artifacts: [design.md](./design.md) (how), [specs/transaction-taxonomy/spec.md](./specs/transaction-taxonomy/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/transaction-taxonomy/spec.md](./specs/transaction-taxonomy/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 
@@ -33,8 +33,8 @@ Phase 4 of the capability map delivers the category, payee and tag managers — 
 
 ## Impact
 
-- New pages under [src/pages/](../../../src/pages/) (categories, payees, tags), stores under [src/stores/](../../../src/stores/), dialog and picker components under [src/components/](../../../src/components/), routes and navigation entries in [src/router/index.ts](../../../src/router/index.ts) and the shell, catalog keys in [src/locales/](../../../src/locales/), end-to-end specs under [e2e/](../../../e2e/).
-- Domain: read-only additions in [src/domain/repos/taxonomy.ts](../../../src/domain/repos/taxonomy.ts) (bulk live-use counts); no behavior of the archived change is altered.
+- New pages under [src/pages/](../../../../src/pages/) (categories, payees, tags), stores under [src/stores/](../../../../src/stores/), dialog and picker components under [src/components/](../../../../src/components/), routes and navigation entries in [src/router/index.ts](../../../../src/router/index.ts) and the shell, catalog keys in [src/locales/](../../../../src/locales/), end-to-end specs under [e2e/](../../../../e2e/).
+- Domain: read-only additions in [src/domain/repos/taxonomy.ts](../../../../src/domain/repos/taxonomy.ts) (bulk live-use counts); no behavior of the archived change is altered.
 - No schema change; no stored data repaired. The surfaces write only through the repository builders the archived change specified.
 
 ## Out of Scope
