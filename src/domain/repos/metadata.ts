@@ -6,8 +6,10 @@ import {
   SETTING_KEY,
   parseBooleanValue,
   parseIntegerValue,
+  parseSettingBoolean,
   retentionDays,
 } from '../rules/metadata'
+import { parseDefaultCategoryMode, type DefaultCategoryMode } from '../rules/taxonomy'
 
 /**
  * The two key-value stores (openspec: file-metadata-and-settings). Writes are
@@ -95,6 +97,36 @@ export const fileFacts = {
       await infoRepo.get(INFO_KEY.showHiddenCurrencies),
       DEFAULTS.showHiddenCurrencies,
     )
+  },
+
+  /** Desktop's Category Manager shows hidden categories unless the box was unticked. */
+  async showHiddenCategories(): Promise<boolean> {
+    return parseSettingBoolean(
+      await settingRepo.get(SETTING_KEY.showHiddenCategories),
+      DEFAULTS.showHiddenCategories,
+    )
+  },
+
+  /** Desktop's Payee Manager shows hidden payees unless the box was unticked. */
+  async showHiddenPayees(): Promise<boolean> {
+    return parseSettingBoolean(
+      await settingRepo.get(SETTING_KEY.showHiddenPayees),
+      DEFAULTS.showHiddenPayees,
+    )
+  },
+
+  /** Desktop's default-category mode for payees; an absent key reads as Last used. */
+  async defaultCategoryMode(): Promise<DefaultCategoryMode> {
+    return parseDefaultCategoryMode(await settingRepo.get(SETTING_KEY.transactionCategoryNone))
+  },
+
+  /**
+   * The separator for category paths. Desktop falls back to a colon when the key
+   * is absent; an empty value would join paths with nothing, so it falls back too.
+   */
+  async categoryDelimiter(): Promise<string> {
+    const stored = await infoRepo.get(INFO_KEY.categoryDelimiter)
+    return stored === null || stored === '' ? DEFAULTS.categoryDelimiter : stored
   },
 
   async sharePrecision(): Promise<number> {

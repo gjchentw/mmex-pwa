@@ -1,5 +1,6 @@
 import { NONE_ID, namesEqual, type RefType } from '../conventions'
 import type { CategoryRecord, PayeeRecord, TagLinkRecord, TagRecord } from '../records'
+import { DEFAULTS } from './metadata'
 
 /**
  * Pure taxonomy rules (openspec: transaction-taxonomy). Categories form a
@@ -13,8 +14,13 @@ export const CATEGORY_PATH_DELIMITER = ':'
 
 type CategoryLike = Pick<CategoryRecord, 'CATEGID' | 'CATEGNAME' | 'PARENTID'>
 
-/** ACTIVE = 0 hides an entity; it stays a valid reference on existing records. */
-export const isHidden = (record: { ACTIVE?: number | null }): boolean => record.ACTIVE === 0
+/**
+ * ACTIVE = 0 hides a category or payee; it stays a valid reference on existing
+ * records. Tags have no hidden state in desktop (openspec: Visibility via
+ * Active Flags), so no tag path consults this and a stored 0 reads as visible.
+ */
+export const isHidden = (record: Pick<CategoryRecord | PayeeRecord, 'ACTIVE'>): boolean =>
+  record.ACTIVE === 0
 
 export const isRoot = (category: Pick<CategoryRecord, 'PARENTID'>): boolean =>
   category.PARENTID === CATEGORY_ROOT_ID
@@ -111,19 +117,61 @@ export const payeeDefaultCategory = (payee: Pick<PayeeRecord, 'CATEGID'>): numbe
 
 /**
  * Payee match patterns are preserved and editable but never executed here;
- * import-time matching belongs to a future capability.
+ * import-time matching belongs to a future capability. Desktop stores them as
+ * a JSON object keyed "0", "1", ... (payeedialog.cpp); the legacy array form is
+ * still read. Anything else reads as no patterns and is left untouched.
  */
 export const parsePayeePatterns = (payee: Pick<PayeeRecord, 'PATTERN'>): string[] => {
   const raw = payee.PATTERN
   if (!raw) return []
+  let parsed: unknown
   try {
-    const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === 'string')
-      : []
+    parsed = JSON.parse(raw)
   } catch {
     return []
   }
+  if (Array.isArray(parsed)) {
+    return parsed.filter((item): item is string => typeof item === 'string')
+  }
+  if (parsed === null || typeof parsed !== 'object') return []
+  const entries = Object.entries(parsed as Record<string, unknown>)
+  if (!entries.every(([key, value]) => /^\d+$/.test(key) && typeof value === 'string')) return []
+  return entries.sort(([a], [b]) => Number(a) - Number(b)).map(([, value]) => value as string)
+}
+
+/**
+ * Desktop's writer: blank rows dropped, keys renumbered from "0", pretty-printed
+ * with a four-space indent (rapidjson PrettyWriter), which JSON.stringify
+ * reproduces byte for byte for a flat object of strings.
+ */
+export const serializePayeePatterns = (patterns: readonly string[]): string => {
+  const kept = patterns.filter((pattern) => pattern.trim() !== '')
+  return JSON.stringify(
+    Object.fromEntries(kept.map((pattern, index) => [String(index), pattern])),
+    null,
+    4,
+  )
+}
+
+export const PAYEE_PATTERN_REGEX_PREFIX = 'regex:'
+
+export type PayeeRefusal = { field: 'name' | 'website' | 'pattern'; index?: number }
+
+/**
+ * A `regex:` pattern must compile before it is stored; desktop compiles with
+ * wxRE_ICASE | wxRE_EXTENDED, this build with JavaScript's engine, case-insensitive
+ * (design R1 records the dialect difference). Patterns are never executed here.
+ */
+export const validatePayeePatterns = (patterns: readonly string[]): PayeeRefusal | null => {
+  for (const [index, pattern] of patterns.entries()) {
+    if (!pattern.startsWith(PAYEE_PATTERN_REGEX_PREFIX)) continue
+    try {
+      RegExp(pattern.slice(PAYEE_PATTERN_REGEX_PREFIX.length), 'i')
+    } catch {
+      return { field: 'pattern', index }
+    }
+  }
+  return null
 }
 
 /** Identity of a tag link, used to keep (REFTYPE, REFID, TAGID) unique. */
@@ -143,6 +191,71 @@ export const dedupeTagLinks = <T extends Pick<TagLinkRecord, 'REFTYPE' | 'REFID'
   })
 }
 
+export type NameRefusal = 'empty' | 'colon' | 'space' | 'reserved'
+
+/** categdialog.cpp: the colon separates categories from subcategories, so a name never holds one. */
+export const validateCategoryName = (name: string): NameRefusal | null => {
+  if (name.trim() === '') return 'empty'
+  if (name.includes(':')) return 'colon'
+  return null
+}
+
+/** tagdialog.cpp: `&` and `|` are the filter operators, the space the tag delimiter. */
+export const TAG_RESERVED_NAMES: readonly string[] = ['&', '|']
+
+export const validateTagName = (name: string): NameRefusal | null => {
+  const trimmed = name.trim()
+  if (trimmed === '') return 'empty'
+  if (TAG_RESERVED_NAMES.includes(trimmed)) return 'reserved'
+  if (/\s/.test(trimmed)) return 'space'
+  return null
+}
+
+/**
+ * Desktop's isValidURI (primitive.cpp): an optional http(s) scheme, a host of
+ * two or more dot-separated labels, then at least one further character, matched
+ * after trimming and lowercasing. `\w` is ASCII-only here (design R2).
+ */
+const WEBSITE_PATTERN = /^(?:https?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w._~:/?#[\]@!$&'()*+,;=-]+$/
+
+export const isValidWebsite = (value: string | null | undefined): boolean => {
+  const website = (value ?? '').trim().toLowerCase()
+  return website === '' || WEBSITE_PATTERN.test(website)
+}
+
+/** payeedialog.cpp refuses an empty name and an invalid website before saving. */
+export const validatePayee = (
+  payee: Pick<PayeeRecord, 'PAYEENAME'> & Partial<Pick<PayeeRecord, 'WEBSITE'>>,
+): PayeeRefusal | null => {
+  if (payee.PAYEENAME.trim() === '') return { field: 'name' }
+  if (!isValidWebsite(payee.WEBSITE)) return { field: 'website' }
+  return null
+}
+
+/** option.h USAGE_TYPE { NONE = 0, LASTUSED, UNUSED, DEFAULT }, stored in TRANSACTION_CATEGORY_NONE. */
+export const DEFAULT_CATEGORY_MODE = { none: 0, lastUsed: 1, unused: 2, default: 3 } as const
+
+export type DefaultCategoryMode = keyof typeof DEFAULT_CATEGORY_MODE
+
+const DEFAULT_CATEGORY_MODES = Object.keys(DEFAULT_CATEGORY_MODE) as DefaultCategoryMode[]
+
+/** Model_Setting::getInt: a numeric string is the value, anything else the default (Last used). */
+export const parseDefaultCategoryMode = (
+  stored: string | null | undefined,
+): DefaultCategoryMode => {
+  if (stored === null || stored === undefined || !/^\d+$/.test(stored.trim())) {
+    return DEFAULTS.defaultCategoryMode
+  }
+  const value = Number(stored)
+  return (
+    DEFAULT_CATEGORY_MODES.find((mode) => DEFAULT_CATEGORY_MODE[mode] === value) ??
+    DEFAULTS.defaultCategoryMode
+  )
+}
+
+export const encodeDefaultCategoryMode = (mode: DefaultCategoryMode): string =>
+  String(DEFAULT_CATEGORY_MODE[mode])
+
 export const tagsFor = (
   links: readonly TagLinkRecord[],
   tags: readonly TagRecord[],
@@ -154,5 +267,8 @@ export const tagsFor = (
       .filter((link) => link.REFTYPE === refType && link.REFID === refId)
       .map((link) => link.TAGID),
   )
-  return tags.filter((tag) => tagIds.has(tag.TAGID))
+  // A record's tags are presented by name (openspec: Tags and Polymorphic Tag Links).
+  return tags
+    .filter((tag) => tagIds.has(tag.TAGID))
+    .sort((a, b) => a.TAGNAME.localeCompare(b.TAGNAME))
 }

@@ -46,9 +46,27 @@ export const scheduledRepo = {
     return all.filter((series) => !isLegacyInactive(series) && isDue(series, now))
   },
 
+  /**
+   * The split rows' tag links go with the rows (openspec: Series Split Line
+   * Replacement); the subquery resolves their ids inside the batch so the
+   * statements can be built without a read.
+   */
+  splitLinkCleanupStatement(bdids: readonly number[]): SqlStatement {
+    return {
+      sql: `DELETE FROM TAGLINK_V1 WHERE REFTYPE = ? AND REFID IN
+            (SELECT SPLITTRANSID FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID IN (${placeholders(bdids.length)}))`,
+      bind: [REFTYPE.recurringTransactionSplit, ...bdids],
+    }
+  },
+
   removeStatements(bdid: number): SqlStatement[] {
     return [
       ...extensionCleanupStatements(REFTYPE.recurringTransaction, [bdid]),
+      {
+        sql: `DELETE FROM TAGLINK_V1 WHERE REFTYPE = ? AND REFID IN
+              (SELECT SPLITTRANSID FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID = ?)`,
+        bind: [REFTYPE.recurringTransactionSplit, bdid],
+      },
       { sql: 'DELETE FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID = ?', bind: [bdid] },
       { sql: 'DELETE FROM BILLSDEPOSITS_V1 WHERE BDID = ?', bind: [bdid] },
     ]
@@ -172,21 +190,41 @@ export const scheduledRepo = {
     return { executed, needsPrompt }
   },
 
+  /**
+   * Replaces a series' split lines as desktop does (Model_Budgetsplittransaction::update
+   * replaces the rows), writing each row's tag links right after it while
+   * MAX(SPLITTRANSID) is that row's key. BILLSDEPOSITS_V1 has no update stamp.
+   */
   replaceSplitsStatements(
     bdid: number,
-    splits: readonly Omit<ScheduledSplitRecord, 'SPLITTRANSID' | 'TRANSID'>[],
+    splits: readonly (Omit<ScheduledSplitRecord, 'SPLITTRANSID' | 'TRANSID'> & {
+      tagIds?: readonly number[]
+    })[],
   ): SqlStatement[] {
-    return [
+    const statements: SqlStatement[] = [
+      {
+        sql: `DELETE FROM TAGLINK_V1 WHERE REFTYPE = ? AND REFID IN
+              (SELECT SPLITTRANSID FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID = ?)`,
+        bind: [REFTYPE.recurringTransactionSplit, bdid],
+      },
       { sql: 'DELETE FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID = ?', bind: [bdid] },
-      ...splits.map((split) =>
+    ]
+    for (const split of splits) {
+      statements.push(
         insertStatement('BUDGETSPLITTRANSACTIONS_V1', {
           TRANSID: bdid,
           CATEGID: split.CATEGID,
           SPLITTRANSAMOUNT: split.SPLITTRANSAMOUNT,
           NOTES: split.NOTES,
         }),
-      ),
-    ]
+        ...(split.tagIds ?? []).map((tagId) => ({
+          sql: `INSERT OR IGNORE INTO TAGLINK_V1 (REFTYPE, REFID, TAGID)
+                VALUES (?, (SELECT MAX(SPLITTRANSID) FROM BUDGETSPLITTRANSACTIONS_V1), ?)`,
+          bind: [REFTYPE.recurringTransactionSplit, tagId],
+        })),
+      )
+    }
+    return statements
   },
 
   async removeMany(bdids: readonly number[]): Promise<void> {
@@ -194,6 +232,7 @@ export const scheduledRepo = {
     const list = placeholders(bdids.length)
     await db.mutate([
       ...extensionCleanupStatements(REFTYPE.recurringTransaction, bdids),
+      this.splitLinkCleanupStatement(bdids),
       {
         sql: `DELETE FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID IN (${list})`,
         bind: [...bdids],

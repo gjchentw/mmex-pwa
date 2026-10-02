@@ -127,13 +127,13 @@ describe('ledger repository', () => {
   })
 
   // Requirement "Split Transactions", scenario "Split sum is validated".
-  it('refuses split lines that do not sum to the transaction amount', () => {
-    expect(() =>
+  it('refuses split lines that do not sum to the transaction amount', async () => {
+    await expect(
       ledgerRepo.replaceSplitsStatements({ TRANSID: 1, TRANSAMOUNT: 100 }, [
         { CATEGID: 1, SPLITTRANSAMOUNT: 60, NOTES: null },
         { CATEGID: 2, SPLITTRANSAMOUNT: 30, NOTES: null },
       ]),
-    ).toThrow(/sum/i)
+    ).rejects.toThrow(/sum/i)
   })
 
   // Spec: transaction-ledger, requirement "Statement Lock Enforcement".

@@ -130,6 +130,13 @@ export const accountRepo = {
       const list = placeholders(scheduledIds.length)
       statements.push(
         ...extensionCleanupStatements(REFTYPE.recurringTransaction, scheduledIds),
+        // The series split rows' tag links go with the rows (openspec:
+        // scheduled-transactions, Series Split Line Replacement).
+        {
+          sql: `DELETE FROM TAGLINK_V1 WHERE REFTYPE = ? AND REFID IN
+                (SELECT SPLITTRANSID FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID IN (${list}))`,
+          bind: [REFTYPE.recurringTransactionSplit, ...scheduledIds],
+        },
         {
           sql: `DELETE FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID IN (${list})`,
           bind: [...scheduledIds],

@@ -96,6 +96,17 @@ describe('domain conventions', () => {
     expect(namesEqual(null, '')).toBe(true)
   })
 
+  // Delta (transaction-taxonomy-fidelity), scenario "Non-ASCII case is not
+  // folded": COLLATE NOCASE folds the 26 ASCII letters only, so names that
+  // differ in the case of any other letter are distinct, as desktop sees them.
+  it('folds ASCII letters only, as COLLATE NOCASE does', () => {
+    expect(namesEqual('Époque', 'époque')).toBe(false)
+    // Only ASCII letters differ here, so NOCASE does fold them.
+    expect(namesEqual('Époque', 'ÉPOQUE')).toBe(true)
+    expect(namesEqual('Café', 'CAFé')).toBe(true)
+    expect(namesEqual('straße', 'STRASSE')).toBe(false)
+  })
+
   // Requirement "Persisted Enumeration Discipline", scenario "Locale switch
   // never rewrites persisted values".
   describe('enum codec', () => {

@@ -95,12 +95,19 @@ export const daysBetween = (from: Date, to: Date): number => {
   return Math.round((endUtc - startUtc) / 86_400_000)
 }
 
+/** COLLATE NOCASE folds the 26 ASCII letters and nothing else. */
+const foldAscii = (value: string): string =>
+  value.replace(/[A-Z]/g, (letter) => letter.toLowerCase())
+
 /**
  * Name uniqueness is case-insensitive throughout the schema (COLLATE NOCASE on
  * every user-facing name column), so lookups and duplicate checks must be too.
+ * The folding is ASCII-only, as SQLite's is: names that differ only in the case
+ * of a non-ASCII letter are distinct, exactly as desktop sees them (openspec:
+ * domain-data-conventions, Case-Insensitive Name Uniqueness).
  */
 export const namesEqual = (a: string | null | undefined, b: string | null | undefined): boolean =>
-  (a ?? '').toLocaleLowerCase() === (b ?? '').toLocaleLowerCase()
+  foldAscii(a ?? '') === foldAscii(b ?? '')
 
 /**
  * Builds a codec for an enumeration persisted as its English display string.

@@ -12,7 +12,9 @@ const { MockWorker } = vi.hoisted(() => {
 
 vi.mock('../../workers/sqlite.worker?worker', () => ({ default: MockWorker }))
 
+import { REFTYPE } from '../../domain/conventions'
 import { setDomainDb, type DomainDb, type SqlStatement } from '../../domain/db'
+import { accountRepo } from '../../domain/repos/account'
 import { scheduledRepo } from '../../domain/repos/scheduled'
 import type { ScheduledRecord, ScheduledSplitRecord } from '../../domain/records'
 
@@ -106,5 +108,82 @@ describe('materializing a series with two split lines', () => {
     for (const statement of statements.slice(1)) {
       expect(statement.sql.replace(/\s+/g, ' ')).toContain(keyExpression)
     }
+  })
+})
+
+const flat = (statement: SqlStatement): string => statement.sql.replace(/\s+/g, ' ')
+
+/**
+ * Spec: scheduled-transactions (delta), Requirement "Series Split Line
+ * Replacement", scenarios "Series split tags survive an edit" and "Deleting a
+ * series removes its split tag links" (design D8, defect C4).
+ */
+describe('replacing series split lines', () => {
+  it('drops the old rows tag links and writes each row followed by its tags, with no stamp', () => {
+    const statements = scheduledRepo.replaceSplitsStatements(1, [
+      { CATEGID: 30, SPLITTRANSAMOUNT: 60, NOTES: null, tagIds: [5] },
+      { CATEGID: 31, SPLITTRANSAMOUNT: 40, NOTES: null },
+    ])
+
+    const sql = statements.map(flat)
+    expect(sql[0]).toBe(
+      'DELETE FROM TAGLINK_V1 WHERE REFTYPE = ? AND REFID IN (SELECT SPLITTRANSID FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID = ?)',
+    )
+    expect(statements[0]!.bind).toEqual([REFTYPE.recurringTransactionSplit, 1])
+    expect(sql[1]).toBe('DELETE FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID = ?')
+    expect(sql[2]).toContain('INSERT INTO BUDGETSPLITTRANSACTIONS_V1')
+    expect(sql[3]).toBe(
+      'INSERT OR IGNORE INTO TAGLINK_V1 (REFTYPE, REFID, TAGID) VALUES (?, (SELECT MAX(SPLITTRANSID) FROM BUDGETSPLITTRANSACTIONS_V1), ?)',
+    )
+    expect(statements[3]!.bind).toEqual([REFTYPE.recurringTransactionSplit, 5])
+    expect(sql[4]).toContain('INSERT INTO BUDGETSPLITTRANSACTIONS_V1')
+    expect(sql).toHaveLength(5)
+    expect(
+      sql.some((s) => s.includes('CHECKINGACCOUNT_V1') || s.includes('BILLSDEPOSITS_V1')),
+    ).toBe(false)
+  })
+})
+
+describe('series split cleanup', () => {
+  const splitLinkCleanup = (statements: readonly SqlStatement[], where: string) =>
+    statements.some(
+      (statement) =>
+        flat(statement).startsWith('DELETE FROM TAGLINK_V1 WHERE REFTYPE = ? AND REFID IN') &&
+        flat(statement).includes(`FROM BUDGETSPLITTRANSACTIONS_V1 WHERE TRANSID ${where}`) &&
+        statement.bind?.[0] === REFTYPE.recurringTransactionSplit,
+    )
+
+  it('removes the split rows tag links with a series', () => {
+    expect(splitLinkCleanup(scheduledRepo.removeStatements(1), '= ?')).toBe(true)
+  })
+
+  it('removes the split rows tag links with many series', async () => {
+    const batches: SqlStatement[][] = []
+    setDomainDb({
+      async query<T>(): Promise<T[]> {
+        return [] as T[]
+      },
+      async mutate(statements: SqlStatement[]): Promise<void> {
+        batches.push(statements)
+      },
+    })
+
+    await scheduledRepo.removeMany([1, 2])
+
+    expect(splitLinkCleanup(batches[0]!, 'IN (?, ?)')).toBe(true)
+  })
+
+  it('removes the split rows tag links with an account series', async () => {
+    setDomainDb({
+      async query<T>(sql: string): Promise<T[]> {
+        if (sql.includes('FROM BILLSDEPOSITS_V1')) return [{ BDID: 1 }] as T[]
+        return [] as T[]
+      },
+      async mutate(): Promise<void> {},
+    })
+
+    const statements = await accountRepo.removeStatements(10)
+
+    expect(splitLinkCleanup(statements, 'IN (?)')).toBe(true)
   })
 })

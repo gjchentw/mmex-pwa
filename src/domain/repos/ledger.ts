@@ -13,6 +13,35 @@ import { fileFacts } from './metadata'
 
 const LIVE = "COALESCE(DELETEDTIME, '') = ''"
 
+/** A split line as a surface submits it: content plus the tags to attach to the new row. */
+export type SplitLine = Omit<SplitRecord, 'SPLITTRANSID' | 'TRANSID'> & {
+  tagIds?: readonly number[]
+}
+
+/**
+ * Desktop's test for stamping the transaction (Model_Splittransaction::update):
+ * a different count, or any submitted line with no content-identical stored row
+ * left to pair with, counts as a change. Tags are not part of the comparison.
+ */
+const splitSetChanged = (
+  stored: readonly SplitRecord[],
+  submitted: readonly SplitLine[],
+): boolean => {
+  if (stored.length !== submitted.length) return true
+  const unmatched = [...stored]
+  for (const line of submitted) {
+    const index = unmatched.findIndex(
+      (row) =>
+        row.CATEGID === line.CATEGID &&
+        row.SPLITTRANSAMOUNT === line.SPLITTRANSAMOUNT &&
+        (row.NOTES ?? '') === (line.NOTES ?? ''),
+    )
+    if (index === -1) return true
+    unmatched.splice(index, 1)
+  }
+  return false
+}
+
 export interface LedgerQuery {
   accountId?: number
   fromDate?: string
@@ -111,25 +140,53 @@ export const ledgerRepo = {
     })
   },
 
-  /** Replaces a transaction's split lines, validating that they sum to its amount. */
-  replaceSplitsStatements(
+  /**
+   * Replaces a transaction's split lines, validating that they sum to its amount.
+   * As desktop does (Model_Splittransaction::update), the rows are replaced, not
+   * edited in place; unlike desktop's dialog, their tag links are written in the
+   * same batch, each right after its row while MAX(SPLITTRANSID) is that row's
+   * key, and the transaction is stamped only when the split set changed
+   * (openspec: transaction-ledger, Split Transactions).
+   */
+  async replaceSplitsStatements(
     transaction: Pick<TransactionRecord, 'TRANSID' | 'TRANSAMOUNT'>,
-    splits: readonly Omit<SplitRecord, 'SPLITTRANSID' | 'TRANSID'>[],
-  ): SqlStatement[] {
+    splits: readonly SplitLine[],
+    options: { now?: Date } = {},
+  ): Promise<SqlStatement[]> {
     if (!splitsBalance(transaction, splits)) {
       throw new Error('Split amounts must sum to the transaction amount')
     }
-    return [
+    const current = await this.splitsFor(transaction.TRANSID)
+    const statements: SqlStatement[] = [
+      {
+        sql: `DELETE FROM TAGLINK_V1 WHERE REFTYPE = ? AND REFID IN
+              (SELECT SPLITTRANSID FROM SPLITTRANSACTIONS_V1 WHERE TRANSID = ?)`,
+        bind: [REFTYPE.transactionSplit, transaction.TRANSID],
+      },
       { sql: 'DELETE FROM SPLITTRANSACTIONS_V1 WHERE TRANSID = ?', bind: [transaction.TRANSID] },
-      ...splits.map((split) =>
+    ]
+    for (const split of splits) {
+      statements.push(
         insertStatement('SPLITTRANSACTIONS_V1', {
           TRANSID: transaction.TRANSID,
           CATEGID: split.CATEGID,
           SPLITTRANSAMOUNT: split.SPLITTRANSAMOUNT,
           NOTES: split.NOTES,
         }),
-      ),
-    ]
+        ...(split.tagIds ?? []).map((tagId) => ({
+          sql: `INSERT OR IGNORE INTO TAGLINK_V1 (REFTYPE, REFID, TAGID)
+                VALUES (?, (SELECT MAX(SPLITTRANSID) FROM SPLITTRANSACTIONS_V1), ?)`,
+          bind: [REFTYPE.transactionSplit, tagId],
+        })),
+      )
+    }
+    if (splitSetChanged(current, splits)) {
+      statements.push({
+        sql: 'UPDATE CHECKINGACCOUNT_V1 SET LASTUPDATEDTIME = ? WHERE TRANSID = ?',
+        bind: [formatUtcTimestamp(options.now ?? new Date()), transaction.TRANSID],
+      })
+    }
+    return statements
   },
 
   /** Stamps DELETEDTIME, leaving the row restorable. */

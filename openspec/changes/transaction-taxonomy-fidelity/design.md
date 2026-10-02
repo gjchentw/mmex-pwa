@@ -1,7 +1,7 @@
 # Transaction Taxonomy Fidelity — Design
 
 **Change**: `transaction-taxonomy-fidelity`
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Last Updated**: 2026-10-02
 
 Related artifacts: [proposal.md](./proposal.md), [specs/transaction-taxonomy/spec.md](./specs/transaction-taxonomy/spec.md), [specs/record-extensions/spec.md](./specs/record-extensions/spec.md), [specs/domain-data-conventions/spec.md](./specs/domain-data-conventions/spec.md), [specs/transaction-ledger/spec.md](./specs/transaction-ledger/spec.md), [specs/scheduled-transactions/spec.md](./specs/scheduled-transactions/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../../AGENTS.md).
@@ -77,7 +77,7 @@ classDiagram
       +boolean descendantUsed
       +number[] trashedTransactionIds
       +number orphanLinks
-      +state() used | onlyTrashed | unused
+      +state used | onlyTrashed | unused
     }
 ```
 *Caption: One report shape for categories, payees and tags; fields that do not apply are zero.*
@@ -85,7 +85,7 @@ classDiagram
 - `transactions` and `splits` count only rows whose transaction has `DELETEDTIME` empty (`IS NULL OR = ''`, as the ledger stores it); `trashedTransactionIds` lists the others, so the purge of D4 knows what to remove. Split references resolve to their transaction for the live test, as `Model_Category::is_used` does.
 - `series` and `seriesSplits` count every row — desktop never trashes a series.
 - For a category, `descendantUsed` is the recursion over `categorySubtree`; `budgetRows` and `payeeDefaults` are reported for the merge screen but never make the entity used (decision 1).
-- For a tag, `orphanLinks` counts links whose record no longer exists; they never make the tag used (decision 15) and are deleted with the tag. `state()` reproduces desktop's `is_used` tri-state: `used` when any live or series reference exists, `onlyTrashed` when only trashed transactions reference it, `unused` otherwise.
+- For a tag, `orphanLinks` counts links whose record no longer exists; they never make the tag used (decision 15) and are deleted with the tag. `state` (a field, computed when the report is built) reproduces desktop's `is_used` tri-state: `used` when any live or series reference exists, `onlyTrashed` when only trashed transactions reference it, `unused` otherwise.
 
 *Alternative rejected*: the current `usageCount(): number`, which cannot distinguish a live reference from a trashed one and cannot feed the merge screen's per-table counts (decision 8).
 
@@ -101,7 +101,7 @@ Category cascade order within the batch: `DELETE FROM BUDGETTABLE_V1 WHERE CATEG
 
 ### D4: Purging trashed transactions reuses the ledger's hard-delete statements
 
-The ledger repository already builds the hard-delete batch for a list of transaction ids — split ids, `Transaction` and `TransactionSplit` extension cleanup, split rows, transaction rows ([src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts), the purge path). Those statements are exposed as a builder (extracted if they are inline today) and spliced into the taxonomy batch, so the purge triggered by a category deletion is byte-for-byte the purge the ledger performs on retention expiry.
+The ledger repository already exposes the hard-delete batch for a list of transaction ids as `ledgerRepo.hardDeleteStatements` — split ids, `Transaction` and `TransactionSplit` extension cleanup, split rows, share and link rows, transaction rows ([src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts)). It is spliced unchanged into the taxonomy batch, so the purge triggered by a category deletion is byte-for-byte the purge the ledger performs on retention expiry.
 
 *Alternative rejected*: a second hard-delete implementation in the taxonomy repository, which would drift from the ledger's cascade rules.
 
@@ -125,7 +125,7 @@ flowchart TD
 ```
 *Caption: One batch, counts taken from the usage report before it runs.*
 
-- Desktop stamps `LASTUPDATEDTIME` when it saves a live row and leaves a trashed row's stamp alone (`Model_Checking::save`, 115–118). Relocation therefore issues `UPDATE CHECKINGACCOUNT_V1 SET CATEGID = ?, LASTUPDATEDTIME = ? WHERE CATEGID = ? AND (DELETEDTIME IS NULL OR DELETEDTIME = '')` and a second update without the stamp for the rest. Split rows carry no stamp; their transaction is stamped through the same live-row rule only when the transaction itself is re-pointed — desktop's `relocatecategorydialog` saves split rows through `Model_Splittransaction::save`, which does not touch the transaction, so neither does this.
+- Desktop stamps `LASTUPDATEDTIME` when it saves a live row and leaves a trashed row's stamp alone (`Model_Checking::save`, 115–118). Relocation therefore issues `UPDATE CHECKINGACCOUNT_V1 SET CATEGID = ?, LASTUPDATEDTIME = ? WHERE CATEGID = ? AND COALESCE(DELETEDTIME, '') = ''` — the ledger's own live predicate — and a second update without the stamp for the rest (`NOT (...)`). Split rows carry no stamp; their transaction is stamped through the same live-row rule only when the transaction itself is re-pointed — desktop's `relocatecategorydialog` saves split rows through `Model_Splittransaction::save`, which does not touch the transaction, so neither does this.
 - Budget rows of the source category are deleted, not re-pointed (decision 6; desktop 205–209), and counted as changed.
 - `deleteSource` composes the D3 cascade after the updates; for a category with children it is refused with `TaxonomyMergeError('sourceHasChildren')` (decision 4; desktop removes the source only when `sub_category(...).empty()`). For a payee the cascade removes attachment rows and custom field data; the merge itself never touches `ATTACHMENT_V1` (decision 22).
 - The return value is `{ changed: number; byTable: Partial<Record<Table, number>> }` so the surface can show both the pre-merge counts (from `usage`) and the post-merge total (decision 8).
@@ -169,7 +169,7 @@ sequenceDiagram
 
 - The lines gain an optional `tagIds: readonly number[]`. The statement builder becomes asynchronous because it reads the current rows to decide the stamp (desktop's content comparison, `Model_Splittransaction::update` 88–110: a different count, or any row with no content-identical counterpart, stamps). The scheduled variant does the same without a stamp (`BILLSDEPOSITS_V1` has no such column) using `BUDGETSPLITTRANSACTIONS_V1` and `RecurringTransactionSplit`.
 - `MAX(SPLITTRANSID)` is the key the preceding insert received, for the reason recorded in `domain-write-fixes` D1: no `AUTOINCREMENT`, one transaction, nothing else writes between the two statements.
-- The three places that delete series split rows without cleaning their links — series removal, `removeMany`, and account removal — add `extensionCleanupStatements(REFTYPE.recurringTransactionSplit, ids)` from the split ids read before the batch (C4). The ledger's hard delete already does this for `TransactionSplit`.
+- The three places that delete series split rows without cleaning their links — series removal, `removeMany`, and account removal — add a `TAGLINK_V1` delete for `RecurringTransactionSplit` whose ids come from a subquery on `BUDGETSPLITTRANSACTIONS_V1` inside the batch, so the synchronous builders (`removeStatements`, which `advanceStatements` calls) stay synchronous (C4; revised 2026-10-02 from "read before the batch"). Splits carry only tag links in desktop, so no attachment or custom-field cleanup is emitted for them. The ledger's hard delete already does this for `TransactionSplit`.
 
 *Alternatives rejected*: preserving split row ids with a diff-based update — desktop does not, and the editor would have to carry ids; attaching tags in a second batch after reading the new ids — a failure between the batches would leave untagged rows.
 
@@ -203,7 +203,7 @@ The SQLite WebAssembly build cannot be initialized under Node (`domain-write-fix
 
 | # | Risk | Likelihood | Impact | Mitigation |
 |---|------|------------|--------|------------|
-| R1 | A `regex:` pattern valid under wx extended syntax is refused by JavaScript, or the reverse | Medium | Low | Validation only, never execution; the pattern is still stored verbatim when valid; recorded in the spec and here; a desktop user who hits it can edit the pattern in desktop |
+| R1 | A `regex:` pattern valid under wx extended syntax is refused by JavaScript, or the reverse | Medium | Low | Validation only, never execution; the pattern is still stored verbatim when valid; recorded in the spec and here, with the known cases listed in [taxonomy-rules.spec.ts](../../../src/__tests__/domain/taxonomy-rules.spec.ts) (`refuses a regex: pattern that does not compile`: a lookbehind and `\\d` are accepted here and refused by POSIX extended syntax); a desktop user who hits it can edit the pattern in desktop |
 | R2 | `\w` in the website pattern is ASCII-only in JavaScript; an internationalized host desktop accepts is refused | Low | Low | Recorded; the surface shows the field; the value can be stored through desktop |
 | R3 | `MAX(SPLITTRANSID)` is not the just-inserted key | Negligible | High | Same conditions as `domain-write-fixes` D1: no `AUTOINCREMENT`, one transaction per batch, nothing writes in between; the tests assert the key expression follows each insert |
 | R4 | Collapsed-link count computed before the batch differs from what `UPDATE OR IGNORE` collapses | Negligible | Low | One worker, one transaction; the count query and the batch see the same rows |

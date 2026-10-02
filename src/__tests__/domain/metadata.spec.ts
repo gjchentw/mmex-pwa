@@ -17,7 +17,9 @@ import { currencyRepo } from '../../domain/repos/currency'
 import { fileFacts } from '../../domain/repos/metadata'
 import {
   DATE_FORMAT_MASKS,
+  INFO_KEY,
   RETENTION_DAYS_MAX,
+  SETTING_KEY,
   isDateFormatMask,
   isLocaleWrittenByThisApplication,
   languageToLocale,
@@ -41,6 +43,20 @@ describe('key placement', () => {
   // Manager's "Show all" box in the file.
   it('places SHOW_HIDDEN_CURRENCIES in the info table', () => {
     expect(storeForKey('SHOW_HIDDEN_CURRENCIES')).toBe('infotable')
+  })
+
+  // transaction-taxonomy (delta: desktop fidelity), Show-Hidden Preferences and
+  // the default-category mode are preferences (categdialog.cpp 133, option.cpp
+  // 511); the category delimiter describes the file (Model_Category.cpp 145).
+  it('places the taxonomy keys where desktop keeps them', () => {
+    expect(SETTING_KEY.showHiddenCategories).toBe('SHOW_HIDDEN_CATEGS')
+    expect(SETTING_KEY.showHiddenPayees).toBe('SHOW_HIDDEN_PAYEES')
+    expect(SETTING_KEY.transactionCategoryNone).toBe('TRANSACTION_CATEGORY_NONE')
+    expect(INFO_KEY.categoryDelimiter).toBe('CATEG_DELIMITER')
+    expect(storeForKey('SHOW_HIDDEN_CATEGS')).toBe('setting')
+    expect(storeForKey('SHOW_HIDDEN_PAYEES')).toBe('setting')
+    expect(storeForKey('TRANSACTION_CATEGORY_NONE')).toBe('setting')
+    expect(storeForKey('CATEG_DELIMITER')).toBe('infotable')
   })
 })
 
@@ -131,6 +147,7 @@ describe('retention entry', () => {
 /** A fake file for the repository-level rules below. */
 const makeFakeDb = () => {
   const info = new Map<string, string>()
+  const setting = new Map<string, string>()
   const batches: SqlStatement[][] = []
   const db: DomainDb = {
     async query<T>(sql: string, bind?: unknown[]): Promise<T[]> {
@@ -138,13 +155,17 @@ const makeFakeDb = () => {
         const value = info.get(String(bind?.[0]))
         return (value === undefined ? [] : [{ INFOVALUE: value }]) as T[]
       }
+      if (sql.includes('FROM SETTING_V1') && sql.includes('WHERE SETTINGNAME')) {
+        const value = setting.get(String(bind?.[0]))
+        return (value === undefined ? [] : [{ SETTINGVALUE: value }]) as T[]
+      }
       return [] as T[]
     },
     async mutate(statements: SqlStatement[]): Promise<void> {
       batches.push(statements)
     },
   }
-  return { db, info, batches }
+  return { db, info, setting, batches }
 }
 
 let fake: ReturnType<typeof makeFakeDb>
@@ -166,6 +187,36 @@ describe('rate history default', () => {
   it('reads a stored 0 as off', async () => {
     fake.info.set('USECURRENCYHISTORY', '0')
     expect(await fileFacts.useCurrencyHistory()).toBe(false)
+  })
+})
+
+// transaction-taxonomy (delta: desktop fidelity): Show-Hidden Preferences,
+// scenario "Absent preference shows hidden entries"; Payee Records, scenario
+// "Mode is read with desktop's default"; Category Tree Structure, scenario
+// "Path uses the file's delimiter".
+describe('taxonomy file facts', () => {
+  it('reads absent keys with desktop defaults', async () => {
+    expect(await fileFacts.showHiddenCategories()).toBe(true)
+    expect(await fileFacts.showHiddenPayees()).toBe(true)
+    expect(await fileFacts.defaultCategoryMode()).toBe('lastUsed')
+    expect(await fileFacts.categoryDelimiter()).toBe(':')
+  })
+
+  // Model_Setting::getBool reads exactly TRUE or FALSE and falls back otherwise.
+  it('reads stored preferences as desktop reads them', async () => {
+    fake.setting.set('SHOW_HIDDEN_CATEGS', 'FALSE')
+    fake.setting.set('SHOW_HIDDEN_PAYEES', 'TRUE')
+    expect(await fileFacts.showHiddenCategories()).toBe(false)
+    expect(await fileFacts.showHiddenPayees()).toBe(true)
+    fake.setting.set('SHOW_HIDDEN_PAYEES', '1')
+    expect(await fileFacts.showHiddenPayees()).toBe(true)
+  })
+
+  it('reads the mode and the delimiter as stored', async () => {
+    fake.setting.set('TRANSACTION_CATEGORY_NONE', '2')
+    fake.info.set('CATEG_DELIMITER', ' / ')
+    expect(await fileFacts.defaultCategoryMode()).toBe('unused')
+    expect(await fileFacts.categoryDelimiter()).toBe(' / ')
   })
 })
 

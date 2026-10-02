@@ -21,6 +21,8 @@ export const INFO_KEY = {
   locale: 'LOCALE',
   /** The Currency Manager's "Show all" box, which desktop persists in the file. */
   showHiddenCurrencies: 'SHOW_HIDDEN_CURRENCIES',
+  /** The separator desktop joins category paths with (Model_Category.cpp full_name). */
+  categoryDelimiter: 'CATEG_DELIMITER',
 } as const
 
 /** Well-known SETTING_V1 keys this build understands. Unknown keys are preserved. */
@@ -30,6 +32,12 @@ export const SETTING_KEY = {
   budgetOverride: 'BUDGET_OVERRIDE',
   /** The UI language, as desktop stores it (constants.cpp LANGUAGE_PARAMETER). */
   language: 'LANGUAGE',
+  /** The Category Manager's "Show all" box (categdialog.cpp). */
+  showHiddenCategories: 'SHOW_HIDDEN_CATEGS',
+  /** The Payee Manager's "Show all" box (payeedialog.cpp). */
+  showHiddenPayees: 'SHOW_HIDDEN_PAYEES',
+  /** Desktop's default-category mode for payees (option.cpp USAGE_TYPE). */
+  transactionCategoryNone: 'TRANSACTION_CATEGORY_NONE',
 } as const
 
 /** Upstream defaults for the keys whose absence has a defined meaning. */
@@ -39,6 +47,13 @@ export const DEFAULTS = {
   useCurrencyHistory: true,
   /** Desktop shows every currency unless the box was unticked (maincurrencydialog.cpp). */
   showHiddenCurrencies: true,
+  /** Desktop shows hidden categories and payees unless the box was unticked. */
+  showHiddenCategories: true,
+  showHiddenPayees: true,
+  /** option.cpp getInt("TRANSACTION_CATEGORY_NONE", Option::LASTUSED). */
+  defaultCategoryMode: 'lastUsed',
+  /** Model_Category.cpp getString("CATEG_DELIMITER", ":"). */
+  categoryDelimiter: ':',
   deletedTransactionRetainDays: 30,
   sharePrecision: 4,
   assetCompounding: 'Day',
@@ -68,6 +83,17 @@ export const parseIntegerValue = (value: string | null | undefined, fallback: nu
 
 /** Booleans persist as `1`/`0`, which desktop reads from INFOTABLE_V1 alongside TRUE/FALSE. */
 export const encodeBooleanValue = (value: boolean): string => (value ? '1' : '0')
+
+/**
+ * SETTING_V1 booleans are stricter: Model_Setting::getBool reads exactly `TRUE`
+ * or `FALSE` and falls back for anything else, and setBool writes those words.
+ */
+export const parseSettingBoolean = (
+  value: string | null | undefined,
+  fallback: boolean,
+): boolean => (value === 'TRUE' ? true : value === 'FALSE' ? false : fallback)
+
+export const encodeSettingBoolean = (value: boolean): string => (value ? 'TRUE' : 'FALSE')
 
 /**
  * Trash retention in days. `0` means delete immediately without trash
