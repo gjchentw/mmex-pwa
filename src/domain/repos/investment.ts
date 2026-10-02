@@ -121,7 +121,8 @@ export const stockRepo = {
         {
           ACCOUNTID: input.accountId,
           TOACCOUNTID: null,
-          PAYEEID: input.payeeId ?? null,
+          // PAYEEID is NOT NULL; desktop writes -1 for a trade with no payee.
+          PAYEEID: input.payeeId ?? -1,
           TRANSCODE: isBuy ? 'Withdrawal' : 'Deposit',
           TRANSAMOUNT: amount,
           STATUS: '',

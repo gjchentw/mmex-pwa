@@ -96,11 +96,16 @@ export const scheduledRepo = {
       COLOR: series.COLOR,
     }
 
+    // The batch runs in one transaction, and SQLite assigns a new INTEGER
+    // PRIMARY KEY as one more than the largest key present, so MAX(TRANSID) is
+    // the key the transaction insert just received for every split that
+    // follows. last_insert_rowid() would be the previous split's own key after
+    // the first one (openspec: Series Advancement on Execute or Skip).
     const statements: SqlStatement[] = [ledgerRepo.addStatement(transaction, { now })]
     for (const split of splits) {
       statements.push({
         sql: `INSERT INTO SPLITTRANSACTIONS_V1 (TRANSID, CATEGID, SPLITTRANSAMOUNT, NOTES)
-              VALUES (last_insert_rowid(), ?, ?, ?)`,
+              VALUES ((SELECT MAX(TRANSID) FROM CHECKINGACCOUNT_V1), ?, ?, ?)`,
         bind: [split.CATEGID, split.SPLITTRANSAMOUNT, split.NOTES],
       })
     }
