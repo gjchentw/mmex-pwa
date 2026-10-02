@@ -1,6 +1,6 @@
 # Domain Capability Map
 
-**Version**: 1.4.1
+**Version**: 1.5.0
 **Last Updated**: 2026-10-02
 
 The living roadmap for the MoneyManagerEx PWA remake's domain capabilities. Established by change `domain-model-baseline`; future implementation changes cite this map and update the status column as they land. Governed by [AGENTS.md](../../AGENTS.md).
@@ -14,7 +14,7 @@ The living roadmap for the MoneyManagerEx PWA remake's domain capabilities. Esta
 | `domain-data-conventions` | (cross-cutting, no tables) | Baseline established |
 | `file-metadata-and-settings` | `INFOTABLE_V1`, `SETTING_V1`, `REPORT_V1` (custody), `USAGE_V1` (custody) | Phase 1 delivered |
 | `currency-management` | `CURRENCYFORMATS_V1`, `CURRENCYHISTORY_V1` | Phase 2 delivered |
-| `account-management` | `ACCOUNTLIST_V1` | Baseline established |
+| `account-management` | `ACCOUNTLIST_V1` | Phase 3 delivered |
 | `transaction-taxonomy` | `CATEGORY_V1`, `PAYEE_V1`, `TAG_V1`, `TAGLINK_V1` | Baseline established |
 | `transaction-ledger` | `CHECKINGACCOUNT_V1`, `SPLITTRANSACTIONS_V1` | Baseline established |
 | `scheduled-transactions` | `BILLSDEPOSITS_V1`, `BUDGETSPLITTRANSACTIONS_V1` | Baseline established |
@@ -68,7 +68,7 @@ flowchart TD
 | 0 | Application shell, home route, navigation governance — **delivered 2026-08-09** | `app-shell-navigation` |
 | 1 | File metadata and settings surfaces — **delivered 2026-08-09** | `file-metadata-and-settings` |
 | 2 | Currency management — **delivered 2026-08-09** | `currency-management` |
-| 3 | Accounts | `account-management` |
+| 3 | Accounts — **delivered 2026-10-02** | `account-management` |
 | 4 | Categories, payees, tags | `transaction-taxonomy` |
 | 5 | Transaction register | `transaction-ledger` |
 | 6 | Scheduled transactions | `scheduled-transactions` |

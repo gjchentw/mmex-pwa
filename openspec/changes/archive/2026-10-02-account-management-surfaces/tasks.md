@@ -135,8 +135,8 @@ Each item names the risk from design.md it covers.
 
 ## 14. Capability map update
 
-- [ ] 14.1 At archive, mark `account-management` as Phase 3 delivered in [domain-capability-map.md](../../designs/domain-capability-map.md), with the archive date (reworded 2026-10-02, F29)
-- [ ] 14.2 At archive, mark Phase 3 delivered in the phase table, with the same date (reworded 2026-10-02, F29)
+- [x] 14.1 At archive, mark `account-management` as Phase 3 delivered in [domain-capability-map.md](../../designs/domain-capability-map.md), with the archive date (reworded 2026-10-02, F29)
+- [x] 14.2 At archive, mark Phase 3 delivered in the phase table, with the same date (reworded 2026-10-02, F29)
 
 ## Findings
 
@@ -330,4 +330,4 @@ operator review (15.1), then 14.1, 14.2 and 15.2 at archive.
 ## 15. Review Gate
 
 - [x] 15.1 Operator review and approval (2026-10-02)
-- [ ] 15.2 Archive the change: promote `account-management` with the delta requirements, raise the main spec to 1.1.0, and confirm the delta's links resolve from `openspec/specs/account-management/spec.md`
+- [x] 15.2 Archive the change: promote `account-management` with the delta requirements, raise the main spec to 1.1.0, and confirm the delta's links resolve from `openspec/specs/account-management/spec.md`
