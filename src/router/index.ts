@@ -47,6 +47,35 @@ const routes: RouteRecordRaw[] = [
       capability: 'currency-management',
     },
   },
+  // The three taxonomy managers (openspec: transaction-taxonomy, Taxonomy
+  // Surface Routes). Desktop reaches them from the Tools menu.
+  {
+    path: '/categories',
+    name: 'categories',
+    component: () => import('../pages/CategoriesPage.vue'),
+    meta: {
+      nav: { labelKey: 'menu.categories', icon: 'mdi-file-tree', order: 40 },
+      capability: 'transaction-taxonomy',
+    },
+  },
+  {
+    path: '/payees',
+    name: 'payees',
+    component: () => import('../pages/PayeesPage.vue'),
+    meta: {
+      nav: { labelKey: 'menu.payees', icon: 'mdi-account-group-outline', order: 50 },
+      capability: 'transaction-taxonomy',
+    },
+  },
+  {
+    path: '/tags',
+    name: 'tags',
+    component: () => import('../pages/TagsPage.vue'),
+    meta: {
+      nav: { labelKey: 'menu.tags', icon: 'mdi-tag-multiple-outline', order: 60 },
+      capability: 'transaction-taxonomy',
+    },
+  },
   {
     path: '/settings',
     name: 'settings',
@@ -80,6 +109,14 @@ const routes: RouteRecordRaw[] = [
           name: 'coep-probe',
           component: () => import('../pages/CoepProbePage.vue'),
           meta: { public: true, capability: 'cloud-file-sync' },
+        } satisfies RouteRecordRaw,
+        // Dev-only seed and query seam for end-to-end tests
+        // (transaction-taxonomy-surfaces, design D10). Guarded: it reads the file.
+        {
+          path: '/dev-seed',
+          name: 'dev-seed',
+          component: () => import('../pages/DevSeedPage.vue'),
+          meta: { capability: 'infrastructure-baseline' },
         } satisfies RouteRecordRaw,
       ]
     : []),

@@ -1,8 +1,8 @@
 # Transaction Taxonomy Surfaces — Design
 
 **Change**: `transaction-taxonomy-surfaces`
-**Version**: 1.0.0
-**Last Updated**: 2026-10-02
+**Version**: 1.1.0
+**Last Updated**: 2026-10-03
 
 Related artifacts: [proposal.md](./proposal.md), [specs/transaction-taxonomy/spec.md](./specs/transaction-taxonomy/spec.md), [tasks.md](./tasks.md). Governed by [AGENTS.md](../../../AGENTS.md).
 
@@ -58,6 +58,8 @@ Nodes are built from `categoryRepo.all()` with `categoryFullName(id, categories,
 
 *Alternative rejected*: three inline dialogs as the earlier surfaces wrote them; the purge sentence, the consequence list and the multi-selection naming would be written three times.
 
+Revised 2026-10-03: the single-field name prompt (Add/Edit Category, Add/Edit Tag) is also shared, as `NamePromptCard.vue` with a `prefix` that names the test ids per kind, although it has two uses rather than three — the two cards would have differed only in those ids. Each kind keeps its own thin dialog (`category/CategoryNameDialog.vue`, `tag/TagNameDialog.vue`).
+
 ### D6: One mapping from typed refusals to catalog keys
 
 `src/components/taxonomy/taxonomy-messages.ts` exports `describeTaxonomyError(err, t): string | null`: `TaxonomyNameError` → `taxonomy.name.<reason>` with the kind's label; `TaxonomyInUseError` → `taxonomy.inUse.<kind>` with the counts (`transactions`, `splits`, `series`, `seriesSplits`) and, for categories, the merge tip; `TaxonomyMergeError` → `taxonomy.merge.<reason>`; `PayeeValidationError` → `payee.invalid.<field>` with the line number for a pattern. Pages call it from their `describe(err)` and fall back to the generic write-failed banner. The strings are desktop's, translated in both catalogs.
@@ -70,7 +72,7 @@ Nodes are built from `categoryRepo.all()` with `categoryFullName(id, categories,
 
 ### D8: The payee list is a table on wide screens and cards on narrow ones; the tag list is a check list
 
-The payee manager uses `q-table` with desktop's eight columns, `selection="multiple"`, and `grid` mode under `$q.screen.lt.md`, where each card carries the same fields — the responsive-hybrid stance of 2026-08-08 applied to a list for the first time, justified by eight columns and a multi-selection (decision 24). The selection actions sit in a toolbar above the table and are disabled without a selection. The tag manager is a `q-list` with a checkbox per row, the name, and the count; Edit and Merge require exactly one checked tag. The category manager needs no table.
+The payee manager uses `q-table` with desktop's eight columns, `selection="multiple"`, and `grid` mode under `$q.screen.lt.md`, where each card carries the same fields — the responsive-hybrid stance of 2026-08-08 applied to a list for the first time, justified by eight columns and a multi-selection (decision 24). The selection actions sit in a toolbar above the table and are disabled without a selection. A selection action, and a confirmed deletion, clear the selection they acted on, so the next gesture starts from none (added 2026-10-03 after the end-to-end flow showed a re-click deselecting what an earlier step had left selected). The category tree is `no-selection-unset`: clicking the selected node keeps it selected, as desktop's tree does. The tag manager is a `q-list` with a checkbox per row, the name, and the count; Edit and Merge require exactly one checked tag. The category manager needs no table.
 
 *Alternative rejected*: a `q-list` for payees as the other surfaces use, which cannot carry eight columns or a multi-selection legibly.
 
@@ -82,7 +84,7 @@ The payee manager uses `q-table` with desktop's eight columns, `selection="multi
 
 ### D10: End-to-end seeding and observation through a development-only route
 
-No surface can create transactions, split lines, tag links or budget rows yet, and the Chromium checks need them. A development-only page at `/dev-seed` (`DevSeedPage.vue`, `capability: 'infrastructure-baseline'`, non-public) offers a statements box that runs through `db.mutate` and a query box that shows `db.query` results as JSON. It is added inside the existing `import.meta.env.DEV` spread in the route table, which keeps it out of production bundles entirely — the `/coep-probe` precedent, and what `app-shell-navigation` requires of development routes. End-to-end specs seed by pasting SQL, drive the managers through the UI, then read rows back (`LASTUPDATEDTIME`, `TAGLINK_V1`, `BUDGETTABLE_V1`, purged `TRANSID`s) through the query box. The page is not a user-facing destination and has no navigation entry.
+No surface can create transactions, split lines, tag links or budget rows yet, and the Chromium checks need them. A development-only page at `/dev-seed` (`DevSeedPage.vue`, `capability: 'infrastructure-baseline'`, non-public) offers a statements box that runs through `db.mutate` and a query box that shows `db.query` results as JSON. It is added inside the existing `import.meta.env.DEV` spread in the route table, which keeps it out of production bundles entirely — the `/coep-probe` precedent, and what `app-shell-navigation` requires of development routes. End-to-end specs seed by pasting SQL, drive the managers through the UI, then read rows back (`LASTUPDATEDTIME`, `TAGLINK_V1`, `BUDGETTABLE_V1`, purged `TRANSID`s) through the query box. The page is not a user-facing destination and has no navigation entry. Consequence found on 2026-10-03: the Playwright configuration runs the production preview under CI, which has no seam, so the three taxonomy specs are listed in `testIgnore` under CI (with the reason in the configuration) and run against the dev server, which is the default locally; the three existing specs are unaffected.
 
 ```mermaid
 sequenceDiagram
@@ -118,14 +120,14 @@ Unit: router cases; catalog parity; `taxonomy-messages` mapping every reason; `T
 
 | # | Risk | Likelihood | Impact | Mitigation |
 |---|------|------------|--------|------------|
-| R1 | `q-tree` filtering does not keep ancestors visible as assumed | Low | Medium | Component test for the "Search matches the full path" scenario before the page is built; fall back to a custom filtered node set |
+| R1 | `q-tree` filtering does not keep ancestors visible as assumed | Did not materialize | Medium | The page test and the Chromium spec show `Snacks` under `Food` with `Bills` absent for `snack` |
 | R2 | `q-table` grid mode on a phone is hard to read with eight fields | Medium | Low | Card template shows name, category, Used first and folds the rest; checked in Chromium at phone width |
-| R3 | The development route leaks into a production bundle | Low | High | Same `import.meta.env.DEV` spread as `/coep-probe`; task verifies `dist/` contains no `DevSeedPage` chunk after `npm run build` |
+| R3 | The development route leaks into a production bundle | Low | High | Same `import.meta.env.DEV` spread as `/coep-probe`; verified 2026-10-03: `dist/` carries no `DevSeedPage` chunk and no `dev-seed` string. The seam's absence from the preview also means the taxonomy specs cannot run under CI's preview build; they are ignored there by configuration, see D10 |
 | R4 | Bulk count queries are slow on a large file | Low | Low | One `GROUP BY` pass per table, run once per load |
 | R5 | Traditional Chinese wording of desktop's messages drifts from desktop's own `zh_TW.po` | Medium | Low | Translations taken from `mmex/moneymanagerex/po/zh_TW.po` where the string exists; the operator reviews the rest |
 | R6 | A partly refused bulk deletion confuses the user | Medium | Low | The result names every kept entity with its reason, as desktop's per-item messages do |
-| R7 | WebKit cannot run the end-to-end specs (F31) | Certain on this machine | Low | Chromium only, recorded as before |
-| R8 | OPFS state bleeds between end-to-end specs | Medium | Medium | Each spec seeds distinct names and cleans up what it created; the existing specs already tolerate a pre-existing database |
+| R7 | WebKit cannot run the end-to-end specs (F31) | Certain on this machine | Low | Chromium only; WebKit was not run on 2026-10-03, recorded in tasks 7.5 |
+| R8 | OPFS state bleeds between end-to-end specs | Did not materialize | Medium | Playwright gives each test its own browser context and therefore its own OPFS; every spec creates the file through the wizard and seeds `E2E`-prefixed names |
 
 ## Migration Plan
 

@@ -58,6 +58,32 @@ describe('route table', () => {
     expect(resolved.meta.public).toBeFalsy()
   })
 
+  // transaction-taxonomy-surfaces design D10: the development seed seam exists
+  // only under DEV (vitest runs with DEV true), is guarded, and has no navigation
+  // entry. app-shell-navigation keeps development routes out of production.
+  it('serves the development seed route only as a guarded, unlisted route', () => {
+    const resolved = router.resolve('/dev-seed')
+    expect(resolved.name).toBe('dev-seed')
+    expect(resolved.meta.capability).toBe('infrastructure-baseline')
+    expect(resolved.meta.public).toBeFalsy()
+    expect(resolved.meta.nav).toBeUndefined()
+    expect(navigationEntries().some((entry) => entry.path === '/dev-seed')).toBe(false)
+  })
+
+  // Spec: transaction-taxonomy, requirement "Taxonomy Surface Routes",
+  // scenario "The managers are reachable".
+  it.each([
+    ['/categories', 'categories'],
+    ['/payees', 'payees'],
+    ['/tags', 'tags'],
+  ])('serves %s and declares its owning capability', (path, name) => {
+    const resolved = router.resolve(path)
+    expect(resolved.name).toBe(name)
+    expect(resolved.meta.capability).toBe('transaction-taxonomy')
+    // Every manager reads the file, so the routes stay behind the readiness guard.
+    expect(resolved.meta.public).toBeFalsy()
+  })
+
   // Requirement "Unmatched Route Handling", scenario "An unknown path is
   // explained".
   it('resolves an unknown path to the not-found route', () => {
@@ -115,6 +141,18 @@ describe('route table', () => {
       const entry = navigationEntries().find((item) => item.path === '/accounts')
       expect(entry).toBeDefined()
       expect(entry?.labelKey).toBe('menu.accounts')
+    })
+
+    // Spec: transaction-taxonomy, requirement "Taxonomy Surface Routes",
+    // scenario "The managers appear in navigation".
+    it.each([
+      ['/categories', 'menu.categories'],
+      ['/payees', 'menu.payees'],
+      ['/tags', 'menu.tags'],
+    ])('offers the %s destination', (path, labelKey) => {
+      const entry = navigationEntries().find((item) => item.path === path)
+      expect(entry).toBeDefined()
+      expect(entry?.labelKey).toBe(labelKey)
     })
 
     // The retired /about link pointed at a path nothing served.

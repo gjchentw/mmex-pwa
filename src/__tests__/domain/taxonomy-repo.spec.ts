@@ -91,6 +91,8 @@ const fixture = {
   trashed: [] as number[],
   splitIds: [] as number[],
   collapsed: 0,
+  /** Rows of a bulk usage query: [id, count]. */
+  bulk: [] as Array<[number, number]>,
 }
 
 const batches: SqlStatement[][] = []
@@ -117,6 +119,7 @@ const fakeDb: DomainDb = {
       return fixture.trashed.map((id) => ({ trashedTransactionId: id })) as T[]
     }
     if (flat.includes('AS collapsed')) return [{ collapsed: fixture.collapsed }] as T[]
+    if (flat.includes('GROUP BY id')) return fixture.bulk.map(([id, n]) => ({ id, n })) as T[]
     if (flat.includes('AS links')) {
       return [{ links: fixture.counts[firstNumber(bind)]?.links ?? 0 }] as T[]
     }
@@ -145,6 +148,7 @@ beforeEach(() => {
   fixture.trashed = []
   fixture.splitIds = []
   fixture.collapsed = 0
+  fixture.bulk = []
   batches.length = 0
   timeline.length = 0
   setDomainDb(fakeDb)
@@ -587,5 +591,64 @@ describe('tag names and visibility', () => {
     const renamed = await tagRepo.renameStatement(3, 'old')
     expect(flatSql(renamed)).toBe('UPDATE TAG_V1 SET TAGNAME = ?, ACTIVE = ? WHERE TAGID = ?')
     expect(renamed.bind).toEqual(['old', 1, 3])
+  })
+})
+
+// Spec: Payee Manager Display ("Used … read in one query for the whole list"),
+// Tag Manager Display, Merge Screens (source = used only); design D9 of
+// transaction-taxonomy-surfaces.
+describe('bulk usage counts', () => {
+  it('reads every payee live use in one grouped query', async () => {
+    fixture.bulk = [
+      [1, 3],
+      [3, 1],
+    ]
+
+    const counts = await payeeRepo.usageCounts()
+
+    expect(counts).toEqual(
+      new Map([
+        [1, 3],
+        [3, 1],
+      ]),
+    )
+    const sql = timeline.find((q) => q.includes('GROUP BY id'))!
+    expect(timeline.filter((q) => q.includes('GROUP BY id'))).toHaveLength(1)
+    expect(sql).toContain('FROM CHECKINGACCOUNT_V1')
+    expect(sql).toContain(LIVE)
+    expect(sql).toContain('FROM BILLSDEPOSITS_V1')
+  })
+
+  it('reads every category direct live use in one grouped query', async () => {
+    fixture.bulk = [[2, 4]]
+
+    const counts = await categoryRepo.usageCounts()
+
+    expect(counts.get(2)).toBe(4)
+    const sql = timeline.find((q) => q.includes('GROUP BY id'))!
+    for (const table of [
+      'CHECKINGACCOUNT_V1',
+      'SPLITTRANSACTIONS_V1',
+      'BILLSDEPOSITS_V1',
+      'BUDGETSPLITTRANSACTIONS_V1',
+    ]) {
+      expect(sql).toContain(`FROM ${table}`)
+    }
+    expect(sql).not.toContain('BUDGETTABLE_V1')
+    expect(sql).not.toContain('FROM PAYEE_V1')
+  })
+
+  it('reads every tag live use through the four reference types in one grouped query', async () => {
+    fixture.bulk = [[1, 2]]
+
+    const counts = await tagRepo.usageCounts()
+
+    expect(counts.get(1)).toBe(2)
+    const sql = timeline.find((q) => q.includes('GROUP BY id'))!
+    expect(sql).toContain('JOIN CHECKINGACCOUNT_V1 t ON t.TRANSID = l.REFID')
+    expect(sql).toContain('JOIN SPLITTRANSACTIONS_V1 s ON s.SPLITTRANSID = l.REFID')
+    expect(sql).toContain('JOIN BILLSDEPOSITS_V1 b ON b.BDID = l.REFID')
+    expect(sql).toContain('JOIN BUDGETSPLITTRANSACTIONS_V1 s ON s.SPLITTRANSID = l.REFID')
+    expect(sql).toContain("COALESCE(t.DELETEDTIME, '') = ''")
   })
 })

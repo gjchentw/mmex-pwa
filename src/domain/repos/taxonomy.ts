@@ -257,6 +257,12 @@ const removeEach = async (
   return result
 }
 
+/** `SELECT id, n` rows of a grouped usage query, as a map. */
+const groupedCounts = async (sql: string, bind: unknown[] = []): Promise<Map<number, number>> => {
+  const rows = await db.query<{ id: number; n: number }>(sql, bind)
+  return new Map(rows.map((row) => [row.id, row.n]))
+}
+
 export const categoryRepo = {
   async all(): Promise<CategoryRecord[]> {
     return db.query<CategoryRecord>('SELECT * FROM CATEGORY_V1 ORDER BY CATEGNAME')
@@ -316,6 +322,21 @@ export const categoryRepo = {
         bind: [hidden ? 0 : 1, ...ids],
       },
     ]
+  },
+
+  /**
+   * Direct live use of every category in one query — what the merge screen's
+   * "used only" source list needs (openspec: Merge Screens). Deletion and the
+   * merge counts still go through `usage(id)`, which folds in descendants.
+   */
+  async usageCounts(): Promise<Map<number, number>> {
+    return groupedCounts(`SELECT id, SUM(n) AS n FROM (
+        SELECT CATEGID AS id, COUNT(*) AS n FROM CHECKINGACCOUNT_V1 WHERE ${LIVE} GROUP BY CATEGID
+        UNION ALL SELECT s.CATEGID AS id, COUNT(*) AS n FROM SPLITTRANSACTIONS_V1 s
+          JOIN CHECKINGACCOUNT_V1 t ON t.TRANSID = s.TRANSID WHERE ${live('t.')} GROUP BY s.CATEGID
+        UNION ALL SELECT CATEGID AS id, COUNT(*) AS n FROM BILLSDEPOSITS_V1 GROUP BY CATEGID
+        UNION ALL SELECT CATEGID AS id, COUNT(*) AS n FROM BUDGETSPLITTRANSACTIONS_V1 GROUP BY CATEGID
+      ) GROUP BY id`)
   },
 
   /**
@@ -516,6 +537,17 @@ export const payeeRepo = {
     ]
   },
 
+  /**
+   * The Payee Manager's "Used" column in one query: live transactions plus
+   * scheduled series per payee (payeedialog.cpp, the m_payeeUsage pass).
+   */
+  async usageCounts(): Promise<Map<number, number>> {
+    return groupedCounts(`SELECT id, SUM(n) AS n FROM (
+        SELECT PAYEEID AS id, COUNT(*) AS n FROM CHECKINGACCOUNT_V1 WHERE ${LIVE} GROUP BY PAYEEID
+        UNION ALL SELECT PAYEEID AS id, COUNT(*) AS n FROM BILLSDEPOSITS_V1 GROUP BY PAYEEID
+      ) GROUP BY id`)
+  },
+
   /** Desktop's is_used: live transactions and any scheduled series. */
   async usage(payeeId: number): Promise<TaxonomyUsage> {
     const [counts, trashed] = await Promise.all([
@@ -653,6 +685,28 @@ export const tagRepo = {
       sql: 'DELETE FROM TAGLINK_V1 WHERE REFTYPE = ? AND REFID = ? AND TAGID = ?',
       bind: [refType, refId, tagId],
     }
+  },
+
+  /**
+   * Live use of every tag in one query, each reference type resolved through
+   * its own table so links to missing records count for nothing (openspec:
+   * Tag Manager Display).
+   */
+  async usageCounts(): Promise<Map<number, number>> {
+    const [transaction, split, series, seriesSplit] = TAGGABLE
+    return groupedCounts(
+      `SELECT id, SUM(n) AS n FROM (
+        SELECT l.TAGID AS id, COUNT(*) AS n FROM TAGLINK_V1 l JOIN CHECKINGACCOUNT_V1 t ON t.TRANSID = l.REFID
+          WHERE l.REFTYPE = ? AND ${live('t.')} GROUP BY l.TAGID
+        UNION ALL SELECT l.TAGID AS id, COUNT(*) AS n FROM TAGLINK_V1 l JOIN SPLITTRANSACTIONS_V1 s ON s.SPLITTRANSID = l.REFID
+          JOIN CHECKINGACCOUNT_V1 t ON t.TRANSID = s.TRANSID WHERE l.REFTYPE = ? AND ${live('t.')} GROUP BY l.TAGID
+        UNION ALL SELECT l.TAGID AS id, COUNT(*) AS n FROM TAGLINK_V1 l JOIN BILLSDEPOSITS_V1 b ON b.BDID = l.REFID
+          WHERE l.REFTYPE = ? GROUP BY l.TAGID
+        UNION ALL SELECT l.TAGID AS id, COUNT(*) AS n FROM TAGLINK_V1 l JOIN BUDGETSPLITTRANSACTIONS_V1 s ON s.SPLITTRANSID = l.REFID
+          WHERE l.REFTYPE = ? GROUP BY l.TAGID
+      ) GROUP BY id`,
+      [transaction, split, series, seriesSplit],
+    )
   },
 
   /**
