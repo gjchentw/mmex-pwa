@@ -25,7 +25,10 @@
     "continue": "繼續",
     "retry": "重試",
     "save": "儲存",
-    "delete": "刪除"
+    "delete": "刪除",
+    "edit": "編輯",
+    "notSet": "未設定",
+    "close": "關閉"
   },
   "database": {
     "pickFromDrive": "從 Google 雲端硬碟選擇資料庫",
@@ -190,6 +193,32 @@
     "deleteWillRemoveScheduled": "此帳戶的所有排程交易將被刪除",
     "deleteWillRemoveStockPositions": "此帳戶中持有的所有股票部位將被刪除",
     "deleteCannotBeUndone": "此操作無法復原",
-    "notSet": "未設定"
+    "nameRequired": "帳戶名稱為必填",
+    "nameNotUnique": "已有其他帳戶使用這個名稱",
+    "currencyRequired": "幣別為必填",
+    "currencyInvalid": "請選擇此檔案已定義的幣別",
+    "initialBalanceRequired": "初始餘額為必填",
+    "initialDateRequired": "初始日期為必填",
+    "statementDateRequired": "結單鎖定時必須指定結單日期",
+    "types": {
+      "cash": "現金",
+      "checking": "支票/存款/信用卡",
+      "creditCard": "信用卡",
+      "loan": "貸款",
+      "term": "定期戶口",
+      "investment": "投資",
+      "asset": "資產",
+      "shares": "股票"
+    },
+    "typeFixed": "股票帳戶不能變更類型",
+    "otherInfo": "其他資訊",
+    "heldAt": "金融機構名稱",
+    "website": "網站",
+    "contactInfo": "聯絡人",
+    "accessInfo": "登入資訊",
+    "openingDateFuture": "開戶日期不能是未來的日期",
+    "openingDateBeforeTransactions": "於此日期之前已存在此帳戶的交易記錄",
+    "openingDateBeforeStockPurchases": "於此日期之前已存在此帳戶的證券購買記錄",
+    "openingDateBeforeScheduled": "該帳戶的排程交易紀錄在此日期之前已有安排"
   }
 }

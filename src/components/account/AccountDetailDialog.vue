@@ -2,16 +2,15 @@
   <q-dialog v-model="visible" :maximized="$q.screen.lt.sm" persistent>
     <q-card style="width: 100%; max-width: 600px" data-testid="account-detail">
       <q-card-section class="row items-center">
-        <div class="text-h6">
+        <div class="text-h6" data-testid="account-detail-name">
           {{ account?.ACCOUNTNAME ?? $t('account.detailTitle') }}
         </div>
         <q-space />
         <q-btn
           dense
           flat
-          round
           icon="mdi-pencil"
-          :label="$t('account.edit')"
+          :label="$t('common.edit')"
           data-testid="account-detail-edit"
           @click="onEdit"
         />
@@ -21,10 +20,11 @@
           round
           icon="mdi-delete"
           color="negative"
+          :aria-label="$t('common.delete')"
           data-testid="account-detail-delete"
           @click="onDelete"
         />
-        <q-btn dense flat round icon="mdi-close" v-close-popup />
+        <q-btn dense flat round icon="mdi-close" :aria-label="$t('common.close')" v-close-popup />
       </q-card-section>
 
       <q-separator />
@@ -49,14 +49,14 @@
           <div class="col-12 col-sm-6">
             <div class="text-body2 text-grey-7">{{ $t('account.type') }}</div>
             <div class="text-subtitle1" data-testid="account-detail-type">
-              {{ account?.ACCOUNTTYPE }}
+              {{ account ? $t(typeLabelKey(account.ACCOUNTTYPE)) : '' }}
             </div>
           </div>
           <div class="col-12 col-sm-6">
             <div class="text-body2 text-grey-7">{{ $t('account.status') }}</div>
             <div class="text-subtitle1" data-testid="account-detail-status">
-              <q-badge :color="statusColor">
-                {{ account?.STATUS }}
+              <q-badge :color="account && isOpen(account) ? 'positive' : 'grey'">
+                {{ account ? $t(statusLabelKey(account.STATUS)) : '' }}
               </q-badge>
             </div>
           </div>
@@ -66,7 +66,7 @@
           <div class="col-12 col-sm-6">
             <div class="text-body2 text-grey-7">{{ $t('account.currency') }}</div>
             <div class="text-subtitle1" data-testid="account-detail-currency">
-              {{ currencySymbol }}
+              {{ account ? store.getCurrencyCode(account) : '' }}
             </div>
           </div>
           <div class="col-12 col-sm-6">
@@ -77,7 +77,9 @@
                 flat
                 round
                 :icon="isAccountFav ? 'mdi-star' : 'mdi-star-outline'"
-                color="gold"
+                color="amber"
+                :aria-label="$t('account.favorite')"
+                :aria-pressed="isAccountFav"
                 data-testid="account-detail-favorite"
                 @click="onToggleFavorite"
               />
@@ -114,7 +116,7 @@
           <div class="col-12 col-sm-6">
             <div class="text-body2 text-grey-7">{{ $t('account.initialBalance') }}</div>
             <div class="text-subtitle1" data-testid="account-detail-initial-balance">
-              {{ formatInitialBalance }}
+              {{ money(account?.INITIALBAL) }}
             </div>
           </div>
           <div class="col-12 col-sm-6">
@@ -125,41 +127,21 @@
           </div>
         </div>
 
-        <!-- Account Number -->
-        <div v-if="account?.ACCOUNTNUM" class="row q-mb-md">
-          <div class="col-12">
-            <div class="text-body2 text-grey-7">{{ $t('account.accountNumber') }}</div>
-            <div class="text-subtitle1" data-testid="account-detail-account-number">
-              {{ account.ACCOUNTNUM }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Notes -->
-        <div v-if="account?.NOTES" class="row q-mb-md">
-          <div class="col-12">
-            <div class="text-body2 text-grey-7">{{ $t('account.notes') }}</div>
-            <div class="text-subtitle1" data-testid="account-detail-notes">
-              {{ account.NOTES }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Type-specific fields for Credit/Loan -->
-        <div v-if="showCreditFields" class="q-mt-md">
+        <!-- Credit and loan planning fields, shown for every type as desktop does -->
+        <div class="q-mt-md">
           <q-separator class="q-my-md" />
           <div class="text-subtitle2">{{ $t('account.creditSettings') }}</div>
           <div class="row q-col-gutter-sm q-mt-sm">
             <div class="col-12 col-sm-6">
               <div class="text-body2 text-grey-7">{{ $t('account.creditLimit') }}</div>
               <div class="text-subtitle1" data-testid="account-detail-credit-limit">
-                {{ formatCreditLimit }}
+                {{ money(account?.CREDITLIMIT) }}
               </div>
             </div>
             <div class="col-12 col-sm-6">
               <div class="text-body2 text-grey-7">{{ $t('account.minimumBalance') }}</div>
               <div class="text-subtitle1" data-testid="account-detail-minimum-balance">
-                {{ formatMinimumBalance }}
+                {{ money(account?.MINIMUMBALANCE) }}
               </div>
             </div>
           </div>
@@ -167,13 +149,15 @@
             <div class="col-12 col-sm-6">
               <div class="text-body2 text-grey-7">{{ $t('account.interestRate') }}</div>
               <div class="text-subtitle1" data-testid="account-detail-interest-rate">
-                {{ formatInterestRate }}
+                {{
+                  isBlank(account?.INTERESTRATE) ? $t('common.notSet') : `${account?.INTERESTRATE}%`
+                }}
               </div>
             </div>
             <div class="col-12 col-sm-6">
               <div class="text-body2 text-grey-7">{{ $t('account.minimumPayment') }}</div>
               <div class="text-subtitle1" data-testid="account-detail-minimum-payment">
-                {{ formatMinimumPayment }}
+                {{ money(account?.MINIMUMPAYMENT) }}
               </div>
             </div>
           </div>
@@ -181,8 +165,20 @@
             <div class="col-12 col-sm-6">
               <div class="text-body2 text-grey-7">{{ $t('account.paymentDueDate') }}</div>
               <div class="text-subtitle1" data-testid="account-detail-payment-due">
-                {{ account?.PAYMENTDUEDATE ?? $t('common.notSet') }}
+                {{ account?.PAYMENTDUEDATE || $t('common.notSet') }}
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Other information -->
+        <div class="q-mt-md">
+          <q-separator class="q-my-md" />
+          <div class="text-subtitle2">{{ $t('account.otherInfo') }}</div>
+          <div v-for="field in OTHER_INFO_FIELDS" :key="field.column" class="q-mt-sm">
+            <div class="text-body2 text-grey-7">{{ $t(field.labelKey) }}</div>
+            <div class="text-subtitle1" style="white-space: pre-wrap" :data-testid="field.testid">
+              {{ account?.[field.column] || $t('common.notSet') }}
             </div>
           </div>
         </div>
@@ -196,8 +192,10 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 import { formatAmount } from '../../domain/rules/currency'
+import { isOpen } from '../../domain/rules/account'
 import type { AccountRecord, CurrencyRecord } from '../../domain/records'
 import { useAccountStore } from '../../stores/account-store'
+import { statusLabelKey, typeLabelKey } from './account-labels'
 
 const props = defineProps<{
   modelValue: boolean
@@ -212,133 +210,78 @@ const emit = defineEmits<{
   'toggle-favorite': [number]
 }>()
 
+const OTHER_INFO_FIELDS = [
+  {
+    column: 'ACCOUNTNUM',
+    labelKey: 'account.accountNumber',
+    testid: 'account-detail-account-number',
+  },
+  { column: 'HELDAT', labelKey: 'account.heldAt', testid: 'account-detail-held-at' },
+  { column: 'WEBSITE', labelKey: 'account.website', testid: 'account-detail-website' },
+  {
+    column: 'CONTACTINFO',
+    labelKey: 'account.contactInfo',
+    testid: 'account-detail-contact-info',
+  },
+  { column: 'ACCESSINFO', labelKey: 'account.accessInfo', testid: 'account-detail-access-info' },
+  { column: 'NOTES', labelKey: 'account.notes', testid: 'account-detail-notes' },
+] as const
+
 const $q = useQuasar()
 const visible = ref(props.modelValue)
 const store = useAccountStore()
 const { t } = useI18n()
 
-// Load balance when account changes
-const balance = ref<number | null>(null)
-
 watch(
   () => props.modelValue,
   (value) => {
     visible.value = value
-    if (value && props.account) {
-      loadBalance()
-    }
   },
 )
 
 watch(visible, (value) => emit('update:modelValue', value))
 
+// The balance is read from the store's cache, which every write refreshes, so
+// the detail shows what was just saved. Opening the detail fills a missing entry.
 watch(
-  () => props.account,
-  (account) => {
-    if (account) {
-      loadBalance()
-    }
+  () => [props.modelValue, props.account?.ACCOUNTID] as const,
+  ([open, accountId]) => {
+    if (open && accountId !== undefined) void store.getBalance(accountId).catch(() => {})
   },
+  { immediate: true },
 )
 
-const loadBalance = async () => {
-  if (!props.account) return
-  try {
-    balance.value = await store.getBalance(props.account.ACCOUNTID)
-  } catch {
-    balance.value = null
-  }
+/** Zero is a real amount, so absence is tested, not falsiness. */
+const isBlank = (value: unknown): boolean => value === null || value === undefined || value === ''
+
+/** An amount in the account's currency, or "Not set" when the column is empty. */
+const money = (value: number | null | undefined): string => {
+  if (isBlank(value)) return t('common.notSet')
+  const currency = props.account ? store.getCurrencyById(props.account.CURRENCYID) : null
+  return currency ? formatAmount(value as number, currency) : String(value)
 }
 
-const statusColor = computed(() => {
-  if (!props.account) return 'grey'
-  return props.account.STATUS === 'Open' ? 'positive' : 'grey'
-})
-
-const isAccountFav = computed(() => {
-  if (!props.account) return false
-  return store.isAccountFavorite(props.account)
-})
-
-const currencySymbol = computed(() => {
-  if (!props.account) return ''
-  const currency = store.getCurrencyById(props.account.CURRENCYID)
-  return currency?.CURRENCY_SYMBOL ?? ''
-})
-
 const formattedBalance = computed(() => {
-  if (balance.value === null) return t('account.loadingBalance')
-  const currency = store.getCurrencyById(props.account?.CURRENCYID ?? 0)
-  if (!currency) return ''
-  return formatAmount(balance.value, currency)
+  if (!props.account) return ''
+  const balance = store.getCachedBalance(props.account.ACCOUNTID)
+  return balance === null ? t('account.loadingBalance') : money(balance)
 })
 
-const formatInitialBalance = computed(() => {
-  if (!props.account?.INITIALBAL) return t('common.notSet')
-  const currency = store.getCurrencyById(props.account.CURRENCYID)
-  if (!currency) return String(props.account.INITIALBAL)
-  return formatAmount(props.account.INITIALBAL, currency)
-})
+const isAccountFav = computed(() =>
+  props.account ? store.isAccountFavorite(props.account) : false,
+)
 
-const isLocked = computed(() => {
-  return props.account?.STATEMENTLOCKED === 1
-})
-
-const showCreditFields = computed(() => {
-  if (!props.account) return false
-  const type = props.account.ACCOUNTTYPE
-  return ['Credit Card', 'Loan', 'Term'].includes(type)
-})
-
-const formatCreditLimit = computed(() => {
-  if (props.account?.CREDITLIMIT === null || props.account?.CREDITLIMIT === undefined) {
-    return t('common.notSet')
-  }
-  const currency = store.getCurrencyById(props.account.CURRENCYID)
-  if (!currency) return String(props.account.CREDITLIMIT)
-  return formatAmount(props.account.CREDITLIMIT, currency)
-})
-
-const formatMinimumBalance = computed(() => {
-  if (props.account?.MINIMUMBALANCE === null || props.account?.MINIMUMBALANCE === undefined) {
-    return t('common.notSet')
-  }
-  const currency = store.getCurrencyById(props.account.CURRENCYID)
-  if (!currency) return String(props.account.MINIMUMBALANCE)
-  return formatAmount(props.account.MINIMUMBALANCE, currency)
-})
-
-const formatInterestRate = computed(() => {
-  if (props.account?.INTERESTRATE === null || props.account?.INTERESTRATE === undefined) {
-    return t('common.notSet')
-  }
-  return `${props.account.INTERESTRATE}%`
-})
-
-const formatMinimumPayment = computed(() => {
-  if (props.account?.MINIMUMPAYMENT === null || props.account?.MINIMUMPAYMENT === undefined) {
-    return t('common.notSet')
-  }
-  const currency = store.getCurrencyById(props.account.CURRENCYID)
-  if (!currency) return String(props.account.MINIMUMPAYMENT)
-  return formatAmount(props.account.MINIMUMPAYMENT, currency)
-})
+const isLocked = computed(() => props.account?.STATEMENTLOCKED === 1)
 
 const onEdit = () => {
-  if (props.account) {
-    emit('edit', props.account)
-  }
+  if (props.account) emit('edit', props.account)
 }
 
 const onDelete = () => {
-  if (props.account) {
-    emit('delete', props.account)
-  }
+  if (props.account) emit('delete', props.account)
 }
 
 const onToggleFavorite = () => {
-  if (props.account) {
-    emit('toggle-favorite', props.account.ACCOUNTID)
-  }
+  if (props.account) emit('toggle-favorite', props.account.ACCOUNTID)
 }
 </script>

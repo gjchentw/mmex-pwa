@@ -7,6 +7,9 @@ import { ledgerRepo } from './ledger'
 
 /** Accounts (openspec: account-management). */
 
+/** The dependent records an opening date may not come after. */
+export type OpeningDateConflict = 'transactions' | 'stockPurchases' | 'scheduled'
+
 export const accountRepo = {
   async all(includeClosed = true): Promise<AccountRecord[]> {
     const clause = includeClosed ? '' : "WHERE STATUS = 'Open'"
@@ -54,6 +57,35 @@ export const accountRepo = {
       throw new Error(`An account named "${conflict.ACCOUNTNAME}" already exists`)
     }
     await db.mutate([this.addStatement(values)])
+  },
+
+  /**
+   * The first kind of dependent record dated before a proposed opening date, in
+   * the order desktop checks them before accepting an edited opening date
+   * (mmNewAcctDialog::OnOk in accountdialog.cpp).
+   */
+  async openingDateConflict(
+    accountId: number,
+    openingDate: string,
+  ): Promise<OpeningDateConflict | null> {
+    const [transactions, stockPurchases, scheduled] = await Promise.all([
+      db.query(
+        'SELECT 1 FROM CHECKINGACCOUNT_V1 WHERE TRANSDATE < ? AND (ACCOUNTID = ? OR TOACCOUNTID = ?) LIMIT 1',
+        [openingDate, accountId, accountId],
+      ),
+      db.query('SELECT 1 FROM STOCK_V1 WHERE PURCHASEDATE < ? AND HELDAT = ? LIMIT 1', [
+        openingDate,
+        accountId,
+      ]),
+      db.query(
+        'SELECT 1 FROM BILLSDEPOSITS_V1 WHERE TRANSDATE < ? AND (ACCOUNTID = ? OR TOACCOUNTID = ?) LIMIT 1',
+        [openingDate, accountId, accountId],
+      ),
+    ])
+    if (transactions.length > 0) return 'transactions'
+    if (stockPurchases.length > 0) return 'stockPurchases'
+    if (scheduled.length > 0) return 'scheduled'
+    return null
   },
 
   /** Balance is the initial balance plus every transaction's flow for this account. */

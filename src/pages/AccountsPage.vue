@@ -20,50 +20,70 @@
       {{ store.error }}
     </div>
 
-    <div v-else>
+    <q-banner
+      v-if="actionError"
+      dense
+      class="bg-negative text-white q-mb-md"
+      data-testid="account-action-error"
+    >
+      {{ actionError }}
+      <template #action>
+        <q-btn flat dense :label="$t('common.close')" @click="actionError = ''" />
+      </template>
+    </q-banner>
+
+    <div v-if="!store.loading && !store.error">
+      <!-- Grouped by type in desktop's tree order, by name within each group (design D1). -->
       <q-list bordered separator data-testid="account-list">
-        <q-item
-          v-for="account in store.sortedAccounts"
-          :key="account.ACCOUNTID"
-          v-ripple
-          clickable
-          :data-account-id="account.ACCOUNTID"
-          @click="openDetail(account)"
-        >
-          <q-item-section>
-            <q-item-label>
-              {{ account.ACCOUNTNAME }}
-              <q-badge
-                v-if="store.isAccountFavorite(account)"
-                color="gold"
-                class="q-ml-sm"
-                icon="mdi-star"
-                data-testid="account-favorite-badge"
-              />
-              <q-badge
-                v-if="store.isClosed(account)"
-                color="grey"
-                class="q-ml-sm"
-                :label="$t('account.closed')"
-                data-testid="account-closed-badge"
-              />
-            </q-item-label>
-            <q-item-label caption>
-              {{ store.getTypeDisplay(account) }} |
-              {{ store.getCurrencyCode(account) }}
-            </q-item-label>
-          </q-item-section>
+        <template v-for="group in store.groupedAccounts" :key="group.type">
+          <q-item-label header data-testid="account-group">
+            {{ $t(typeLabelKey(group.type)) }}
+          </q-item-label>
+          <q-item
+            v-for="account in group.accounts"
+            :key="account.ACCOUNTID"
+            v-ripple
+            clickable
+            :data-account-id="account.ACCOUNTID"
+            @click="openDetail(account)"
+          >
+            <q-item-section>
+              <q-item-label>
+                {{ account.ACCOUNTNAME }}
+                <q-icon
+                  v-if="store.isAccountFavorite(account)"
+                  name="mdi-star"
+                  color="amber"
+                  size="xs"
+                  class="q-ml-xs"
+                  role="img"
+                  :aria-label="$t('account.favorite')"
+                  data-testid="account-favorite-badge"
+                />
+                <q-badge
+                  v-if="store.isClosed(account)"
+                  color="grey"
+                  class="q-ml-sm"
+                  :label="$t('account.closed')"
+                  data-testid="account-closed-badge"
+                />
+              </q-item-label>
+              <q-item-label caption data-testid="account-currency-code">
+                {{ store.getCurrencyCode(account) }}
+              </q-item-label>
+            </q-item-section>
 
-          <q-item-section side>
-            <div class="text-right">
-              <div class="text-no-wrap" data-testid="account-balance">
-                {{ formatBalance(account) }}
+            <q-item-section side>
+              <div class="text-right">
+                <div class="text-no-wrap" data-testid="account-balance">
+                  {{ formatBalance(account) }}
+                </div>
               </div>
-            </div>
-          </q-item-section>
-        </q-item>
+            </q-item-section>
+          </q-item>
+        </template>
 
-        <q-item v-if="store.sortedAccounts.length === 0">
+        <q-item v-if="store.accounts.length === 0">
           <q-item-section class="text-grey-7" data-testid="account-empty">
             {{ $t('account.noAccounts') }}
           </q-item-section>
@@ -87,8 +107,9 @@
       :account="editingAccount"
       :currencies="store.currencies"
       :error-message="editorError"
+      :base-currency-id="store.baseCurrencyId"
       @save="onSave"
-      @delete="onDelete"
+      @delete="openDeleteDialog"
     />
 
     <!-- Delete Confirmation Dialog -->
@@ -119,13 +140,13 @@
         <q-card-actions align="right">
           <q-btn
             flat
-            :label="$t('account.cancel')"
+            :label="$t('common.cancel')"
             v-close-popup
             data-testid="account-delete-cancel"
           />
           <q-btn
             flat
-            :label="$t('account.delete')"
+            :label="$t('common.delete')"
             color="negative"
             @click="confirmDelete"
             data-testid="account-delete-confirm"
@@ -137,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAccountStore } from '../stores/account-store'
 import { formatAmount } from '../domain/rules/currency'
@@ -145,6 +166,7 @@ import { holdsSecurities } from '../domain/rules/account'
 import type { AccountRecord } from '../domain/records'
 import AccountDetailDialog from '../components/account/AccountDetailDialog.vue'
 import AccountEditorDialog from '../components/account/AccountEditorDialog.vue'
+import { typeLabelKey } from '../components/account/account-labels'
 
 const store = useAccountStore()
 const { t } = useI18n()
@@ -152,30 +174,32 @@ const { t } = useI18n()
 const detailOpen = ref(false)
 const editorOpen = ref(false)
 const deleteDialogOpen = ref(false)
-const selectedAccount = ref<AccountRecord | null>(null)
 const editingAccount = ref<AccountRecord | null>(null)
 const editorError = ref('')
+/** A failed action taken outside the editor, which has no other place to show it. */
+const actionError = ref('')
 
-/** Check if account type holds securities (Investment/Shares) */
-const isInvestmentType = (account: AccountRecord | null): boolean => {
-  if (!account) return false
-  return holdsSecurities({ ACCOUNTTYPE: account.ACCOUNTTYPE })
-}
+// The detail reads its account from the store by ID, so it shows what a save
+// or a toggle has just written rather than the row it was opened with.
+const selectedAccountId = ref<number | null>(null)
+const selectedAccount = computed(() =>
+  selectedAccountId.value === null ? null : store.getById(selectedAccountId.value),
+)
 
-/** Format balance for display */
+const messageOf = (err: unknown): string => (err instanceof Error ? err.message : String(err))
+
+const isInvestmentType = (account: AccountRecord | null): boolean =>
+  account !== null && holdsSecurities(account)
+
 const formatBalance = (account: AccountRecord): string => {
   const currency = store.getCurrencyById(account.CURRENCYID)
   if (!currency) return ''
   const cached = store.getCachedBalance(account.ACCOUNTID)
-  if (cached !== null) {
-    return formatAmount(cached, currency)
-  }
-  // Loading state - show placeholder
-  return t('account.loadingBalance')
+  return cached === null ? t('account.loadingBalance') : formatAmount(cached, currency)
 }
 
 const openDetail = (account: AccountRecord) => {
-  selectedAccount.value = account
+  selectedAccountId.value = account.ACCOUNTID
   detailOpen.value = true
 }
 
@@ -186,12 +210,17 @@ const openEditor = (account: AccountRecord | null) => {
 }
 
 const openDeleteDialog = (account: AccountRecord) => {
-  selectedAccount.value = account
+  selectedAccountId.value = account.ACCOUNTID
   deleteDialogOpen.value = true
 }
 
 const onToggleFavorite = async (accountId: number) => {
-  await store.toggleFavorite(accountId)
+  actionError.value = ''
+  try {
+    await store.toggleFavorite(accountId)
+  } catch (err: unknown) {
+    actionError.value = messageOf(err)
+  }
 }
 
 const onSave = async (values: Partial<AccountRecord> & { ACCOUNTID?: number }) => {
@@ -201,24 +230,27 @@ const onSave = async (values: Partial<AccountRecord> & { ACCOUNTID?: number }) =
     editorOpen.value = false
     editingAccount.value = null
   } catch (err: unknown) {
-    editorError.value = err instanceof Error ? err.message : String(err)
+    editorError.value = messageOf(err)
   }
 }
 
+// Requirement "Account Deletion from Surface": a confirmed deletion returns the
+// user to the list, so neither the detail nor the editor stays open on an
+// account that no longer exists.
 const confirmDelete = async () => {
-  if (!selectedAccount.value) return
+  const accountId = selectedAccountId.value
+  if (accountId === null) return
   deleteDialogOpen.value = false
+  actionError.value = ''
   try {
-    await store.remove(selectedAccount.value.ACCOUNTID)
-    selectedAccount.value = null
+    await store.remove(accountId)
+    detailOpen.value = false
+    editorOpen.value = false
+    editingAccount.value = null
+    selectedAccountId.value = null
   } catch (err: unknown) {
-    editorError.value = err instanceof Error ? err.message : String(err)
+    actionError.value = messageOf(err)
   }
-}
-
-// For now, onDelete from editor just opens the delete dialog
-const onDelete = (account: AccountRecord) => {
-  openDeleteDialog(account)
 }
 
 onMounted(async () => {

@@ -4,6 +4,7 @@
       :account="account"
       :currencies="currencies"
       :error-message="errorMessage"
+      :base-currency-id="baseCurrencyId"
       @save="(values) => emit('save', values)"
       @delete="() => account && emit('delete', account)"
       @cancel="close"
@@ -26,6 +27,7 @@ const props = defineProps<{
   account: AccountRecord | null
   currencies: CurrencyRecord[]
   errorMessage: string
+  baseCurrencyId?: number | null
 }>()
 
 const emit = defineEmits<{

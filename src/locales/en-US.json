@@ -25,7 +25,10 @@
     "continue": "Continue",
     "retry": "Retry",
     "save": "Save",
-    "delete": "Delete"
+    "delete": "Delete",
+    "edit": "Edit",
+    "notSet": "Not set",
+    "close": "Close"
   },
   "database": {
     "pickFromDrive": "Pick database from Google Drive",
@@ -190,6 +193,32 @@
     "deleteWillRemoveScheduled": "All scheduled transactions for this account will be deleted",
     "deleteWillRemoveStockPositions": "All stock positions held in this account will be deleted",
     "deleteCannotBeUndone": "This action cannot be undone",
-    "notSet": "Not set"
+    "nameRequired": "Account name is required",
+    "nameNotUnique": "Another account already has this name",
+    "currencyRequired": "Currency is required",
+    "currencyInvalid": "Select a currency this file defines",
+    "initialBalanceRequired": "Initial balance is required",
+    "initialDateRequired": "Initial date is required",
+    "statementDateRequired": "Statement date is required to lock the statement",
+    "types": {
+      "cash": "Cash",
+      "checking": "Checking",
+      "creditCard": "Credit Card",
+      "loan": "Loan",
+      "term": "Term",
+      "investment": "Investment",
+      "asset": "Asset",
+      "shares": "Shares"
+    },
+    "typeFixed": "A Shares account keeps its type",
+    "otherInfo": "Other information",
+    "heldAt": "Held at",
+    "website": "Website",
+    "contactInfo": "Contact",
+    "accessInfo": "Access info",
+    "openingDateFuture": "Opening date cannot be in the future",
+    "openingDateBeforeTransactions": "Transactions for this account already exist before this date",
+    "openingDateBeforeStockPurchases": "Stock purchases for this account already exist before this date",
+    "openingDateBeforeScheduled": "Scheduled transactions for this account are scheduled before this date"
   }
 }

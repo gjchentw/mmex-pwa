@@ -26,6 +26,41 @@ export type AccountStatus = (typeof ACCOUNT_STATUSES)[number]
 /** An unrecognized stored status reads as Closed, matching upstream's fallback. */
 export const accountStatusCodec = enumCodec(ACCOUNT_STATUSES, 'Closed')
 
+/**
+ * The order desktop lists account groups in its navigation tree, which is not
+ * ACCOUNT_TYPES order (mmframe.cpp, `ACCOUNT_IMG_TABLE`).
+ */
+export const ACCOUNT_TREE_ORDER: readonly AccountType[] = [
+  'Checking',
+  'Credit Card',
+  'Cash',
+  'Loan',
+  'Term',
+  'Investment',
+  'Shares',
+  'Asset',
+]
+
+/** Accounts grouped by type in desktop tree order; each group keeps the order given. */
+export const groupByType = <T extends Pick<AccountRecord, 'ACCOUNTTYPE'>>(
+  accounts: readonly T[],
+): { type: AccountType; accounts: T[] }[] =>
+  ACCOUNT_TREE_ORDER.map((type) => ({
+    type,
+    accounts: accounts.filter((account) => accountTypeCodec.decode(account.ACCOUNTTYPE) === type),
+  })).filter((group) => group.accounts.length > 0)
+
+/**
+ * The types an existing account may take. Desktop never offers a Shares account
+ * for a type change, and never offers Investment as the new type
+ * (mmGUIFrame::OnChangeAccountType, Model_Account::all_checking_account_names).
+ */
+export const typeChangeOptions = (current: string): AccountType[] => {
+  const type = accountTypeCodec.decode(current)
+  if (type === 'Shares') return ['Shares']
+  return ACCOUNT_TYPES.filter((candidate) => candidate === type || candidate !== 'Investment')
+}
+
 /** Accounts that hold stock positions rather than only cash movements. */
 export const holdsSecurities = (account: Pick<AccountRecord, 'ACCOUNTTYPE'>): boolean => {
   const type = accountTypeCodec.decode(account.ACCOUNTTYPE)

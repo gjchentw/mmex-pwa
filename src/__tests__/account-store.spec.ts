@@ -90,6 +90,10 @@ const makeFakeDb = () => {
     transactions: [] as Partial<TransactionRecord>[],
     scheduledIds: [] as number[],
     stockIds: [] as number[],
+    /** Rows the opening-date check reads. */
+    stockPurchases: [] as { HELDAT: number; PURCHASEDATE: string }[],
+    scheduledRows: [] as { ACCOUNTID: number; TOACCOUNTID: number | null; TRANSDATE: string }[],
+    baseCurrencyId: '2',
     nextId: 4,
     failQueries: false,
   }
@@ -108,7 +112,29 @@ const makeFakeDb = () => {
       if (sql.includes('FROM ACCOUNTLIST_V1') && sql.includes('WHERE ACCOUNTID')) {
         return state.accounts.filter((a) => a.ACCOUNTID === bind?.[0]) as T[]
       }
-      if (sql.includes('FROM ACCOUNTLIST_V1')) return state.accounts as T[]
+      // ORDER BY ACCOUNTNAME over a NOCASE column, as the DDL declares it.
+      if (sql.includes('FROM ACCOUNTLIST_V1')) {
+        return [...state.accounts].sort((a, b) =>
+          a.ACCOUNTNAME.toLowerCase() < b.ACCOUNTNAME.toLowerCase() ? -1 : 1,
+        ) as T[]
+      }
+      if (sql.includes('FROM INFOTABLE_V1')) return [{ INFOVALUE: state.baseCurrencyId }] as T[]
+      if (sql.includes('TRANSDATE < ?') && sql.includes('FROM CHECKINGACCOUNT_V1')) {
+        const [date, id] = bind as [string, number]
+        return state.transactions.filter(
+          (t) => (t.TRANSDATE ?? '') < date && (t.ACCOUNTID === id || t.TOACCOUNTID === id),
+        ) as T[]
+      }
+      if (sql.includes('PURCHASEDATE < ?')) {
+        const [date, id] = bind as [string, number]
+        return state.stockPurchases.filter((r) => r.PURCHASEDATE < date && r.HELDAT === id) as T[]
+      }
+      if (sql.includes('TRANSDATE < ?') && sql.includes('FROM BILLSDEPOSITS_V1')) {
+        const [date, id] = bind as [string, number]
+        return state.scheduledRows.filter(
+          (r) => r.TRANSDATE < date && (r.ACCOUNTID === id || r.TOACCOUNTID === id),
+        ) as T[]
+      }
       if (sql.includes('FROM CURRENCYFORMATS_V1')) return state.currencies as T[]
       if (sql.includes('FROM CHECKINGACCOUNT_V1')) {
         const id = bind?.[0]
@@ -168,26 +194,40 @@ beforeEach(() => {
 afterEach(() => setDomainDb())
 
 describe('loading the accounts surface', () => {
-  // Requirement "Account List Display", scenario "Every account in the file is
-  // listed".
+  // Requirement "Account List Display", scenario "All accounts are listed".
   it('lists every account, closed ones included', async () => {
     const store = useAccountStore()
     await store.load()
 
     expect(store.accounts).toHaveLength(3)
-    expect(store.sortedAccounts.map((a) => a.ACCOUNTNAME)).toContain('Old Savings')
+    expect(store.accounts.map((a) => a.ACCOUNTNAME)).toContain('Old Savings')
   })
 
-  // Requirement "Account List Display": the default order is alphabetical.
-  it('sorts alphabetically by name by default', async () => {
+  // Requirement "Account List Display", scenario "Accounts are grouped by type":
+  // groups follow desktop's tree order, names stay in name order within a group.
+  it('groups accounts by type in desktop order, by name within each group', async () => {
+    fake.state.accounts.push(
+      account(4, 'bills', { ACCOUNTTYPE: 'Checking' }),
+      account(5, 'Wallet', { ACCOUNTTYPE: 'Cash' }),
+    )
     const store = useAccountStore()
     await store.load()
 
-    expect(store.sortedAccounts.map((a) => a.ACCOUNTNAME)).toEqual([
-      'Amex Gold',
-      'Everyday Checking',
-      'Old Savings',
+    expect(
+      store.groupedAccounts.map((g) => [g.type, g.accounts.map((a) => a.ACCOUNTNAME)]),
+    ).toEqual([
+      ['Checking', ['bills', 'Everyday Checking', 'Old Savings']],
+      ['Credit Card', ['Amex Gold']],
+      ['Cash', ['Wallet']],
     ])
+  })
+
+  // Requirement "Account Creation": a new account defaults to the base currency.
+  it('reads the base currency new accounts start in', async () => {
+    const store = useAccountStore()
+    await store.load()
+
+    expect(store.baseCurrencyId).toBe(2)
   })
 
   // Requirement "Currency Binding": the surface offers the file's currencies.
@@ -196,7 +236,9 @@ describe('loading the accounts surface', () => {
     await store.load()
 
     expect(store.currencies.map((c) => c.CURRENCY_SYMBOL)).toEqual(['USD', 'EUR'])
-    expect(store.getCurrencyCode({ CURRENCYID: 2 })).toBe('Euro')
+    // Requirement "Account List Display" shows the currency code, which
+    // CURRENCYFORMATS_V1 holds in CURRENCY_SYMBOL.
+    expect(store.getCurrencyCode({ CURRENCYID: 2 })).toBe('EUR')
   })
 
   it('reports a load failure instead of throwing', async () => {
@@ -262,7 +304,7 @@ describe('balance computation', () => {
 })
 
 describe('account creation', () => {
-  // Requirement "Account Creation", scenario "A new account is created".
+  // Requirement "Account Creation", scenario "User creates a checking account".
   it('persists a new account with the fields it was given', async () => {
     const store = useAccountStore()
     await store.load()
@@ -306,7 +348,7 @@ describe('account creation', () => {
 })
 
 describe('account editing', () => {
-  // Requirement "Account Editing", scenario "An account definition is changed".
+  // Requirement "Account Editing", scenario "User changes account name".
   it('persists the edit', async () => {
     const store = useAccountStore()
     await store.load()
@@ -371,27 +413,64 @@ describe('favorite accounts', () => {
 })
 
 describe('statement lock', () => {
-  // Requirement "Statement Lock Management", scenario "A statement lock is set".
-  it('records the lock and its date', async () => {
+  // Requirement "Statement Lock Management", scenario "User sets statement lock".
+  it('persists the lock and its date', async () => {
     const store = useAccountStore()
     await store.load()
 
-    await store.setStatementLock(1, true, '2026-08-31')
+    await store.save({ ACCOUNTID: 1, STATEMENTLOCKED: 1, STATEMENTDATE: '2026-07-31' })
 
     expect(store.getById(1)?.STATEMENTLOCKED).toBe(1)
-    expect(store.getById(1)?.STATEMENTDATE).toBe('2026-08-31')
+    expect(store.getById(1)?.STATEMENTDATE).toBe('2026-07-31')
+  })
+})
+
+describe('opening date', () => {
+  // Requirement "Opening Date Rule": an existing account's opening date may not
+  // come after any of its dependent records (mmNewAcctDialog::OnOk).
+  it('reports a transaction dated before the opening date', async () => {
+    fake.state.transactions = [txn(1, 1, 'Withdrawal', 20, { TRANSDATE: '2026-02-01' })]
+    const store = useAccountStore()
+
+    expect(await store.openingDateConflict(1, '2026-03-01')).toBe('transactions')
   })
 
-  // Scenario "A statement lock is cleared".
-  it('clears both the state and the date', async () => {
+  it('counts a transfer into the account as its transaction', async () => {
+    fake.state.transactions = [
+      txn(1, 2, 'Transfer', 20, { TOACCOUNTID: 1, TRANSDATE: '2026-02-01' }),
+    ]
     const store = useAccountStore()
-    await store.load()
-    await store.setStatementLock(1, true, '2026-08-31')
 
-    await store.setStatementLock(1, false, null)
+    expect(await store.openingDateConflict(1, '2026-03-01')).toBe('transactions')
+  })
 
-    expect(store.getById(1)?.STATEMENTLOCKED).toBeNull()
-    expect(store.getById(1)?.STATEMENTDATE).toBeNull()
+  // Desktop compares with "less than", so a record on the opening date is allowed.
+  it('accepts a record dated on the opening date itself', async () => {
+    fake.state.transactions = [txn(1, 1, 'Withdrawal', 20, { TRANSDATE: '2026-03-01' })]
+    const store = useAccountStore()
+
+    expect(await store.openingDateConflict(1, '2026-03-01')).toBeNull()
+  })
+
+  it('reports a stock purchase dated before the opening date', async () => {
+    fake.state.stockPurchases = [{ HELDAT: 1, PURCHASEDATE: '2026-01-15' }]
+    const store = useAccountStore()
+
+    expect(await store.openingDateConflict(1, '2026-03-01')).toBe('stockPurchases')
+  })
+
+  it('reports a scheduled transaction dated before the opening date', async () => {
+    fake.state.scheduledRows = [{ ACCOUNTID: 1, TOACCOUNTID: null, TRANSDATE: '2026-01-15' }]
+    const store = useAccountStore()
+
+    expect(await store.openingDateConflict(1, '2026-03-01')).toBe('scheduled')
+  })
+
+  it("ignores another account's records", async () => {
+    fake.state.transactions = [txn(1, 2, 'Withdrawal', 20, { TRANSDATE: '2026-02-01' })]
+    const store = useAccountStore()
+
+    expect(await store.openingDateConflict(1, '2026-03-01')).toBeNull()
   })
 })
 
@@ -411,6 +490,8 @@ describe('account deletion', () => {
     const batch = fake.batches[0]!
     const targets = batch.map((s) => s.sql)
     expect(targets.some((sql) => sql.includes('DELETE FROM ACCOUNTLIST_V1'))).toBe(true)
+    const transactions = batch.find((s) => s.sql.includes('DELETE FROM CHECKINGACCOUNT_V1'))
+    expect(transactions?.bind).toEqual([1])
     expect(targets.some((sql) => sql.includes('DELETE FROM BILLSDEPOSITS_V1'))).toBe(true)
     expect(targets.some((sql) => sql.includes('DELETE FROM STOCK_V1'))).toBe(true)
     // A single logical operation: one batch, not one per table.
