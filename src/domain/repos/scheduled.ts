@@ -1,11 +1,14 @@
-import { REFTYPE, formatUtcTimestamp } from '../conventions'
+import { NONE_ID, REFTYPE } from '../conventions'
 import { db, insertStatement, placeholders, updateStatement, type SqlStatement } from '../db'
-import type { ScheduledRecord, ScheduledSplitRecord, TransactionRecord } from '../records'
+import type { ScheduledRecord, ScheduledSplitRecord } from '../records'
 import { accountBalance, breachesFloor } from '../rules/account'
+import { statusKey, transactionTypeCodec } from '../rules/ledger'
+import type { NormalizedTransaction } from '../rules/ledger-entry'
 import { advanceSeries, effectiveAutoExecute, isDue, isLegacyInactive } from '../rules/scheduled'
 import { accountRepo } from './account'
 import { extensionCleanupStatements } from './extensions'
 import { ledgerRepo } from './ledger'
+import { insertTransactionStatement, splitLineStatements } from './ledger-statements'
 
 /**
  * Recurring series (openspec: scheduled-transactions). Executing or skipping an
@@ -96,22 +99,25 @@ export const scheduledRepo = {
     now = new Date(),
   ): Promise<SqlStatement[]> {
     const splits = await this.splitsFor(series.BDID)
-    const transaction: Omit<TransactionRecord, 'TRANSID'> = {
+    // The series row is copied as desktop copies it (fusedtransaction.cpp), with
+    // desktop's values wherever the template holds nothing, so no column the
+    // ledger fills with a sentinel is written as NULL and DELETEDTIME is empty
+    // (openspec: transaction-ledger, Transaction Types, Schema Fidelity).
+    const record: NormalizedTransaction = {
       ACCOUNTID: series.ACCOUNTID,
-      TOACCOUNTID: series.TOACCOUNTID,
-      PAYEEID: series.PAYEEID,
-      TRANSCODE: series.TRANSCODE,
+      TOACCOUNTID: series.TOACCOUNTID ?? NONE_ID,
+      PAYEEID: series.PAYEEID ?? NONE_ID,
+      TRANSCODE: transactionTypeCodec.decode(series.TRANSCODE),
       TRANSAMOUNT: series.TRANSAMOUNT,
-      STATUS: series.STATUS,
-      TRANSACTIONNUMBER: series.TRANSACTIONNUMBER,
-      NOTES: series.NOTES,
-      CATEGID: series.CATEGID,
+      STATUS: statusKey(series.STATUS),
+      TRANSACTIONNUMBER: series.TRANSACTIONNUMBER ?? '',
+      NOTES: series.NOTES ?? '',
+      CATEGID: series.CATEGID ?? NONE_ID,
       TRANSDATE: onDate,
-      LASTUPDATEDTIME: formatUtcTimestamp(now),
-      DELETEDTIME: null,
-      FOLLOWUPID: series.FOLLOWUPID,
-      TOTRANSAMOUNT: series.TOTRANSAMOUNT,
-      COLOR: series.COLOR,
+      DELETEDTIME: '',
+      FOLLOWUPID: series.FOLLOWUPID ?? NONE_ID,
+      TOTRANSAMOUNT: series.TOTRANSAMOUNT ?? series.TRANSAMOUNT,
+      COLOR: series.COLOR ?? NONE_ID,
     }
 
     // The batch runs in one transaction, and SQLite assigns a new INTEGER
@@ -119,15 +125,7 @@ export const scheduledRepo = {
     // the key the transaction insert just received for every split that
     // follows. last_insert_rowid() would be the previous split's own key after
     // the first one (openspec: Series Advancement on Execute or Skip).
-    const statements: SqlStatement[] = [ledgerRepo.addStatement(transaction, { now })]
-    for (const split of splits) {
-      statements.push({
-        sql: `INSERT INTO SPLITTRANSACTIONS_V1 (TRANSID, CATEGID, SPLITTRANSAMOUNT, NOTES)
-              VALUES ((SELECT MAX(TRANSID) FROM CHECKINGACCOUNT_V1), ?, ?, ?)`,
-        bind: [split.CATEGID, split.SPLITTRANSAMOUNT, split.NOTES],
-      })
-    }
-    return statements
+    return [insertTransactionStatement(record, now), ...splitLineStatements('inserted', splits)]
   },
 
   /**

@@ -129,6 +129,50 @@ export const fileFacts = {
     return stored === null || stored === '' ? DEFAULTS.categoryDelimiter : stored
   },
 
+  /** `0` today, `1` the account's latest transaction date (desktop treats any non-zero value as on). */
+  async transactionDateDefault(): Promise<number> {
+    const stored = parseIntegerValue(
+      await settingRepo.get(SETTING_KEY.transactionDateDefault),
+      DEFAULTS.transactionDateDefault,
+    )
+    return stored === 0 ? 0 : 1
+  },
+
+  /** Desktop's index into Unreconciled, Reconciled, Void, Follow Up, Duplicate. */
+  async transactionStatusDefault(): Promise<number> {
+    const stored = parseIntegerValue(
+      await settingRepo.get(SETTING_KEY.transactionStatusDefault),
+      DEFAULTS.transactionStatusDefault,
+    )
+    return stored >= 0 && stored <= 4 ? stored : DEFAULTS.transactionStatusDefault
+  },
+
+  /** `0` none, `1` last used in the account, `2` the payee named Unknown. */
+  async transactionPayeeDefault(): Promise<number> {
+    const stored = parseIntegerValue(
+      await settingRepo.get(SETTING_KEY.transactionPayeeDefault),
+      DEFAULTS.transactionPayeeDefault,
+    )
+    return stored >= 0 && stored <= 2 ? stored : DEFAULTS.transactionPayeeDefault
+  },
+
+  /** `1` (the default) the category of the last transfer; anything else none. */
+  async transactionTransferCategoryDefault(): Promise<number> {
+    const stored = parseIntegerValue(
+      await settingRepo.get(SETTING_KEY.transactionTransferCategoryDefault),
+      DEFAULTS.transactionTransferCategoryDefault,
+    )
+    return stored === 1 ? 1 : 0
+  },
+
+  /** Whether transactions carry an entered time; off unless desktop's box was ticked. */
+  async transactionUseDateTime(): Promise<boolean> {
+    return parseSettingBoolean(
+      await settingRepo.get(SETTING_KEY.transactionUseDateTime),
+      DEFAULTS.transactionUseDateTime,
+    )
+  },
+
   async sharePrecision(): Promise<number> {
     return parseIntegerValue(await infoRepo.get(INFO_KEY.sharePrecision), DEFAULTS.sharePrecision)
   },

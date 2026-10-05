@@ -1,4 +1,4 @@
-import { daysBetween, enumCodec, isoDatePart, namesEqual, parseIsoDateTime } from '../conventions'
+import { enumCodec, formatUtcTimestamp, isoDatePart, namesEqual } from '../conventions'
 import type { AccountRecord, SplitRecord, TransactionRecord } from '../records'
 
 /**
@@ -50,12 +50,45 @@ export const statusName = (stored: string | null | undefined): string =>
 
 /**
  * TOACCOUNTID sentinels used by share transactions (Model_Translink.h). They are
- * preserved verbatim; `asTransfer` additionally means "ignore for accounting".
+ * preserved verbatim and never change the row's account flow; `asTransfer`
+ * keeps the row out of income and expense aggregation (`isForeignAsTransfer`).
  */
 export const FOREIGN_SENTINEL = {
   asIncomeExpense: 32701,
   asTransfer: 32702,
 } as const
+
+/** What an operation is about to do to a stored transaction: new field values, or `null` for removal. */
+export type TransactionPatch = Partial<Pick<TransactionRecord, 'STATUS' | 'DELETEDTIME'>>
+
+/**
+ * The state of transactions after an operation that has not run yet, by id. A
+ * derived cache recomputed from linked rows applies these so its update can
+ * ride in the same batch as the operation (openspec: investment-tracking,
+ * Position Fields Are Derived Caches).
+ */
+export type TransactionOverrides = ReadonlyMap<number, TransactionPatch | null>
+
+/** Applies overrides to rows read before the operation: removed rows drop out, patched rows change. */
+export const applyTransactionOverrides = <T>(
+  rows: readonly T[],
+  idOf: (row: T) => number,
+  patch: (row: T, values: TransactionPatch) => T,
+  overrides: TransactionOverrides | undefined,
+): T[] => {
+  if (!overrides || overrides.size === 0) return [...rows]
+  const result: T[] = []
+  for (const row of rows) {
+    const id = idOf(row)
+    if (!overrides.has(id)) {
+      result.push(row)
+      continue
+    }
+    const values = overrides.get(id)
+    if (values) result.push(patch(row, values))
+  }
+  return result
+}
 
 export const isVoid = (transaction: Pick<TransactionRecord, 'STATUS'>): boolean =>
   statusKey(transaction.STATUS) === 'V'
@@ -78,6 +111,21 @@ export const isForeignTransaction = (
 ): boolean =>
   transactionTypeCodec.decode(transaction.TRANSCODE) !== 'Transfer' &&
   (transaction.TOACCOUNTID ?? 0) > 0
+
+/**
+ * A linked row desktop treats as a transfer: marked with the `asTransfer`
+ * sentinel, or pointing at its own account (Model_Checking::
+ * foreignTransactionAsTransfer). Such a row still moves its account's balance;
+ * it is left out of every income and expense aggregation -- category
+ * statistics, summaries, reports, forecasts (openspec: Foreign Transaction
+ * Linkage Representation).
+ */
+export const isForeignAsTransfer = (
+  transaction: Pick<TransactionRecord, 'ACCOUNTID' | 'TOACCOUNTID' | 'TRANSCODE'>,
+): boolean =>
+  isForeignTransaction(transaction) &&
+  (transaction.TOACCOUNTID === FOREIGN_SENTINEL.asTransfer ||
+    transaction.TOACCOUNTID === transaction.ACCOUNTID)
 
 /**
  * The transaction's signed contribution to one account's flow.
@@ -173,9 +221,13 @@ export const isStatementLocked = (
   return transactionDate <= statementDate
 }
 
+const DAY_MS = 86_400_000
+
 /**
- * Whether a trashed row has outlived the retention window. A retention of 0
- * means rows are hard-deleted immediately instead of being trashed.
+ * Whether a trashed row has outlived the retention window: its DELETEDTIME is
+ * at or before now (UTC) minus the retention, which is desktop's cutoff
+ * (mmframe.cpp autocleanDeletedTransactions). A retention of 0 means rows are
+ * hard-deleted immediately instead of being trashed.
  */
 export const isPurgeable = (
   transaction: Pick<TransactionRecord, 'DELETEDTIME'>,
@@ -184,7 +236,6 @@ export const isPurgeable = (
 ): boolean => {
   if (!isDeleted(transaction)) return false
   if (retentionDays <= 0) return true
-  const deletedAt = parseIsoDateTime(transaction.DELETEDTIME)
-  if (!deletedAt) return false
-  return daysBetween(deletedAt, now) > retentionDays
+  const cutoff = formatUtcTimestamp(new Date(now.getTime() - retentionDays * DAY_MS))
+  return (transaction.DELETEDTIME as string) <= cutoff
 }

@@ -2,6 +2,7 @@ import { LINKTYPE, REFTYPE, isoDatePart } from '../conventions'
 import { db, insertStatement, updateStatement, type SqlStatement } from '../db'
 import type { AssetRecord, TransactionRecord, TransLinkRecord } from '../records'
 import { assetValueWriteBack, valueAtDate, type LinkedAssetTransaction } from '../rules/asset'
+import { applyTransactionOverrides, type TransactionOverrides } from '../rules/ledger'
 import { dayRateFor } from './currency'
 import { extensionCleanupStatements } from './extensions'
 
@@ -33,8 +34,13 @@ export const assetRepo = {
    * is what the valuation replay needs.
    */
   async linkedTransactions(assetId: number): Promise<LinkedAssetTransaction[]> {
+    return (await this.linkedRows(assetId)).map((row) => row.linked)
+  },
+
+  /** The same rows with their transaction ids, which the post-state overrides are keyed by. */
+  async linkedRows(assetId: number): Promise<{ id: number; linked: LinkedAssetTransaction }[]> {
     const rows = await db.query<TransactionRecord & { CURRENCYID: number }>(
-      `SELECT c.ACCOUNTID, c.TOACCOUNTID, c.TRANSCODE, c.TRANSAMOUNT, c.TOTRANSAMOUNT,
+      `SELECT c.TRANSID, c.ACCOUNTID, c.TOACCOUNTID, c.TRANSCODE, c.TRANSAMOUNT, c.TOTRANSAMOUNT,
               c.STATUS, c.DELETEDTIME, c.TRANSDATE, a.CURRENCYID
        FROM TRANSLINK_V1 l
        JOIN CHECKINGACCOUNT_V1 c ON c.TRANSID = l.CHECKINGACCOUNTID
@@ -44,20 +50,23 @@ export const assetRepo = {
       [LINKTYPE.asset, assetId],
     )
 
-    const linked: LinkedAssetTransaction[] = []
+    const linked: { id: number; linked: LinkedAssetTransaction }[] = []
     for (const row of rows) {
       linked.push({
-        transaction: {
-          ACCOUNTID: row.ACCOUNTID,
-          TOACCOUNTID: row.TOACCOUNTID,
-          TRANSCODE: row.TRANSCODE,
-          TRANSAMOUNT: row.TRANSAMOUNT,
-          TOTRANSAMOUNT: row.TOTRANSAMOUNT,
-          STATUS: row.STATUS,
-          DELETEDTIME: row.DELETEDTIME,
-          TRANSDATE: row.TRANSDATE,
+        id: row.TRANSID,
+        linked: {
+          transaction: {
+            ACCOUNTID: row.ACCOUNTID,
+            TOACCOUNTID: row.TOACCOUNTID,
+            TRANSCODE: row.TRANSCODE,
+            TRANSAMOUNT: row.TRANSAMOUNT,
+            TOTRANSAMOUNT: row.TOTRANSAMOUNT,
+            STATUS: row.STATUS,
+            DELETEDTIME: row.DELETEDTIME,
+            TRANSDATE: row.TRANSDATE,
+          },
+          dayRate: await dayRateFor(row.CURRENCYID ?? -1, isoDatePart(row.TRANSDATE)),
         },
-        dayRate: await dayRateFor(row.CURRENCYID ?? -1, isoDatePart(row.TRANSDATE)),
       })
     }
     return linked
@@ -71,11 +80,26 @@ export const assetRepo = {
     return valueAtDate(asset, links, onDate)
   },
 
-  /** Statements refreshing the cached VALUE column from the linked transactions. */
-  async recomputeStatements(assetId: number): Promise<SqlStatement[]> {
+  /**
+   * Statements refreshing the cached VALUE column from the linked transactions.
+   * `overrides` gives the state those transactions will have once the operation
+   * that invalidated the cache has run, so the update can ride in its batch.
+   */
+  async recomputeStatements(
+    assetId: number,
+    options: { overrides?: TransactionOverrides } = {},
+  ): Promise<SqlStatement[]> {
     const asset = await this.get(assetId)
     if (!asset) return []
-    const links = await this.linkedTransactions(assetId)
+    const links = applyTransactionOverrides(
+      await this.linkedRows(assetId),
+      (row) => row.id,
+      (row, values) => ({
+        ...row,
+        linked: { ...row.linked, transaction: { ...row.linked.transaction, ...values } },
+      }),
+      options.overrides,
+    ).map((row) => row.linked)
     if (links.length === 0) return []
     return [this.updateStatement(assetId, { VALUE: assetValueWriteBack(links) })]
   },

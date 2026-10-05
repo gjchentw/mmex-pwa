@@ -29,9 +29,16 @@ const stored: SplitRecord[] = [
   { SPLITTRANSID: 71, TRANSID: 1, CATEGID: 2, SPLITTRANSAMOUNT: 40, NOTES: 'b' },
 ]
 
+/** The first stored line carries tags 5 and 6, so resubmitting them is not a change. */
+const storedSplitTags = [
+  { REFID: 70, TAGID: 5 },
+  { REFID: 70, TAGID: 6 },
+]
+
 const fakeDb: DomainDb = {
   async query<T>(sql: string): Promise<T[]> {
     if (sql.includes('FROM SPLITTRANSACTIONS_V1 WHERE TRANSID')) return stored as T[]
+    if (sql.includes('SELECT REFID, TAGID FROM TAGLINK_V1')) return storedSplitTags as T[]
     return [] as T[]
   },
   async mutate(): Promise<void> {},
@@ -106,5 +113,18 @@ describe('replacing a transaction split lines', () => {
         { CATEGID: 1, SPLITTRANSAMOUNT: 60, NOTES: null },
       ]),
     ).rejects.toThrow(/sum/i)
+  })
+
+  // Split Transactions: a tag set that differs is a change of the split set.
+  it('stamps when only a line tag set changed', async () => {
+    const statements = await ledgerRepo.replaceSplitsStatements(
+      transaction,
+      [
+        { CATEGID: 1, SPLITTRANSAMOUNT: 60, NOTES: null, tagIds: [5] },
+        { CATEGID: 2, SPLITTRANSAMOUNT: 40, NOTES: 'b' },
+      ],
+      { now },
+    )
+    expect(flat(statements.slice(-1)[0]!)).toContain('SET LASTUPDATEDTIME = ?')
   })
 })

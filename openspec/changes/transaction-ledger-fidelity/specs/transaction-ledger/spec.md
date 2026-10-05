@@ -19,8 +19,9 @@ The application SHALL persist `CHECKINGACCOUNT_V1` and `SPLITTRANSACTIONS_V1` in
 - Transaction dates SHALL be written in the combined form `YYYY-MM-DDTHH:MM:SS`; date-only values from older files SHALL be readable. The time part SHALL be `00:00:00` unless the file's `SETTING_V1.TRANSACTION_USE_DATE_TIME` preference is on, in which case it SHALL be the entered time.
 - `COLOR` SHALL be an integer from `1` to `7`, or `-1` meaning unset; any other entered value SHALL be stored as `-1`. The vestigial `FOLLOWUPID` column SHALL be preserved.
 - `DELETEDTIME` of a live transaction SHALL be written as the empty string, as desktop writes it; `NULL` and the empty string SHALL both read as live.
+- An empty transaction number and empty notes SHALL be written as the empty string, as desktop writes them.
 
-Traceability: [mmex/database/tables.sql](../../../mmex/database/tables.sql), [mmex/moneymanagerex/src/model/Model_Checking.cpp](../../../mmex/moneymanagerex/src/model/Model_Checking.cpp) (`STATUS_CHOICES`), [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`OnOk` writes `FormatISOCombined`; `ValidateData` clamps the colour), [mmex/moneymanagerex/src/mmchecking_list.cpp](../../../mmex/moneymanagerex/src/mmchecking_list.cpp) (restore clears `DELETEDTIME` to the empty string), [src/domain/rules/ledger.ts](../../../src/domain/rules/ledger.ts), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts).
+Traceability: [mmex/database/tables.sql](../../../mmex/database/tables.sql), [mmex/moneymanagerex/src/model/Model_Checking.cpp](../../../mmex/moneymanagerex/src/model/Model_Checking.cpp) (`STATUS_CHOICES`), [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`OnOk` writes `FormatISOCombined`; `ValidateData` clamps the colour), [mmex/moneymanagerex/src/mmchecking_list.cpp](../../../mmex/moneymanagerex/src/mmchecking_list.cpp) (restore clears `DELETEDTIME` to the empty string), [src/domain/rules/ledger-entry.ts](../../../src/domain/rules/ledger-entry.ts) (`normalizeTransaction`), [src/domain/repos/ledger-statements.ts](../../../src/domain/repos/ledger-statements.ts), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts).
 
 #### Scenario: Status keys round-trip
 
@@ -47,7 +48,7 @@ The application SHALL persist the transaction type as exactly `Withdrawal`, `Dep
 - None of `TOACCOUNTID`, `PAYEEID`, `CATEGID` and `TOTRANSAMOUNT` SHALL be written as `NULL`.
 - When a surface lists the transactions of an `Investment` or `Shares` account, it SHALL label the three types `Buy`, `Sell`, and `Revalue`; the persisted value SHALL remain the canonical string.
 
-Traceability: [mmex/moneymanagerex/src/model/Model_Checking.h](../../../mmex/moneymanagerex/src/model/Model_Checking.h), [mmex/moneymanagerex/src/model/Model_Checking.cpp](../../../mmex/moneymanagerex/src/model/Model_Checking.cpp) (`TYPE_CHOICES`), [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`ValidateData`: the values written per type), [src/domain/rules/ledger.ts](../../../src/domain/rules/ledger.ts).
+Traceability: [mmex/moneymanagerex/src/model/Model_Checking.h](../../../mmex/moneymanagerex/src/model/Model_Checking.h), [mmex/moneymanagerex/src/model/Model_Checking.cpp](../../../mmex/moneymanagerex/src/model/Model_Checking.cpp) (`TYPE_CHOICES`), [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`ValidateData`: the values written per type), [src/domain/rules/ledger.ts](../../../src/domain/rules/ledger.ts), [src/domain/rules/ledger-entry.ts](../../../src/domain/rules/ledger-entry.ts) (`normalizeTransaction`).
 
 #### Scenario: Trade alias is display-only
 
@@ -71,6 +72,7 @@ The application SHALL support the five transaction statuses, freely changeable b
 - Every reader of the status — the flow function, the reconciled flow, the reconciled balance, and every aggregate — SHALL resolve the stored value through that one interpretation, so a stored display name counts exactly as its key.
 - Changing the status of one or many transactions SHALL write the key to each transaction whose status differs, SHALL set `LASTUPDATEDTIME` on each live transaction it changes, and SHALL leave a transaction whose status already matches untouched.
 - A transaction that the statement lock covers SHALL be skipped by a status change, and the operation SHALL report which transactions it skipped.
+- A status change of a transaction linked to a stock or an asset SHALL recompute and persist that position in the same logical operation, since a void row leaves the position (`investment-tracking`, Requirement "Position Fields Are Derived Caches").
 
 ```mermaid
 stateDiagram-v2
@@ -100,6 +102,11 @@ Traceability: [mmex/moneymanagerex/src/model/Model_Checking.cpp](../../../mmex/m
 - **THEN** the other transaction SHALL become reconciled
 - **AND** the operation SHALL report the locked transaction as skipped, its status unchanged
 
+#### Scenario: Voiding a linked trade recomputes the position
+
+- **WHEN** the user voids the only buy linked to a stock position
+- **THEN** the position's cached share count SHALL be written as zero in the same operation
+
 #### Scenario: A stored display name counts as its key
 
 - **WHEN** a file stores the status `Reconciled` instead of `R` on a deposit of `50`
@@ -117,7 +124,7 @@ The application SHALL support splitting a transaction into category lines (`SPLI
 - Replacing a transaction's split lines SHALL, in one logical operation, remove the tag links of the split rows being removed, write the new split rows, and attach each new row's tags to it; no tag link SHALL be left pointing at a removed split row, and no tag given with a line SHALL be lost by the replacement.
 - When the replacement changes the set of split lines — a different count, or any category, amount, note or tag set that differs — the transaction's `LASTUPDATEDTIME` SHALL be set to the time of the replacement; an unchanged set SHALL NOT stamp it. (Desktop stamps every save of a transaction whose split lines carry tags, a side effect of recreating the rows; that side effect is not reproduced.)
 
-Traceability: [mmex/moneymanagerex/src/model/Model_Splittransaction.h](../../../mmex/moneymanagerex/src/model/Model_Splittransaction.h), [mmex/moneymanagerex/src/model/Model_Splittransaction.cpp](../../../mmex/moneymanagerex/src/model/Model_Splittransaction.cpp) (`update` compares the set and stamps; `remove` deletes the row's tag links), [mmex/moneymanagerex/src/splittransactionsdialog.cpp](../../../mmex/moneymanagerex/src/splittransactionsdialog.cpp) (the total is checked, lines without a category are dropped), [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (the amount follows the split total, one split collapses, transfers have no split button, tags re-attached to the new rows), [src/domain/rules/ledger.ts](../../../src/domain/rules/ledger.ts), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts).
+Traceability: [mmex/moneymanagerex/src/model/Model_Splittransaction.h](../../../mmex/moneymanagerex/src/model/Model_Splittransaction.h), [mmex/moneymanagerex/src/model/Model_Splittransaction.cpp](../../../mmex/moneymanagerex/src/model/Model_Splittransaction.cpp) (`update` compares the set and stamps; `remove` deletes the row's tag links), [mmex/moneymanagerex/src/splittransactionsdialog.cpp](../../../mmex/moneymanagerex/src/splittransactionsdialog.cpp) (the total is checked, lines without a category are dropped), [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (the amount follows the split total, one split collapses, transfers have no split button, tags re-attached to the new rows), [src/domain/rules/ledger.ts](../../../src/domain/rules/ledger.ts), [src/domain/rules/ledger-entry.ts](../../../src/domain/rules/ledger-entry.ts) (`splitSetChanged`), [src/domain/repos/ledger-statements.ts](../../../src/domain/repos/ledger-statements.ts), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts).
 
 #### Scenario: Splits shadow the parent category
 
@@ -269,7 +276,7 @@ Ledger records SHALL participate in the polymorphic extension mechanisms using r
 - Saving a transaction's tags SHALL replace the set of its tag links with the given set; when the set changed, the transaction's `LASTUPDATEDTIME` SHALL be set to the time of the save, and an unchanged set SHALL NOT stamp it.
 - Removing a transaction (hard delete or purge) SHALL remove its extension rows, per `domain-data-conventions`; a soft delete SHALL leave them in place.
 
-Traceability: [mmex/moneymanagerex/src/model/Model.cpp](../../../mmex/moneymanagerex/src/model/Model.cpp), [mmex/moneymanagerex/src/model/Model_Taglink.cpp](../../../mmex/moneymanagerex/src/model/Model_Taglink.cpp) (`update` replaces the links and calls `updateTimestamp` when the set changed), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts).
+Traceability: [mmex/moneymanagerex/src/model/Model.cpp](../../../mmex/moneymanagerex/src/model/Model.cpp), [mmex/moneymanagerex/src/model/Model_Taglink.cpp](../../../mmex/moneymanagerex/src/model/Model_Taglink.cpp) (`update` replaces the links and calls `updateTimestamp` when the set changed), [src/domain/rules/ledger-entry.ts](../../../src/domain/rules/ledger-entry.ts) (`tagSetChanged`), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts).
 
 #### Scenario: Extensions follow their transaction
 
@@ -299,7 +306,7 @@ The application SHALL refuse to save a transaction that desktop's entry dialog w
 - A `Transfer` SHALL carry an existing destination account different from its account, and its date SHALL NOT be earlier than the destination account's opening date.
 - Split lines SHALL satisfy Requirement "Split Transactions": none on a transfer, a category on each line, a total that is not negative.
 
-Traceability: [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`ValidateData`: the checks in this order, with the messages "Invalid value", "The opening date for the account is later than the date of this transaction", "Please specify which account the transfer is going to."), [mmex/moneymanagerex/src/mmTextCtrl.cpp](../../../mmex/moneymanagerex/src/mmTextCtrl.cpp) (`checkValue`: only a negative amount is rejected), [mmex/moneymanagerex/src/splittransactionsdialog.cpp](../../../mmex/moneymanagerex/src/splittransactionsdialog.cpp), [src/domain/rules/ledger.ts](../../../src/domain/rules/ledger.ts).
+Traceability: [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`ValidateData`: the checks in this order, with the messages "Invalid value", "The opening date for the account is later than the date of this transaction", "Please specify which account the transfer is going to."), [mmex/moneymanagerex/src/mmTextCtrl.cpp](../../../mmex/moneymanagerex/src/mmTextCtrl.cpp) (`checkValue`: only a negative amount is rejected), [mmex/moneymanagerex/src/splittransactionsdialog.cpp](../../../mmex/moneymanagerex/src/splittransactionsdialog.cpp), [src/domain/rules/ledger-entry.ts](../../../src/domain/rules/ledger-entry.ts) (`validateTransaction`), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts) (`LedgerValidationError`).
 
 #### Scenario: A transfer to the same account is refused
 
@@ -332,7 +339,7 @@ The application SHALL distinguish the conditions desktop asks the user to confir
 - **Different currencies**: the transaction is a `Transfer` between accounts of different currencies and no second amount was entered.
 - A save SHALL report every unacknowledged condition that applies, and SHALL write nothing until all of them are acknowledged.
 
-Traceability: [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`ValidateData`: "Lock transaction to date: %s … Do you want to continue?", "The transaction will exceed the account limit."; `OnOk`: "The two accounts have different currencies, but no advanced transaction is defined. Is this correct?"), [src/domain/rules/ledger.ts](../../../src/domain/rules/ledger.ts), [src/domain/rules/account.ts](../../../src/domain/rules/account.ts) (`breachesFloor`), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts).
+Traceability: [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`ValidateData`: "Lock transaction to date: %s … Do you want to continue?", "The transaction will exceed the account limit."; `OnOk`: "The two accounts have different currencies, but no advanced transaction is defined. Is this correct?"), [src/domain/rules/ledger-entry.ts](../../../src/domain/rules/ledger-entry.ts) (`confirmationsFor`), [src/domain/rules/account.ts](../../../src/domain/rules/account.ts) (`breachesFloor`), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts).
 
 #### Scenario: A new transaction inside the locked period is confirmed, not refused
 
@@ -357,6 +364,7 @@ Saving a transaction SHALL be one logical operation that writes the transaction,
 - A new transaction SHALL be inserted with `LASTUPDATEDTIME` set to the time of the save.
 - An edited transaction SHALL have `LASTUPDATEDTIME` set only when the saved record differs from the stored one in any column other than `LASTUPDATEDTIME`, or when its split set or tag set changed; a save that changes nothing SHALL leave the stamp as it was.
 - When the default-category mode is Last used and the transaction is a `Withdrawal` or `Deposit`, the save SHALL set its payee's default category to the transaction's category — `-1` for a split transaction — unless that category is hidden (`transaction-taxonomy`, Requirement "Payee Records").
+- A stored transaction linked to a stock or an asset SHALL NOT be saved through this operation; it is refused, and its editing belongs to `investment-tracking` and `asset-tracking`, as desktop opens such a row in its share or asset dialog.
 - Validation (Requirement "Transaction Entry Validation") and confirmations (Requirement "Transaction Entry Confirmations") SHALL be decided before anything is written.
 
 ```mermaid
@@ -372,7 +380,7 @@ flowchart TD
 ```
 *Caption: A save is refused, stopped for confirmation, or written whole.*
 
-Traceability: [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`OnOk`: the record, the split lines, their tags, the transaction's tags; `ValidateData`: the payee's category under Last used), [mmex/moneymanagerex/src/model/Model_Checking.cpp](../../../mmex/moneymanagerex/src/model/Model_Checking.cpp) (`save` stamps on insert or when the record differs and is not deleted), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts).
+Traceability: [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (`OnOk`: the record, the split lines, their tags, the transaction's tags; `ValidateData`: the payee's category under Last used), [mmex/moneymanagerex/src/model/Model_Checking.cpp](../../../mmex/moneymanagerex/src/model/Model_Checking.cpp) (`save` stamps on insert or when the record differs and is not deleted), [src/domain/rules/ledger-entry.ts](../../../src/domain/rules/ledger-entry.ts) (`transactionChanged`), [src/domain/repos/ledger-statements.ts](../../../src/domain/repos/ledger-statements.ts), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts) (`saveTransaction`).
 
 #### Scenario: A save that changes nothing does not stamp
 
@@ -388,6 +396,12 @@ Traceability: [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanag
 
 - **WHEN** the default-category mode is Last used and the user saves a withdrawal to the payee `Shop` under the visible category `Food`
 - **THEN** `Shop`'s default category SHALL be `Food` afterwards, written in the same operation
+
+#### Scenario: A linked transaction is refused
+
+- **WHEN** the application is asked to save a stored withdrawal whose `TOACCOUNTID` is `32701`
+- **THEN** the save SHALL be refused naming the transaction as linked
+- **AND** nothing SHALL be written
 
 #### Scenario: A new transaction and its split tags are one operation
 
@@ -406,7 +420,7 @@ The application SHALL read desktop's entry-default preferences from `SETTING_V1`
 - `TRANSACTION_USE_DATE_TIME`: desktop's boolean (`TRUE` or `FALSE`), absent meaning off; when off, transactions carry no entered time.
 - A new transaction's type SHALL default to `Withdrawal`.
 
-Traceability: [mmex/moneymanagerex/src/option.cpp](../../../mmex/moneymanagerex/src/option.cpp) (the five keys and their defaults), [mmex/moneymanagerex/src/option.h](../../../mmex/moneymanagerex/src/option.h) (`USAGE_TYPE`), [mmex/moneymanagerex/src/model/Model_Checking.cpp](../../../mmex/moneymanagerex/src/model/Model_Checking.cpp) (`getEmptyData`: the default date, status and type), [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (the default payee and transfer category), [src/domain/rules/metadata.ts](../../../src/domain/rules/metadata.ts), [src/domain/repos/metadata.ts](../../../src/domain/repos/metadata.ts), [src/domain/rules/ledger.ts](../../../src/domain/rules/ledger.ts).
+Traceability: [mmex/moneymanagerex/src/option.cpp](../../../mmex/moneymanagerex/src/option.cpp) (the five keys and their defaults), [mmex/moneymanagerex/src/option.h](../../../mmex/moneymanagerex/src/option.h) (`USAGE_TYPE`), [mmex/moneymanagerex/src/model/Model_Checking.cpp](../../../mmex/moneymanagerex/src/model/Model_Checking.cpp) (`getEmptyData`: the default date, status and type), [mmex/moneymanagerex/src/transdialog.cpp](../../../mmex/moneymanagerex/src/transdialog.cpp) (the default payee and transfer category), [src/domain/rules/metadata.ts](../../../src/domain/rules/metadata.ts), [src/domain/repos/metadata.ts](../../../src/domain/repos/metadata.ts), [src/domain/rules/ledger-entry.ts](../../../src/domain/rules/ledger-entry.ts) (`defaultTransactionDate`, `defaultStatusKey`).
 
 #### Scenario: The default date is today unless the preference says last used
 

@@ -88,6 +88,20 @@ describe('materializing a series with two split lines', () => {
     expect(statements[2]!.bind).toEqual([31, 40, null])
   })
 
+  // transaction-ledger (delta: desktop fidelity), Schema Fidelity and
+  // Transaction Types: the materialized row carries desktop's values, never NULL.
+  it('writes an empty deletion time and no NULL sentinel on the materialized row', async () => {
+    const [insert] = await scheduledRepo.materializeStatements(series(), '2026-08-09')
+    const columns = /\(([^)]*)\) VALUES/.exec(insert!.sql)![1]!.split(', ')
+    const value = (column: string) => insert!.bind![columns.indexOf(column)]
+    expect(value('DELETEDTIME')).toBe('')
+    expect(value('TOACCOUNTID')).toBe(-1)
+    expect(value('TOTRANSAMOUNT')).toBe(100)
+    expect(value('FOLLOWUPID')).toBe(-1)
+    expect(value('NOTES')).toBe('')
+    expect(insert!.bind!.some((bound) => bound === null || bound === undefined)).toBe(false)
+  })
+
   // After the first split is inserted, last_insert_rowid() is the split's own
   // key, so a second split using it would attach to the wrong row.
   it('never links a split through last_insert_rowid()', async () => {

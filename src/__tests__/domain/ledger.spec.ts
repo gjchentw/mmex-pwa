@@ -4,6 +4,7 @@ import {
   FOREIGN_SENTINEL,
   accountFlow,
   effectiveCategoryIds,
+  isForeignAsTransfer,
   isForeignTransaction,
   isPurgeable,
   isStatementLocked,
@@ -11,7 +12,7 @@ import {
   statusKey,
   statusName,
 } from '../../domain/rules/ledger'
-import { accountBalance } from '../../domain/rules/account'
+import { accountBalance, reconciledBalance } from '../../domain/rules/account'
 
 const transaction = (overrides: Partial<TransactionRecord> = {}): TransactionRecord => ({
   TRANSID: 1,
@@ -88,7 +89,7 @@ describe('ledger rules', () => {
       expect(accountFlow(transaction({ DELETEDTIME: '2026-08-01T10:00:00' }), 10)).toBe(0)
     })
 
-    // Requirement "Transfers and Cross-Currency Amounts" -- a self-transfer is a
+    // Requirement "Account Flow and Balance Contribution" -- a self-transfer is a
     // revaluation, not a movement.
     it('gives a self-transfer zero flow', () => {
       const revaluation = transaction({
@@ -112,6 +113,18 @@ describe('ledger rules', () => {
       transaction({ TRANSID: 3, TRANSCODE: 'Withdrawal', TRANSAMOUNT: 999, STATUS: 'V' }),
     ]
     expect(accountBalance(account, rows)).toBe(70)
+  })
+
+  // Requirement "Transaction Status Lifecycle", scenario "A stored display name
+  // counts as its key": every reader resolves the status the same way.
+  it('counts a status stored as its display name in the reconciled balance', () => {
+    const account = { ACCOUNTID: 10, INITIALBAL: 0 }
+    const rows = [
+      transaction({ TRANSID: 1, TRANSCODE: 'Deposit', TRANSAMOUNT: 50, STATUS: 'Reconciled' }),
+      transaction({ TRANSID: 2, TRANSCODE: 'Deposit', TRANSAMOUNT: 20, STATUS: 'R' }),
+      transaction({ TRANSID: 3, TRANSCODE: 'Deposit', TRANSAMOUNT: 9, STATUS: '' }),
+    ]
+    expect(reconciledBalance(account, rows)).toBe(70)
   })
 
   // Requirement "Split Transactions", scenario "Splits shadow the parent category".
@@ -150,6 +163,32 @@ describe('ledger rules', () => {
       expect(FOREIGN_SENTINEL.asIncomeExpense).toBe(32701)
       expect(FOREIGN_SENTINEL.asTransfer).toBe(32702)
     })
+
+    // Model_Checking::account_flow ignores the sentinels: a linked row moves its
+    // account's balance like any deposit or withdrawal (delta: desktop fidelity).
+    it('does not let a sentinel change the account flow', () => {
+      const asTransfer = transaction({
+        TRANSCODE: 'Withdrawal',
+        TRANSAMOUNT: 100,
+        TOACCOUNTID: 32702,
+      })
+      expect(accountFlow(asTransfer, 10)).toBe(-100)
+    })
+
+    // Model_Checking::foreignTransactionAsTransfer: what the sentinel excludes
+    // is income and expense aggregation. Scenario "An income-or-expense linked
+    // row is aggregated".
+    it('marks a linked row as a transfer by the 32702 sentinel or its own account', () => {
+      expect(isForeignAsTransfer(transaction({ TOACCOUNTID: 32702 }))).toBe(true)
+      expect(isForeignAsTransfer(transaction({ ACCOUNTID: 10, TOACCOUNTID: 10 }))).toBe(true)
+      expect(isForeignAsTransfer(transaction({ TOACCOUNTID: 32701 }))).toBe(false)
+      expect(isForeignAsTransfer(transaction({ TOACCOUNTID: -1 }))).toBe(false)
+      expect(isForeignAsTransfer(transaction({ TOACCOUNTID: null }))).toBe(false)
+      // A real transfer is never "foreign".
+      expect(
+        isForeignAsTransfer(transaction({ TRANSCODE: 'Transfer', ACCOUNTID: 10, TOACCOUNTID: 10 })),
+      ).toBe(false)
+    })
   })
 
   // Requirement "Statement Lock Enforcement", scenario "Locked transaction
@@ -184,6 +223,16 @@ describe('ledger rules', () => {
       const trashed = transaction({ DELETEDTIME: '2026-07-01T00:00:00' })
       expect(isPurgeable(trashed, 30, now)).toBe(true)
       expect(isPurgeable(trashed, 60, now)).toBe(false)
+    })
+
+    // Scenario "The cutoff is the retention period": desktop purges rows whose
+    // DELETEDTIME is at or before now(UTC) minus the retention (mmframe.cpp
+    // autocleanDeletedTransactions, LESS_OR_EQUAL).
+    it('purges at the cutoff second and not one second later', () => {
+      const at = new Date(Date.UTC(2026, 7, 31, 12, 0, 0))
+      expect(isPurgeable(transaction({ DELETEDTIME: '2026-08-01T12:00:00' }), 30, at)).toBe(true)
+      expect(isPurgeable(transaction({ DELETEDTIME: '2026-08-01T12:00:01' }), 30, at)).toBe(false)
+      expect(isPurgeable(transaction({ DELETEDTIME: '2026-07-31T23:59:59' }), 30, at)).toBe(true)
     })
 
     it('never purges a live row', () => {

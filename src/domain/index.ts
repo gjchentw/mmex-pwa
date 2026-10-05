@@ -16,6 +16,7 @@ export * as currencyRules from './rules/currency'
 export * as accountRules from './rules/account'
 export * as taxonomyRules from './rules/taxonomy'
 export * as ledgerRules from './rules/ledger'
+export * as ledgerEntryRules from './rules/ledger-entry'
 export * as scheduledRules from './rules/scheduled'
 export * as budgetRules from './rules/budget'
 export * as investmentRules from './rules/investment'
@@ -32,7 +33,13 @@ export {
 export { currencyRepo, currencyHistoryRepo, dayRateFor, rateContext } from './repos/currency'
 export { accountRepo } from './repos/account'
 export { categoryRepo, payeeRepo, tagRepo } from './repos/taxonomy'
-export { ledgerRepo, type LedgerQuery } from './repos/ledger'
+export {
+  LedgerConfirmationRequired,
+  LedgerLockedError,
+  LedgerValidationError,
+  ledgerRepo,
+  type LedgerQuery,
+} from './repos/ledger'
 export { scheduledRepo } from './repos/scheduled'
 export { budgetPeriodRepo, budgetRepo } from './repos/budget'
 export { stockRepo, stockHistoryRepo } from './repos/investment'

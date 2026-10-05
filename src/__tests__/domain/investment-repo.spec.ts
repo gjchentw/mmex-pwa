@@ -92,4 +92,26 @@ describe('recording a share trade', () => {
 
     expect(payeeBound()).toBe(42)
   })
+
+  // transaction-ledger (delta: desktop fidelity), Schema Fidelity and
+  // Transaction Types: the cash row goes through the ledger's normalization.
+  it('writes desktop values in the unused columns and an empty deletion time', async () => {
+    await stockRepo.recordTrade({
+      stockId: 7,
+      accountId: 10,
+      shares: 5,
+      price: 20,
+      commission: 1,
+      date: '2026-08-09',
+    })
+
+    const insert = fake.batches[0]![0]!
+    const columns = /\(([^)]*)\) VALUES/.exec(insert.sql)![1]!.split(', ')
+    const value = (column: string) => insert.bind![columns.indexOf(column)]
+    expect(value('DELETEDTIME')).toBe('')
+    expect(value('TOTRANSAMOUNT')).toBe(101)
+    expect(value('CATEGID')).toBe(-1)
+    expect(value('TRANSDATE')).toBe('2026-08-09T00:00:00')
+    expect(insert.bind!.some((bound) => bound === null || bound === undefined)).toBe(false)
+  })
 })

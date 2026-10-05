@@ -83,6 +83,9 @@ describe('polymorphic cleanup', () => {
   })
 })
 
+/** A stored, live row; the deletion paths read the rows they act on to honor the statement lock. */
+const liveRow = { TRANSID: 10, ACCOUNTID: 1, TRANSDATE: '2026-08-01T00:00:00', DELETEDTIME: '' }
+
 describe('ledger repository', () => {
   // Requirement "Atomic Multi-Table Operations", scenario "A failed cascade
   // leaves no partial state" -- the cascade must reach the client as one batch.
@@ -107,8 +110,9 @@ describe('ledger repository', () => {
   // Spec: transaction-ledger, requirement "Soft Delete, Trash, and Retention".
   it('trashes rather than deletes while a retention window applies', async () => {
     fake.rows.set('SELECT SETTINGVALUE', [{ SETTINGVALUE: '30' }])
+    fake.rows.set('FROM CHECKINGACCOUNT_V1 WHERE TRANSID IN', [liveRow])
 
-    await ledgerRepo.remove([10], new Date(Date.UTC(2026, 7, 9, 12, 0, 0)))
+    await ledgerRepo.remove([10], { now: new Date(Date.UTC(2026, 7, 9, 12, 0, 0)) })
 
     expect(fake.batches).toHaveLength(1)
     const [statement] = fake.batches[0]!
@@ -118,6 +122,7 @@ describe('ledger repository', () => {
 
   it('deletes outright when retention is zero', async () => {
     fake.rows.set('SELECT SETTINGVALUE', [{ SETTINGVALUE: '0' }])
+    fake.rows.set('FROM CHECKINGACCOUNT_V1 WHERE TRANSID IN', [liveRow])
 
     await ledgerRepo.remove([10])
 
@@ -138,7 +143,9 @@ describe('ledger repository', () => {
 
   // Spec: transaction-ledger, requirement "Statement Lock Enforcement".
   it('refuses to edit a row frozen by its account statement', async () => {
-    fake.rows.set('FROM ACCOUNTLIST_V1', [{ STATEMENTLOCKED: 1, STATEMENTDATE: '2026-06-30' }])
+    fake.rows.set('FROM ACCOUNTLIST_V1', [
+      { ACCOUNTID: 10, STATEMENTLOCKED: 1, STATEMENTDATE: '2026-06-30' },
+    ])
 
     await expect(
       ledgerRepo.assertEditable({
@@ -169,7 +176,7 @@ describe('derived cache write-back', () => {
       },
     ])
 
-    const statements = await stockRepo.recomputeStatements(1, new Date(2026, 7, 9))
+    const statements = await stockRepo.recomputeStatements(1, { now: new Date(2026, 7, 9) })
 
     expect(statements).toHaveLength(1)
     expect(statements[0]!.sql).toContain('UPDATE STOCK_V1')

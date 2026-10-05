@@ -13,12 +13,17 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './e2e',
   /*
-   * The taxonomy specs seed and read rows through the development-only /dev-seed
-   * route (transaction-taxonomy-surfaces, design D10), which the production
-   * preview build CI runs does not carry. They run against the dev server.
+   * These specs seed and read rows through the development-only /dev-seed route
+   * (transaction-taxonomy-surfaces, design D10), which the production preview
+   * build CI runs does not carry. They run against the dev server.
    */
   testIgnore: process.env.CI
-    ? ['**/categories.spec.ts', '**/payees.spec.ts', '**/tags.spec.ts']
+    ? [
+        '**/categories.spec.ts',
+        '**/payees.spec.ts',
+        '**/tags.spec.ts',
+        '**/ledger-maintenance.spec.ts',
+      ]
     : [],
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,

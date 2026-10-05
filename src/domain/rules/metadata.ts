@@ -38,6 +38,12 @@ export const SETTING_KEY = {
   showHiddenPayees: 'SHOW_HIDDEN_PAYEES',
   /** Desktop's default-category mode for payees (option.cpp USAGE_TYPE). */
   transactionCategoryNone: 'TRANSACTION_CATEGORY_NONE',
+  /** New-transaction defaults and the date-time switch (option.cpp; openspec: transaction-ledger, Transaction Entry Defaults). */
+  transactionDateDefault: 'TRANSACTION_DATE_DEFAULT',
+  transactionStatusDefault: 'TRANSACTION_STATUS_RECONCILED',
+  transactionPayeeDefault: 'TRANSACTION_PAYEE_NONE',
+  transactionTransferCategoryDefault: 'TRANSACTION_CATEGORY_TRANSFER_NONE',
+  transactionUseDateTime: 'TRANSACTION_USE_DATE_TIME',
 } as const
 
 /** Upstream defaults for the keys whose absence has a defined meaning. */
@@ -54,6 +60,13 @@ export const DEFAULTS = {
   defaultCategoryMode: 'lastUsed',
   /** Model_Category.cpp getString("CATEG_DELIMITER", ":"). */
   categoryDelimiter: ':',
+  /** option.cpp: date, status and payee default to NONE (0); the transfer category to LASTUSED (1). */
+  transactionDateDefault: 0,
+  transactionStatusDefault: 0,
+  transactionPayeeDefault: 0,
+  transactionTransferCategoryDefault: 1,
+  /** option.cpp getBool("TRANSACTION_USE_DATE_TIME", false). */
+  transactionUseDateTime: false,
   deletedTransactionRetainDays: 30,
   sharePrecision: 4,
   assetCompounding: 'Day',

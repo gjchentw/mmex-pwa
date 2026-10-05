@@ -8,8 +8,10 @@ import type {
   TransLinkRecord,
 } from '../records'
 import { positionWriteBack, tradeCashAmount, type LinkedTrade } from '../rules/investment'
+import { applyTransactionOverrides, type TransactionOverrides } from '../rules/ledger'
+import { normalizeTransaction } from '../rules/ledger-entry'
 import { extensionCleanupStatements } from './extensions'
-import { ledgerRepo } from './ledger'
+import { insertTransactionStatement } from './ledger-statements'
 
 /**
  * Stock positions and share trades (openspec: investment-tracking). The position
@@ -66,18 +68,29 @@ export const stockRepo = {
 
   /**
    * Statements refreshing the cached position fields. Folded into whichever
-   * operation invalidated them, never applied on its own afterwards.
+   * operation invalidated them, never applied on its own afterwards. `overrides`
+   * gives the state linked transactions will have once that operation has run
+   * -- trashed, restored, voided, or removed -- so the update can be built
+   * before the batch and ride in it.
    */
-  async recomputeStatements(stockId: number, now = new Date()): Promise<SqlStatement[]> {
+  async recomputeStatements(
+    stockId: number,
+    options: { now?: Date; overrides?: TransactionOverrides } = {},
+  ): Promise<SqlStatement[]> {
     const stock = await this.get(stockId)
     if (!stock) return []
-    const trades = await this.linkedTrades(stockId)
-    const values = positionWriteBack(stock, trades, now)
+    const trades = applyTransactionOverrides(
+      await this.linkedTrades(stockId),
+      (trade) => trade.transaction.TRANSID,
+      (trade, values) => ({ ...trade, transaction: { ...trade.transaction, ...values } }),
+      options.overrides,
+    )
+    const values = positionWriteBack(stock, trades, options.now ?? new Date())
     return [updateStatement('STOCK_V1', 'STOCKID', stockId, values)]
   },
 
   async recompute(stockId: number, now = new Date()): Promise<void> {
-    await db.mutate(await this.recomputeStatements(stockId, now))
+    await db.mutate(await this.recomputeStatements(stockId, { now }))
   },
 
   /** Positions affected by a set of ledger rows, so a change can refresh them. */
@@ -116,28 +129,31 @@ export const stockRepo = {
     const isBuy = input.shares >= 0
     const amount = tradeCashAmount(input.shares, input.price, input.commission)
 
+    // The cash row goes through the ledger's normalization, so every column a
+    // deposit or withdrawal leaves unused carries desktop's value and none is
+    // NULL: PAYEEID -1 when no payee is given, an empty DELETEDTIME (openspec:
+    // transaction-ledger, Transaction Types; investment-tracking, Share Trade Recording).
+    const { record } = normalizeTransaction(
+      {
+        accountId: input.accountId,
+        type: isBuy ? 'Withdrawal' : 'Deposit',
+        date: isoDatePart(input.date),
+        amount,
+        payeeId: input.payeeId,
+        categoryId: input.categoryId,
+        notes: input.notes,
+      },
+      {
+        account: null,
+        toAccount: null,
+        stored: null,
+        useDateTime: false,
+        categoryIds: new Set(),
+        payeeIds: new Set(),
+      },
+    )
     const statements: SqlStatement[] = [
-      ledgerRepo.addStatement(
-        {
-          ACCOUNTID: input.accountId,
-          TOACCOUNTID: null,
-          // PAYEEID is NOT NULL; desktop writes -1 for a trade with no payee.
-          PAYEEID: input.payeeId ?? -1,
-          TRANSCODE: isBuy ? 'Withdrawal' : 'Deposit',
-          TRANSAMOUNT: amount,
-          STATUS: '',
-          TRANSACTIONNUMBER: null,
-          NOTES: input.notes ?? null,
-          CATEGID: input.categoryId ?? null,
-          TRANSDATE: input.date,
-          LASTUPDATEDTIME: null,
-          DELETEDTIME: null,
-          FOLLOWUPID: null,
-          TOTRANSAMOUNT: amount,
-          COLOR: -1,
-        },
-        { now },
-      ),
+      insertTransactionStatement(record, now),
       {
         sql: `INSERT INTO TRANSLINK_V1 (CHECKINGACCOUNTID, LINKTYPE, LINKRECORDID)
               VALUES (last_insert_rowid(), ?, ?)`,

@@ -1,6 +1,6 @@
 import { enumCodec } from '../conventions'
 import type { AccountRecord, TransactionRecord } from '../records'
-import { accountFlow } from './ledger'
+import { accountFlow, reconciledFlow } from './ledger'
 
 /**
  * Pure account rules (openspec: account-management). The type strings and their
@@ -89,14 +89,17 @@ export const accountBalance = (
     account.INITIALBAL ?? 0,
   )
 
-/** Balance counting only reconciled rows. */
+/**
+ * Balance counting only reconciled rows. The status is read through the ledger's
+ * one interpretation, so a stored display name counts as its key (openspec:
+ * transaction-ledger, Transaction Status Lifecycle).
+ */
 export const reconciledBalance = (
   account: Pick<AccountRecord, 'ACCOUNTID' | 'INITIALBAL'>,
   transactions: readonly (Parameters<typeof accountFlow>[0] & Pick<TransactionRecord, 'STATUS'>)[],
 ): number =>
   transactions.reduce(
-    (sum, transaction) =>
-      transaction.STATUS === 'R' ? sum + accountFlow(transaction, account.ACCOUNTID) : sum,
+    (sum, transaction) => sum + reconciledFlow(transaction, account.ACCOUNTID),
     account.INITIALBAL ?? 0,
   )
 

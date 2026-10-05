@@ -58,6 +58,27 @@ describe('key placement', () => {
     expect(storeForKey('TRANSACTION_CATEGORY_NONE')).toBe('setting')
     expect(storeForKey('CATEG_DELIMITER')).toBe('infotable')
   })
+
+  // transaction-ledger (delta: desktop fidelity), Transaction Entry Defaults:
+  // desktop's names (option.cpp 501-541, 419), all preferences.
+  it('places the entry-default keys in the settings store under desktop names', () => {
+    expect(SETTING_KEY.transactionDateDefault).toBe('TRANSACTION_DATE_DEFAULT')
+    expect(SETTING_KEY.transactionStatusDefault).toBe('TRANSACTION_STATUS_RECONCILED')
+    expect(SETTING_KEY.transactionPayeeDefault).toBe('TRANSACTION_PAYEE_NONE')
+    expect(SETTING_KEY.transactionTransferCategoryDefault).toBe(
+      'TRANSACTION_CATEGORY_TRANSFER_NONE',
+    )
+    expect(SETTING_KEY.transactionUseDateTime).toBe('TRANSACTION_USE_DATE_TIME')
+    for (const key of [
+      'TRANSACTION_DATE_DEFAULT',
+      'TRANSACTION_STATUS_RECONCILED',
+      'TRANSACTION_PAYEE_NONE',
+      'TRANSACTION_CATEGORY_TRANSFER_NONE',
+      'TRANSACTION_USE_DATE_TIME',
+    ]) {
+      expect(storeForKey(key)).toBe('setting')
+    }
+  })
 })
 
 describe('language mapping', () => {
@@ -233,5 +254,38 @@ describe('changing the base currency', () => {
     expect(batch[0]!.bind).toEqual(['BASECURRENCYID', '7'])
     expect(batch[1]!.sql).toBe('UPDATE CURRENCYFORMATS_V1 SET BASECONVRATE = 1')
     expect(batch[2]!.sql).toBe('DELETE FROM CURRENCYHISTORY_V1')
+  })
+})
+
+// transaction-ledger (delta: desktop fidelity), Transaction Entry Defaults.
+describe('entry-default file facts', () => {
+  it('reads absent keys with desktop defaults', async () => {
+    expect(await fileFacts.transactionDateDefault()).toBe(0)
+    expect(await fileFacts.transactionStatusDefault()).toBe(0)
+    expect(await fileFacts.transactionPayeeDefault()).toBe(0)
+    expect(await fileFacts.transactionTransferCategoryDefault()).toBe(1)
+    expect(await fileFacts.transactionUseDateTime()).toBe(false)
+  })
+
+  it('reads stored values as desktop reads them', async () => {
+    fake.setting.set('TRANSACTION_DATE_DEFAULT', '1')
+    fake.setting.set('TRANSACTION_STATUS_RECONCILED', '4')
+    fake.setting.set('TRANSACTION_PAYEE_NONE', '2')
+    fake.setting.set('TRANSACTION_CATEGORY_TRANSFER_NONE', '0')
+    fake.setting.set('TRANSACTION_USE_DATE_TIME', 'TRUE')
+    expect(await fileFacts.transactionDateDefault()).toBe(1)
+    expect(await fileFacts.transactionStatusDefault()).toBe(4)
+    expect(await fileFacts.transactionPayeeDefault()).toBe(2)
+    expect(await fileFacts.transactionTransferCategoryDefault()).toBe(0)
+    expect(await fileFacts.transactionUseDateTime()).toBe(true)
+  })
+
+  it('falls back on unrecognized values', async () => {
+    fake.setting.set('TRANSACTION_STATUS_RECONCILED', '9')
+    fake.setting.set('TRANSACTION_PAYEE_NONE', 'abc')
+    fake.setting.set('TRANSACTION_USE_DATE_TIME', '1')
+    expect(await fileFacts.transactionStatusDefault()).toBe(0)
+    expect(await fileFacts.transactionPayeeDefault()).toBe(0)
+    expect(await fileFacts.transactionUseDateTime()).toBe(false)
   })
 })

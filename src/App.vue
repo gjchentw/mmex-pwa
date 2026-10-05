@@ -201,6 +201,7 @@ import { useSettingsStore } from './stores/settings-store'
 import { LOCALE_LABELS, SUPPORTED_LOCALES, isSupportedLocale } from './i18n'
 import { useGoogleAuthStore } from './stores/google-auth-store'
 import { useDriveSyncStore } from './stores/drive-sync-store'
+import { useMaintenanceStore } from './stores/maintenance-store'
 import ConfirmDestroyDialog from './components/database/ConfirmDestroyDialog.vue'
 import DriveFileBrowserDialog from './components/database/DriveFileBrowserDialog.vue'
 import SyncConflictDialog from './components/database/SyncConflictDialog.vue'
@@ -241,6 +242,11 @@ export default {
       },
       { immediate: true },
     )
+
+    // The trash is purged once the database is ready and synchronization has
+    // settled, at most once a day (openspec: transaction-ledger, Soft Delete,
+    // Trash, and Retention).
+    useMaintenanceStore().start()
 
     const syncStatusIcon = computed(
       () =>
