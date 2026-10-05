@@ -4,7 +4,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-10-05
 
-Related artifacts: [design.md](./design.md) (how), [specs/transaction-ledger/spec.md](./specs/transaction-ledger/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../AGENTS.md).
+Related artifacts: [design.md](./design.md) (how), [specs/transaction-ledger/spec.md](./specs/transaction-ledger/spec.md) (capability delta), [tasks.md](./tasks.md) (implementation steps). Governed by [AGENTS.md](../../../../AGENTS.md).
 
 ## Why
 
@@ -43,9 +43,9 @@ The register and its entry dialog would be built directly on these paths. This c
 
 ## Impact
 
-- Domain: [src/domain/rules/ledger.ts](../../../src/domain/rules/ledger.ts), [src/domain/repos/ledger.ts](../../../src/domain/repos/ledger.ts), [src/domain/rules/account.ts](../../../src/domain/rules/account.ts) (`reconciledBalance`), [src/domain/rules/metadata.ts](../../../src/domain/rules/metadata.ts) and [src/domain/repos/metadata.ts](../../../src/domain/repos/metadata.ts) (five keys), [src/domain/repos/scheduled.ts](../../../src/domain/repos/scheduled.ts) and [src/domain/repos/investment.ts](../../../src/domain/repos/investment.ts) (new rows through the corrected write path), [src/domain/repos/asset.ts](../../../src/domain/repos/asset.ts) (recomputation over a post-state).
-- Application wiring, no visible surface: a maintenance store that runs the daily purge, started from [src/App.vue](../../../src/App.vue).
-- Tests: rule tests and fake-database statement tests under [src/__tests__/domain/](../../../src/__tests__/domain/), red first.
+- Domain: [src/domain/rules/ledger.ts](../../../../src/domain/rules/ledger.ts), [src/domain/repos/ledger.ts](../../../../src/domain/repos/ledger.ts), [src/domain/rules/account.ts](../../../../src/domain/rules/account.ts) (`reconciledBalance`), [src/domain/rules/metadata.ts](../../../../src/domain/rules/metadata.ts) and [src/domain/repos/metadata.ts](../../../../src/domain/repos/metadata.ts) (five keys), [src/domain/repos/scheduled.ts](../../../../src/domain/repos/scheduled.ts) and [src/domain/repos/investment.ts](../../../../src/domain/repos/investment.ts) (new rows through the corrected write path), [src/domain/repos/asset.ts](../../../../src/domain/repos/asset.ts) (recomputation over a post-state).
+- Application wiring, no visible surface: a maintenance store that runs the daily purge, started from [src/App.vue](../../../../src/App.vue).
+- Tests: rule tests and fake-database statement tests under [src/__tests__/domain/](../../../../src/__tests__/domain/), red first.
 - No schema change. Stored data: nothing is rewritten in bulk; a row this application wrote with `DELETEDTIME` `NULL` stays readable by both applications and becomes the empty string the next time it is saved, as desktop itself does to rows older than its own soft-delete migration.
 
 ## Out of Scope
@@ -55,4 +55,4 @@ The register and its entry dialog would be built directly on these paths. This c
 - Scheduled projections in the register — Phase 6 (operator decision 2026-10-03).
 - The advanced filter, bulk edit, reports, import and export — long-lived non-scope in the capability map.
 - Editing rules for transactions linked to stocks and assets — `investment-tracking` and `asset-tracking`, Phases 9 and 10.
-- Budget actuals: the audit found [src/domain/repos/budget.ts](../../../src/domain/repos/budget.ts) `actualsByCategory` counting void rows and transfers and not excluding linked rows marked as transfers. It belongs to `budget-management` (Phase 7) and is recorded in the capability map at archive for that phase's audit; this change supplies the predicate it will need.
+- Budget actuals: the audit found [src/domain/repos/budget.ts](../../../../src/domain/repos/budget.ts) `actualsByCategory` counting void rows and transfers and not excluding linked rows marked as transfers. It belongs to `budget-management` (Phase 7) and is recorded in the capability map at archive for that phase's audit; this change supplies the predicate it will need.
